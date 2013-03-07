@@ -1,0 +1,30 @@
+"clade";"species";"kcal.per.g";"perc.fat";"perc.protein";"perc.lactose";"mass";"neocortex.perc"
+"Strepsirrhine";"Eulemur fulvus";0.49;16.6;15.42;67.98;1.95;55.16
+"Strepsirrhine";"E macaco";0.51;19.27;16.91;63.82;2.09;NA
+"Strepsirrhine";"E mongoz";0.46;14.11;16.85;69.04;2.51;NA
+"Strepsirrhine";"E rubriventer";0.48;14.91;13.18;71.91;1.62;NA
+"Strepsirrhine";"Lemur catta";0.6;27.28;19.5;53.22;2.19;NA
+"New World Monkey";"Alouatta seniculus";0.47;21.22;23.58;55.2;5.25;64.54
+"New World Monkey";"A palliata";0.56;29.66;23.46;46.88;5.37;64.54
+"New World Monkey";"Cebus apella";0.89;53.41;15.8;30.79;2.51;67.64
+"New World Monkey";"Saimiri boliviensis";0.91;46.08;23.34;30.58;0.71;NA
+"New World Monkey";"S sciureus";0.92;50.58;22.33;27.09;0.68;68.85
+"New World Monkey";"Cebuella pygmaea";0.8;41.35;20.85;37.8;0.12;58.85
+"New World Monkey";"Callimico goeldii";0.46;3.93;25.3;70.77;0.47;61.69
+"New World Monkey";"Callithrix jacchus";0.71;38.38;20.09;41.53;0.32;60.32
+"New World Monkey";"Leontopithecus rosalia";0.71;36.9;21.27;41.83;0.6;NA
+"Old World Monkey";"Chlorocebus pygerythrus";0.73;39.17;14.65;46.18;3.47;NA
+"Old World Monkey";"Miopithecus talpoin";0.68;40.15;18.08;41.77;1.55;69.97
+"Old World Monkey";"M fuscata";0.72;53.05;13;33.95;7.08;NA
+"Old World Monkey";"M mulatta";0.97;55.51;13.17;31.32;3.24;70.41
+"Old World Monkey";"M sinica";0.79;48.9;13.91;37.19;7.94;NA
+"Old World Monkey";"Papio spp";0.84;54.31;10.97;34.72;12.3;73.4
+"Ape";"Nomascus concolor";0.48;15.96;12.52;71.52;7.59;NA
+"Ape";"Hylobates lar";0.62;34.51;12.57;52.92;5.37;67.53
+"Ape";"Symphalangus syndactylus";0.51;26.42;13.46;60.12;10.72;NA
+"Ape";"Pongo pygmaeus";0.54;37.78;7.37;54.85;35.48;71.26
+"Ape";"Gorilla gorilla gorilla";0.49;27.18;16.29;56.53;79.43;72.6
+"Ape";"G gorilla beringei";0.53;30.59;20.77;48.64;97.72;NA
+"Ape";"Pan paniscus";0.48;21.18;11.68;67.14;40.74;70.24
+"Ape";"P troglodytes";0.55;36.84;9.54;53.62;33.11;76.3
+"Ape";"Homo sapiens";0.71;50.49;9.84;39.67;54.95;75.49

@@ -1,0 +1,10 @@
+Package: rethinking
+Type: Package
+Title: Statistical Rethinking book package
+Version: 1.10
+Date: 2012-09-27
+Author: Richard McElreath
+Maintainer: Richard McElreath <mcelreath@ucdavis.edu>
+Depends: MASS, bbmle, coda
+Description: Utilities for fitting and comparing models
+License: GPL version 2 or newer
