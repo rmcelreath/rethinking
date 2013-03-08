@@ -19,7 +19,7 @@ make.grid <- function( n ) {
     c(num.rows,num.cols)
 }
 
-dens <- function( x , adj=0.1 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , ...) {
+dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , ...) {
     the.class <- class(x)[1]
     if ( the.class=="data.frame" ) {
         # full posterior
@@ -33,19 +33,10 @@ dens <- function( x , adj=0.1 , norm.comp=FALSE , main="" , show.HPDI=FALSE , sh
         # vector
         if ( rm.na==TRUE ) x <- x[ !is.na(x) ]
         thed <- density(x,adjust=adj)
-        if ( show.HPDI==FALSE )
-            plot( thed , main=main , ... )
-        else
-            plot( thed , main=main , type="n" , ... )
+        plot( thed , main=main , ... )
         if ( show.HPDI != FALSE ) {
             hpd <- HPDI( x , prob=show.HPDI )
-            i <- which( thed$x >= hpd[1] & thed$x <= hpd[2] )
-            b.low <- min( i )
-            b.hi <- max( i )
-            for ( j in i ) {
-                lines( c( thed$x[j] , thed$x[j] ) , c( 0 , thed$y[j] ) , col=col.alpha("slateblue",0.2) )
-            }
-            lines( thed$x , thed$y )
+            shade( thed , hpd )
         }
         if ( norm.comp==TRUE ) {
             mu <- mean(x)
@@ -1144,7 +1135,18 @@ shade <- function( object , lim , label=NULL , col="#00000066" , border=NA , ...
         x <- object$x[ object$x>=from & object$x<=to ]
         y <- object$y[ object$x>=from & object$x<=to ]
     }
-    polygon( c( x , to , from ) , c( y , 0 , 0 ) , col=col , border=border , ... )
+    if ( class(object)=="matrix" & length(dim(object))==2 ) {
+        # matrix defining confidence region around a curve
+        y <- c( object[1,] , object[2,][ncol(object):1] ) # reverse second row
+        x <- c( lim , lim[length(lim):1] ) # lim needs to be x-axis values
+    }
+    # draw
+    if ( class(object)=="matrix" ) {
+        polygon( x , y , col=col , border=border , ... )
+    } else {
+        polygon( c( x , to , from ) , c( y , 0 , 0 ) , col=col , border=border , ... )
+    }
+    # label?
     if ( !is.null(label) ) {
         lx <- mean(x)
         ly <- max(y)/2
