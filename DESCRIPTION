@@ -5,6 +5,15 @@ Version: 1.11
 Date: 2012-09-27
 Author: Richard McElreath
 Maintainer: Richard McElreath <mcelreath@ucdavis.edu>
-Depends: MASS, bbmle, coda
+Depends:
+    MASS,
+    bbmle,
+    coda
 Description: Utilities for fitting and comparing models
+<<<<<<< HEAD
 License: GPLv3
+=======
+License: GPL version 2 or newer
+Collate:
+    'rethinking_utils.r'
+>>>>>>> 2736e5bdc909542a79e08ad6922b529781c864fd
