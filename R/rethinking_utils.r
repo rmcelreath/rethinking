@@ -68,7 +68,6 @@ chainmode <- function( chain , ... ) {
 # highest posterior density interval, sensu Box and Tiao
 # requires coda library
 HPDI <- function( samples , prob=0.95 ) {
-    require(coda)
     class.samples <- class(samples)[1]
     coerce.list <- c( "numeric" , "matrix" , "data.frame" , "integer" )
     if ( class.samples %in% coerce.list ) {
