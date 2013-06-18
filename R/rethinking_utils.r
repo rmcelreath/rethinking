@@ -1,61 +1,24 @@
 # various utility functions
 
-#' default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
-#'@export
+# default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
 blank <- function(ex=1) quartz("myquartz",width=3.5*ex,height=4*ex)
 
-#' convenience function for choosing a csv file
-#'@export
+# convenience function for choosing a csv file
 choose.csv <- function( ... ) read.csv( file=file.choose() , ... )
 
-#' bound a list of real values on either side
-#'@export
+# bound a list of real values on either side
 fclip <- function( x , xmin=NULL , xmax=NULL ) {
     if ( !is.null(xmin) ) x <- ifelse( x < xmin , xmin , x )
     if ( !is.null(xmax) ) x <- ifelse( x > xmax , xmax , x )
     x
 }
 
-#'@export
 make.grid <- function( n ) {
     num.rows <- floor( sqrt(n) )
     num.cols <- ceiling(n/num.rows)
     c(num.rows,num.cols)
 }
 
-
-
-#' Density plots
-#' 
-#' Convenient interface for plotting density estimates.
-#' 
-#' This function merely provides a convenient interface for plotting density
-#' estimates produced by \code{density}. It handles both single vectors and
-#' multiple vectors, contained within a data frame.
-#' 
-#' Highest Posterior Density Intervals (HPDI) are calculated by
-#' \code{HPDinterval} in the \code{coda} package.
-#' 
-#' @param x Vector of values to construct density from, or data frame. If
-#' \code{x} is a data frame, then \code{dens} plots a grid of densities, one
-#' for each column in \code{x}.
-#' @param adj width of density kernal.
-#' @param norm.comp If \code{TRUE}, overlays normal density comparison.
-#' @param show.HPDI If a numeric value, displays HPDI of same width. For
-#' example, \code{show.HPDI=0.95} shows a 95 percent HPDI inside the density.
-#' @param show.zero If \code{TRUE}, draws a vertical line at location of zero
-#' on horizonal axis.
-#' @param ... Other parameters to pass to \code{density}, which constructs the
-#' density estimates.
-
-#' @author Richard McElreath
-#' @seealso \code{\link{density}}, \code{\link{HPDinterval}}
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#'
-#'@export
 dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , ...) {
     the.class <- class(x)[1]
     if ( the.class=="data.frame" ) {
@@ -88,29 +51,6 @@ dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , sh
 }
 
 # just converts x,y,z lists of same length to a matrix for contour to plot
-
-
-#' Contour plot from equal length x,y,z vectors
-#' 
-#' Provides an interface to use \code{contour} by providing three equal length
-#' vectors for x, y and z coordinates.
-#' 
-#' This function merely constructs a matrix suitable for \code{contour}, using
-#' x, y and z coordinates.
-#' 
-#' @param x vector of x values
-#' @param y vector of y values
-#' @param z vector of z values
-#' @param ... other parameters to pass to \code{contour}
-
-#' @author Richard McElreath
-#' @seealso \code{\link{contour}}
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#'
-#'@export
 contour.xyz <- function( x , y , z , ... ) {
     ux <- unique(x)
     uy <- unique(y)
@@ -120,25 +60,6 @@ contour.xyz <- function( x , y , z , ... ) {
 }
 
 # finds mode of a continuous density
-
-
-#' Find mode of a continuous density estimate
-#' 
-#' Returns estimated mode of a density computed from samples.
-#' 
-#' This function just finds the x value that maximizes the y density in the
-#' density estimate.
-#' 
-#' @param chain Values, e.g. sampled from a posterior via MCMC
-#' @param ... Optional arguments passed to density calculation
-
-#' @author Richard McElreath
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#' 
-#'@export
 chainmode <- function( chain , ... ) {
     dd <- density(chain , ...)
     dd$x[which.max(dd$y)]
@@ -146,31 +67,6 @@ chainmode <- function( chain , ... ) {
 
 # highest posterior density interval, sensu Box and Tiao
 # requires coda library
-
-
-#' Confidence/credible intervals from samples
-#' 
-#' These functions compute highest posterior density (HPDI) and percentile
-#' (PCI) confidence intervals, using samples from the posterior density.
-#' 
-#' Highest Posterior Density Intervals (HPDI) are calculated by
-#' \code{\link{HPDinterval}} in the \code{coda} package.
-#' 
-#' Percentile intervals (PCI) use \code{\link{quantile}} and assign equal mass
-#' to each tail.
-#' 
-#' @aliases PCI
-#' @param samples Vector of parameter values
-#' @param prob interval probability mass
-
-#' @author Richard McElreath
-#' @seealso \code{\link{HPDinterval}}
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#' 
-#'@export
 HPDI <- function( samples , prob=0.95 ) {
     require(coda)
     class.samples <- class(samples)[1]
@@ -209,65 +105,23 @@ col.desat <- function( acol , amt=0.5 ) {
     hsv( ahsv[1] , ahsv[2] , ahsv[3] )
 }
 
-
-
-#' Color utility functions
-#' 
-#' Functions for calculating transparent and desaturated colors.
-#' 
-#' These functions allow for calculating transparency and desaturation for
-#' colors. \code{col.alpha} makes a base color transparent, while
-#' \code{col.desat} makes a color have less saturation.
-#' 
-#' \code{col.dist} is used to make a list of transparent colors of differing
-#' alpah level. The levels are chosen based upon Gaussian distance from a
-#' chosen value, \code{mu}, with a chosen width of the function that determines
-#' how quickly colors become fully transparent, \code{sd}. For example, if
-#' \code{x} contains a column of data, then \code{col.dist} will return a
-#' vector of same length with transparency increasing as each value in \code{x}
-#' is distant from \code{mu}. This is useful for plotting data that emphasize
-#' points near some value or values.
-#' 
-#' @aliases col.alpha col.desat col.dist
-#' @param acol A color name or RGB color
-#' @param alpha amount of transparency to apply, where 1 means fully
-#' transparent
-#' @param amt amount of desaturation of color to apply, where 1 means totally
-#' desaturated (grayscale)
-#' @param x A vector of values to use for calculating distances. See details
-#' below.
-#' @param mu Value (or vector of values) to use for calculating distances
-#' @param sd Standard deviation of distance function used to calculate
-#' transparency
-#' @param col A color to apply transparency to, based on distance
-#' @author Richard McElreath
-#' @seealso \code{\link{col2rgb}}, \code{\link{rgb2hsv}}, \code{\link{rgb}}
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#' 
-#'@export
 col.alpha <- function( acol , alpha=0.2 ) {
     acol <- col2rgb(acol)
     acol <- rgb(acol[1]/255,acol[2]/255,acol[3]/255,alpha)
     acol
 }
 
-#' @export
 col.dist <- function( x , mu=0 , sd=1 , col="slateblue" ) {
     cols <- sapply( x , function(z) exp(-(z-mu)^2/sd) )
     cols <- sapply( cols , function(z) col.alpha(col,z) )
     cols
 }
 
-#' @export
 se <- function( model ) {
     sqrt( diag( vcov(model) ) )
 }
 
-#' function for plotting "naive" posteriors and 95% confints
-#'@export
+# function for plotting "naive" posteriors and 95% confints
 show.naive.posterior <- function( est , se , model=NULL , level=0.95 , xlab="estimate" , ylab="likelihood" , npts=1000 , ciy=NULL , show.density=TRUE , show.ci=TRUE , zero.lines=TRUE , label=NULL , cols=NULL , lwidths=NULL , ... ) {
     if ( !is.null(model) ) {
         f.found.class <- FALSE
@@ -351,8 +205,7 @@ show.naive.posterior <- function( est , se , model=NULL , level=0.95 , xlab="est
     }
 }
 
-#' simple histogram
-#'@export
+# simple histogram
 simplehist <- function( x , ylab="Frequency" , xlab="Count" , ycounts=TRUE , adjust=1 , lcol="black" , bins=NULL , show.counts=0 , xlim=NULL , ylim=NULL , ... ) {
     # first, check if integers only or continuous.
     freqs <- {}
@@ -397,8 +250,7 @@ simplehist <- function( x , ylab="Frequency" , xlab="Count" , ycounts=TRUE , adj
     
 }
 
-#' quadratic estimate confidence intervals from means and standard errors
-#'@export
+# quadratic estimate confidence intervals from means and standard errors
 confint.quad <- function( model=NULL , est , se , level=0.95 ) {
     if ( !is.null(model) ) {
         found.class <- FALSE
@@ -428,8 +280,7 @@ confint.quad <- function( model=NULL , est , se , level=0.95 ) {
     ci
 }
 
-#' Type S error function
-#'@export
+# Type S error function
 type.s <- function( est , se , posterior=NULL ) {
     n <- length(est)
     if ( is.null(posterior) ) {
@@ -441,8 +292,7 @@ type.s <- function( est , se , posterior=NULL ) {
     pr.s
 }
 
-#' my model summary function, précis
-#'@export
+# my model summary function, précis
 precis.whitelist <- data.frame( 
     class=c("lm","glm","mle2","mer","bmer","polr","data.frame","clmm","clmm2","list","stanfit","lmerMod","glmerMod") , 
     coef.method=c("coef","coef","coef","fixef.plus","fixef.plus","polr","chain","coef","coef","mcarray","stanfit","fixef.plus","fixef.plus") , 
@@ -450,44 +300,13 @@ precis.whitelist <- data.frame(
     nobs.method=c("nobs","nobs","mle2","mer","mer","nobs","chain","nobs","nobs","chain","stanfit","mer","mer")
 )
 
-#' precis class definition and show method
-#'@export
+# precis class definition and show method
 setClass( "precis" , representation( output="data.frame" , digits="numeric" ) )
-#'@export
 precis.show <- function( object ) {
     print( round( object@output , object@digits ) )
 }
 setMethod( "show" , signature=(x="precis") , function(object) precis.show(object) )
 
-
-
-#' Precis of model fit
-#' 
-#' Displays concise parameter estimate information for an existing model fit.
-#' 
-#' Creates a table of estimates and standard errors, with optional confidence
-#' intervals and Type-S error probabilities. Confidence intervals are quadratic
-#' estimates, derived from standard errors. Type-S probabilities are also
-#' derived from normal approximation to posterior of each parameter.
-#' 
-#' Supported model classes include \code{lm}, \code{mle2}, \code{mer}, and
-#' \code{polr}. Can also provide expected value, standard deviation, and HPDI
-#' columns for a data frame, on the assumption that the columns in the data
-#' frame are the product of a Markov chain.
-#' 
-#' @param model Fit model object
-#' @param type.s Show Type-S error probabilities for each estimate
-#' @param ci Show quadratic estimate confidence intervals
-#' @param level Width of confidence intervals
-#' @return A data frame with a row for each parameter.
-#' @author Richard McElreath
-#' @seealso \code{\link{summary}}
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#'
-#'@export
 precis <- function( model , type.s=FALSE , ci=TRUE , level=0.95 , digits=2 , warn=TRUE ) {
     the.class <- class(model)[1]
     found.class <- FALSE
@@ -530,47 +349,6 @@ precis <- function( model , type.s=FALSE , ci=TRUE , level=0.95 , digits=2 , war
 
 # convenience wrapper for sampling from naive posterior into a data frame
 # also capable of averaging over models, if given a list() as first argument
-
-
-#' Samples from quadratic posterior densities of models
-#' 
-#' Samples from the posterior density of a fit model or models, assuming
-#' multivariate normal density and weak priors.
-#' 
-#' This function provides a way to draw parameter values from a multivariate
-#' normal posterior density, estimated from the maximum likelihood estimates
-#' and variance-covariance (\code{vcov}) of a fit model or models.
-#' 
-#' When passing a single fit model object, the function returns a data frame in
-#' which each row is a sample and each column is a parameter.
-#' 
-#' When passing a list of fit model objects, the function returns a data frame
-#' contaiing samples from the join posterior across model families. The
-#' fraction of rows drawn from a specific model family is determined by the
-#' \code{method} parameter. BIC, AIC, or AICc are used to compute approximate
-#' posterior probabilities of each model family, and the total samples \code{n}
-#' is proportioned according to these estimates.
-#' 
-#' @param model A fit model object
-#' @param models A list of fit models of the same class
-#' @param n Number of samples to draw from joint posterior
-#' @param method If passing a list of models, method for computing posterior
-#' probability of each model family.
-#' @param nobs Number of observations used to fit model or all models in list.
-#' Sometimes needed for \code{method} values, like AICc.
-#' @param add.names Adds a column of model names, when passing a list of models
-#' @param fill.na Fills missing values with 0, by default, for model families
-#' that do not contain a given parameter. Useful for linear models. Hazardous
-#' for non-linear ones.
-
-#' @author Richard McElreath
-#' @seealso \code{\link{mvrnorm}}
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#'
-#'@export
 sample.naive.posterior <- function( model , n=10000 , clean.names=TRUE , method="AICc" , nobs=0 , add.names=FALSE , fill.na=0 , verbose=FALSE ) {
     require(MASS)
     require(bbmle)
@@ -717,33 +495,15 @@ mcmcpairs <- function( posterior , cex=0.3 , pch=16 , col=col.alpha("slateblue",
     pairs( posterior , cex=cex , pch=pch , col=col , upper.panel=panel.2d , lower.panel=panel.cor , diag.panel=panel.dens , ... )
 }
 
-#' convert to sigma from tau
-#'@export
+# convert to sigma from tau
 tau2sig <- function( tau ) 1/abs(tau)
 
-#' Gaussian density that takes tau instead of sigma
-#'@export
+# Gaussian density that takes tau instead of sigma
 dnormtau <- function( x , mean=0 , tau=1 , log=FALSE ) dnorm( x , mean=mean , sd=tau2sig( tau ) , log=log )
 
-#'@export
 rnormtau <- function( n , mean=0 , tau=1 ) rnorm( n=n , mean=mean , sd=tau2sig(tau) )
 
 ####
-
-
-#' Rethinking utility functions
-#' 
-#' Various utility functions including in the book package.
-#' 
-#' 
-#' @aliases se
-#' @author Richard McElreath
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#'
-#'@export
 xcoef <- function( model ) {
     the.class <- class(model)[1]
     the.method <- precis.whitelist$coef.method[ precis.whitelist$class==the.class ]
@@ -881,8 +641,7 @@ xnobs <- function( model ) {
     result
 }
 
-#' row-by-row matrix formatting function
-#'@export
+# row-by-row matrix formatting function
 rrformat <- function( matrix , digits=2 , width=7 ) {
     if ( length(digits)==1 ) digits <- rep(digits,nrow(matrix))
     result <- matrix
@@ -892,8 +651,7 @@ rrformat <- function( matrix , digits=2 , width=7 ) {
     result
 }
 
-#' coeftab class definition and show method
-#'@export
+# coeftab class definition and show method
 setClass( "coeftab" , representation( coefs="matrix" , nobs="numeric" , AIC="numeric" , digits="numeric" , width="numeric" ) )
 coeftab.show <- function( object ) {
     result <- object@coefs
@@ -904,32 +662,8 @@ coeftab.show <- function( object ) {
     coefs <- rrformat( result , digits=object@digits , width=object@width )
     print( coefs , quote=FALSE , justify="right" )
 }
-#'@export
 setMethod( "show" , signature=(x="coeftab") , function(object) coeftab.show(object) )
 
-
-
-#' Coefficient tables
-#' 
-#' Returns a table of model coefficients in rows and models in columns.
-#' 
-#' This function provides a way to compare estimates across models.
-#' 
-#' @param ... A series of fit models, separated by commas
-#' @param se Include standard errors in table?
-#' @param se.inside Print standard errors in same cell as estimates
-#' @param nobs Print number of observations for each model?
-#' @param digits Number of digits to round numbers to
-#' @param rotate If TRUE, rows are models and columns are coefficients
-#' @param compare Add AICc information?
-
-#' @author Richard McElreath
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#' 
-#'@export
 coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , width=7 , rotate=FALSE , compare=FALSE ) {
     
     # se=TRUE outputs standard errors
@@ -1025,10 +759,10 @@ coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , w
 }
 
 
-#' take a fit lm object and return a fit mle2 object with same model, data
-#' uses estimates from lm as starting values for mle2
-#' uses do.call()
-#'@export
+######
+# take a fit lm object and return a fit mle2 object with same model, data
+# uses estimates from lm as starting values for mle2
+# uses do.call()
 lm.to.mle2 <- function( model , data=NULL , tau=TRUE , skip.hessian=FALSE ) {
     if ( class(model)[1] == "formula" ) {
         # passed formula directly, so need to fit it ourselves
@@ -1104,8 +838,7 @@ lm.to.mle2 <- function( model , data=NULL , tau=TRUE , skip.hessian=FALSE ) {
 # q is approximating function
 #DKL <- function( p , q ) sum( p * log( p / q ) )
 
-#' ordered categorical density functions
-#'@export
+# ordered categorical density functions
 logistic <- function( x ) {
     p <- exp( x ) / ( 1 + exp( x ) )
     p <- ifelse( x==Inf , 1 , p )
@@ -1126,30 +859,6 @@ pordlogit <- function( x , a , phi , log=FALSE ) {
     p
 }
 
-
-
-#' Ordered categorical log-odds probability density
-#' 
-#' Functions for computing density, cumulative probability and producing random
-#' samples from an ordered categorical probability density.
-#' 
-#' These functions provide for common density calculations for the ordered
-#' categorical probability density commonly known as an "ordered logit" or
-#' "ordered logistic." This is the same probability density assumed by the
-#' \code{polr} function (library \code{MASS}).
-#' 
-#' @aliases dordlogit rordlogit pordlogit
-#' @param x Integer values to compute densities or probabilies of
-#' @param a Vector of log-odds intercepts
-#' @param phi Linear model of log-odds
-#' @param log If \code{TRUE}, returns log-probability instead of probability
-#' @author Richard McElreath
-#' @seealso \code{\link{polr}}
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#'@export
 dordlogit <- function( x , a , phi , log=FALSE ) {
     a <- c( as.numeric(a) , Inf )
     p <- logistic( a[x] - phi )
@@ -1160,7 +869,6 @@ dordlogit <- function( x , a , phi , log=FALSE ) {
     p
 }
 
-#'@export
 rordlogit <- function( n , a , phi=0 ) {
     a <- c( as.numeric(a) , Inf )
     k <- 1:length(a)
@@ -1169,8 +877,7 @@ rordlogit <- function( n , a , phi=0 ) {
     y
 }
 
-#' compare class definition and show method
-#'@export
+# compare class definition and show method
 setClass( "compareIC" , representation( output="data.frame" ) )
 compare.show <- function( object ) {
     print( round( object@output , 2 ) )
@@ -1178,27 +885,6 @@ compare.show <- function( object ) {
 setMethod( "show" , signature=(x="compareIC") , function(object) compare.show(object) )
 
 # AICc/BIC model comparison table
-
-
-#' Compare fit models using AICc/BIC
-#' 
-#' Returns a table of model comparison statistics
-#' 
-#' This function computes AICc and BIC values for fit models and returns a
-#' table sorted by ascending AICc. Each row in this table is a model, and the
-#' various columns provide AICc, BIC, numbers of parameters, and model weights.
-#' 
-#' @param ... A series of fit models, separated by commas
-#' @param nobs Number of observations to use in calculating AICc/BIC
-#' @param sort Which criterion to sort table by. "AICc" and "BIC" are valid.
-#' @param delta Include differences between AICc/BIC values
-
-#' @author Richard McElreath
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#'@export
 compare <- function( ... , nobs=NULL , sort="AICc" , delta=TRUE , digits=4 ) {
     require(bbmle)
     
@@ -1256,28 +942,6 @@ compare <- function( ... , nobs=NULL , sort="AICc" , delta=TRUE , digits=4 ) {
 }
 
 # convenience interface to glmer (lme4) that always uses REML=FALSE
-
-
-#' Generalized linear multilevel models
-#' 
-#' Convenient interface to fitting generalized linear multilevel (mixed) models
-#' with package \code{lme4}.
-#' 
-#' This function merely provides a convenient interface for fitting models with
-#' \code{glmer} from the \code{lme4} package. All \code{glmm} really does is
-#' make \code{REML=FALSE} the default.
-#' 
-#' @param ... Arguments to pass on to \code{glmer}
-#' @param REML If \code{TRUE}, fits a Gaussian glmm using restricted maximum
-#' likelihood
-
-#' @author Richard McElreath
-#' @seealso \code{\link{lmer}}
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#'@export
 glmm <- function( ... , family , REML=FALSE ) {
     require(lme4)
     if ( missing(family) ) {
@@ -1296,28 +960,6 @@ bglmm <- function( ... , REML=FALSE ) {
 
 # timing functions
 
-
-
-#' Progress display
-#' 
-#' Provides a progress display with estimated time remaining, assuming rate
-#' constant process.
-#' 
-#' This function provides useful progress information and estimated time until
-#' completion for long looped operations, like sampling from MCMC.
-#' 
-#' @param current Current loop index of process
-#' @param min Minimum loop index, usually 0 or 1
-#' @param max Maximum loop index
-#' @param starttime Time stamp when process began, from \code{Sys.time}
-#' @param update.interval How often to display progress
-
-#' @author Richard McElreath
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#'@export
 progbar <- function( current , min=0 , max=100 , starttime , update.interval=100 , show.rate=FALSE ) {
     z <- current/update.interval
     if ( floor(z)!=z ) return()
@@ -1440,8 +1082,7 @@ covmat <- function( m , digits=4 ) {
 }
 
 ###
-#' zero-inflated gamma functions
-#' @export
+# zero-inflated gamma functions
 dzerogamma <- function( x , prob , mu , scale , log=TRUE ) {
     p1 <- dgamma2( x , mu=mu , s=scale , log=FALSE )
     p <- ifelse( x==0 , prob , (1-prob)*p1 )
@@ -1451,7 +1092,7 @@ dzerogamma <- function( x , prob , mu , scale , log=TRUE ) {
 
 ####
 # drawing functions
-#' @export
+
 arrowspline <- function( from , to , by , shape=c(-1,-1,-1) , arrow=TRUE , arrowlen=0.1 , label=NULL , pos=3 , stem=4 , ... ) {
     if ( class(by)=="matrix" ) {
         # rows for points, col 1 for x, col 2 for y
@@ -1468,7 +1109,6 @@ arrowspline <- function( from , to , by , shape=c(-1,-1,-1) , arrow=TRUE , arrow
     if ( !is.null(label) ) text( xby[1] , yby[1] , label=label , pos=pos , ... )
 }
 
-#' @export
 segmentsby <- function( x , y , by , ... ) {
     byid <- unique( by )
     for ( i in byid ) {
@@ -1478,81 +1118,6 @@ segmentsby <- function( x , y , by , ... ) {
     }
 }
 
-
-
-#' Shade density intervals
-#' 
-#' Adds a shaded interval to an existing density plot or regression plot.
-#' 
-#' This function uses \code{\link{polygon}} to draw a shaded region under a
-#' density curve or on a regression plot. The function assumes the plot already
-#' exists. See the examples below.
-#' 
-#' There are two plotting interfaces, for densities. First, if the density is
-#' plotted from kernal estimation, using perhaps \code{\link{density}}, then
-#' the same density estimate should be passed as the first parameter. See
-#' example. Second, if the density is plotted from a series of x and y values,
-#' from perhaps a grid approximation, then a formula can be passed to define
-#' the curve. See example.
-#' 
-#' For plotting confidence regions on a regression plot, the matrix object
-#' should contain y-axis values defining the border of the region. The first
-#' row of the matrix should be the bottom of the region, and the second row
-#' should be the top. Each column should correspond to the x-axis values in
-#' \code{lim}. See example.
-#' 
-#' @param object A \code{density} or \code{formula} object that defines the
-#' density OR a \code{matrix} object that defines the plot region. See details.
-#' @param lim For a density, a vector of two values, indicating upper and lower
-#' bounds of interval, on the horizontal axis. For a plot region, a list of
-#' x-axis values corresponding to y-axis points in the matrix object.
-#' @param label Optional label to center in interval.
-#' @param col Color to shade the interval. Default is transparent gray.
-#' @param border Border of shaded region. Default is no border, \code{NA}.
-#' @param ... Other parameters to pass to \code{polygon}, which actually draws
-#' the shaded region.
-
-#' @author Richard McElreath
-#' @seealso \code{\link{density}}, \code{\link{dens}}
-#' @references McElreath 2011, Statistical Rethinking.
-
-
-#' 
-#' models <- seq( from=0 , to=1 , length.out=100 )
-#' prior <- rep( 1 , 100 )
-#' likelihood <- dbinom( 6 , size=9 , prob=models )
-#' posterior <- likelihood * prior
-#' posterior <- posterior / sum(posterior)
-#' 
-#' # using formula interface
-#' plot( posterior ~ models , type="l" )
-#' shade( posterior ~ models , c(0,0.5) )
-#' 
-#' # using density interface
-#' samples <- sample( models , size=1e4 , replace=TRUE , prob=posterior )
-#' plot( density(samples) )
-#' shade( density(samples) , PCI(samples) )
-#' 
-#' # plotting a shaded confidence interval on a regression plot
-#' data(cars)
-#' m <- lm( dist ~ speed , cars )
-#' p <- sample.naive.posterior( m )
-#' x.seq <- seq( from=min(cars$speed)-1 , to=max(cars$speed)+1 , length.out=30 )
-#' mu.ci <- sapply( x.seq , function(x) PCI( p[,1] + p[,2]*x ) )
-#' plot( dist ~ speed , cars )
-#' abline( m )
-#' shade( mu.ci , x.seq )
-#' 
-#' # now a goody non-linear example
-#' m2 <- lm( dist ~ speed + I(speed^2) + I(speed^3) , cars )
-#' p <- sample.naive.posterior( m2 )
-#' x.seq <- seq( from=min(cars$speed)-1 , to=max(cars$speed)+1 , length.out=30 )
-#' mu <- sapply( x.seq , function(x) mean( p[,1] + p[,2]*x + p[,3]*x^2 + p[,4]*x^3 ) )
-#' mu.ci <- sapply( x.seq , function(x) PCI( p[,1] + p[,2]*x + p[,3]*x^2 + p[,4]*x^3 ) )
-#' plot( dist ~ speed , cars )
-#' lines( x.seq , mu )
-#' shade( mu.ci , x.seq )
-#'@export
 shade <- function( object , lim , label=NULL , col="#00000066" , border=NA , ... ) {
     if ( missing(lim) ) stop( "Interval limits missing." )
     if ( missing(object) ) stop( "No density or formula object." )
@@ -1589,8 +1154,7 @@ shade <- function( object , lim , label=NULL , col="#00000066" , border=NA , ...
     }
 }
 
-#' softmax rule
-#' @export
+### softmax rule
 multilogistic <- function( x , lambda=1 , diff=TRUE , log=FALSE ) {
     if ( diff==TRUE ) x <- x - min(x)
     f <- exp( lambda * x )
