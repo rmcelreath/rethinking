@@ -1,5 +1,6 @@
 \name{HPDI}
 \alias{PCI}
+\alias{HPDI}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Confidence/credible intervals from samples}
 \description{
