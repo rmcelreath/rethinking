@@ -6,7 +6,7 @@
   Displays concise parameter estimate information for an existing model fit.
 }
 \usage{
-precis( model , type.s=FALSE , ci=TRUE , level=0.95 )
+precis( model , type.s=FALSE , ci=TRUE , level=0.95 , corr=FALSE )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -14,6 +14,7 @@ precis( model , type.s=FALSE , ci=TRUE , level=0.95 )
   \item{type.s}{Show Type-S error probabilities for each estimate}
   \item{ci}{Show quadratic estimate confidence intervals}
   \item{level}{Width of confidence intervals}
+  \item{corr}{If \code{TRUE}, show correlations among parameters in output}
 }
 \details{
   Creates a table of estimates and standard errors, with optional confidence intervals and Type-S error probabilities. Confidence intervals are quadratic estimates, derived from standard errors. Type-S probabilities are also derived from normal approximation to posterior of each parameter.

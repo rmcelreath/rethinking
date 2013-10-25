@@ -1,0 +1,3 @@
+exportPattern(".")
+importFrom(coda, HPDinterval)
+importFrom(coda, as.mcmc)
