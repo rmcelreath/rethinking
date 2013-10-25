@@ -4,14 +4,11 @@
 
 # default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
 blank <- function(ex=1) quartz("myquartz",width=3.5*ex,height=4*ex)
-<<<<<<< HEAD
 blank2 <- function() {
     blank(ex=0.9)
     quartzFonts(serif = quartzFont(rep("MinionPro-Regular", 4)))
     par(family="serif")
 }
-=======
->>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
 
 # convenience function for choosing a csv file
 choose.csv <- function( ... ) read.csv( file=file.choose() , ... )
@@ -85,13 +82,10 @@ covmat <- function( m , digits=4 ) {
     result
 }
 
-<<<<<<< HEAD
 Rho <- function( model , digits=2 ) {
     round( cov2cor(vcov(model)) , digits )
 }
 
-=======
->>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
 ######
 # take a fit lm object and return a fit mle2 object with same model, data
 # uses estimates from lm as starting values for mle2
@@ -222,7 +216,6 @@ confint.quad <- function( model=NULL , est , se , level=0.95 ) {
     ci
 }
 
-<<<<<<< HEAD
 # replicate with progress display
 replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
     show_progress <- function(i) {
@@ -237,5 +230,3 @@ replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
     cat("\n")
     result
 }
-=======
->>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e

@@ -14,7 +14,6 @@ precis.show <- function( object ) {
 }
 setMethod( "show" , "precis" , function(object) precis.show(object) )
 
-<<<<<<< HEAD
 precis.plot <- function( x , y , pars , col.ci="black" , ... ) {
     x <- x@output
     if ( !missing(pars) ) {
@@ -31,9 +30,6 @@ precis.plot <- function( x , y , pars , col.ci="black" , ... ) {
 setMethod( "plot" , "precis" , function(x,y,...) precis.plot(x,y,...) )
 
 precis <- function( model , type.s=FALSE , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE ) {
-=======
-precis <- function( model , type.s=FALSE , ci=TRUE , level=0.95 , digits=2 , warn=TRUE ) {
->>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     the.class <- class(model)[1]
     found.class <- FALSE
     if ( the.class=="numeric" ) {
@@ -48,10 +44,7 @@ precis <- function( model , type.s=FALSE , ci=TRUE , level=0.95 , digits=2 , war
     if ( found.class==TRUE ) {
         est <- xcoef( model )
         se <- xse( model )
-<<<<<<< HEAD
         if ( corr==TRUE ) Rho <- xrho( model )
-=======
->>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     }
     if ( found.class==FALSE ) {
         return( paste("No handler found for model of class",the.class) )
@@ -69,12 +62,9 @@ precis <- function( model , type.s=FALSE , ci=TRUE , level=0.95 , digits=2 , war
         }
         result <- cbind( result , ci )
     }
-<<<<<<< HEAD
     if ( corr==TRUE ) {
         result <- cbind( result , Rho )
     }
-=======
->>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     if ( type.s==TRUE )
         result[,"Pr(S)"] <- format.pval( type.s( est , se ) )
     if ( precis.whitelist$vcov.method[ precis.whitelist$class==the.class ]=="vcov.VarCorr" ) {
@@ -210,7 +200,6 @@ xse <- function( model ) {
     result
 }
 
-<<<<<<< HEAD
 xrho <- function( model ) {
     the.class <- class(model)[1]
     the.method <- precis.whitelist$vcov.method[ precis.whitelist$class==the.class ]
@@ -255,8 +244,6 @@ xrho <- function( model ) {
     result
 }
 
-=======
->>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
 xnobs <- function( model ) {
     the.class <- class(model)[1]
     the.method <- precis.whitelist$nobs.method[ precis.whitelist$class==the.class ]

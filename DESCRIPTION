@@ -1,22 +1,12 @@
 Package: rethinking
 Type: Package
 Title: Statistical Rethinking book package
-<<<<<<< HEAD
 Version: 1.22
 Date: 2013-09-26
 Author: Richard McElreath
 Maintainer: Richard McElreath <mcelreath@ucdavis.edu>
 Depends:
     MASS
-=======
-Version: 1.20
-Date: 2013-07-11
-Author: Richard McElreath
-Maintainer: Richard McElreath <mcelreath@ucdavis.edu>
-Depends:
-    MASS,
-    bbmle
->>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
 Imports: coda
 Description: Utilities for fitting and comparing models
 License: GPLv3
