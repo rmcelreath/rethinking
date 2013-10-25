@@ -18,7 +18,11 @@ function (object, ...)
 {
     if(length(list(...)))
         warning("extra arguments discarded")
+<<<<<<< HEAD
     val <- -object@optim[['minuslogl']]
+=======
+    val <- -object@optim[['value']]
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     attr(val, "df") <- length(object@coef)
     attr(val, "nobs") <- attr(object,"nobs")
     class(val) <- "logLik"

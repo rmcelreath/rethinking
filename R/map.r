@@ -44,10 +44,13 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
         laplace = 'dlaplace'
     )
     
+<<<<<<< HEAD
     # these function are the engine that does the optimization
     # trick is to build R code for objective function that is passed to parser
     # it's slow, but easier to debug
 
+=======
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     dparser <- function( flist , e ) {
     # merge this into make_minuslogl?
         r <- sapply( flist , function(i) sum(eval(parse(text=i),envir=e)) )
@@ -65,6 +68,7 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     # so user can pass arguments out of order to density function
         RHS <- f[[3]]
         LHS <- f[[2]]
+<<<<<<< HEAD
         fname <- as.character( RHS[[1]] )
         if ( fname=="+" | fname=="*" | fname=="-" | fname=="/" ) {
             # linear model formula with no density function
@@ -92,6 +96,26 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
             thetext <- paste( RHS[[1]] , "(" , args_text , ")" , sep="" )
         }
         return( thetext )
+=======
+        n_args <- length(RHS)
+        args_list <- as.list(RHS)
+        args_list[[1]] <- LHS
+        args_list[[n_args+1]] <- "TRUE"
+        args_names <- names(RHS)[-1]
+        if ( is.null(args_names) ) args_names <- rep("",n_args-1)
+        args_names <- c( "x" , args_names , "log" )
+        for ( i in 1:length(args_names) ) {
+            if ( args_names[i]=="" ) {
+                # no argument name
+                args_names[i] <- args_list[i]
+            } else {
+                # prepend argument name
+                args_names[i] <- paste( args_names[i] , args_list[i] , sep="=" )
+            }
+        }
+        args_text <- paste( args_names , collapse=" , " )
+        paste( RHS[[1]] , "(" , args_text , ")" , sep="" )
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     }
     
     ########################################
@@ -133,6 +157,7 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     
     # convert from formulas to text
     flist2 <- lapply( flist , formula2text )
+<<<<<<< HEAD
 
     if (debug) {
         print(flist2)
@@ -167,10 +192,14 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     if (debug) {
         print(flist.ll)
     }
+=======
+    if (debug) print(flist2)
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     
     ########################################
     # prep and check start list
     pars <- unlist(start)
+<<<<<<< HEAD
 
     if (debug) {
         print(pars)
@@ -181,6 +210,18 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     if ( any( !(names(pars_with_priors) %in% names(pars)) ) ) {
         bad_pars <- names(pars_with_priors)[ !(names(pars_with_priors) %in% names(pars)) ]
         stop( paste( "Priors defined for parameters not in start list:" , paste(bad_pars,collapse=" ") ) )
+=======
+    if (debug) print(pars_with_priors)
+    # make sure all parameters with priors are in start list
+    if ( any( !(names(pars_with_priors) %in% names(pars)) ) ) {
+        bad_pars <- names(pars_with_priors)[ !(names(pars_with_priors) %in% names(pars)) ]
+        stop( paste( "Priors defined for parameters not in start list:" , paste(bad_pars,collapse=" ") ) )
+    }
+    # list parameters without explicit priors and warn
+    if ( any( !(names(pars) %in% names(pars_with_priors)) ) ) {
+        flat_pars <- names(pars)[ !(names(pars) %in% names(pars_with_priors)) ]
+        message( paste( "Using flat priors for:" , paste(flat_pars,collapse=" ") ) )
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     }
     # list parameters without explicit priors and warn
     if ( FALSE ) {
@@ -195,6 +236,7 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     fit <- optim( par=pars , fn=make_minuslogl , flist=flist2 , data=data , hessian=hessian , method=method , ... )
     
     ########################################
+<<<<<<< HEAD
     # prep results
     
     if ( hessian ) {
@@ -206,6 +248,19 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     # compute minus log-likelihood at MAP, ignoring priors to do so
     # need this for correct deviance calculation, as deviance ignores priors
     fit$minuslogl <- make_minuslogl( fit$par , flist=flist.ll , data=data )
+=======
+    # call optim for search
+    fit <- optim( par=pars , fn=make_minuslogl , flist=flist2 , data=data , hessian=hessian , method=method , ... )
+    
+    ########################################
+    # prep results
+    #fit$minuslogl <- make_minuslogl
+    if ( hessian ) {
+        vcov <- solve(fit$hessian)
+    } else {
+        vcov <- matrix( NA , nrow=length(pars) , ncol=length(pars) )
+    }
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     
     ########################################
     # build and return result
@@ -230,17 +285,21 @@ flist0 <- list(
     dist ~ dnorm( mean=a+b*speed , sd=sigma )
 )
 
+<<<<<<< HEAD
 flist0 <- list(
     dist ~ dnorm( mean=mu , sd=sigma ) ,
     mu ~ a+b*speed
 )
 
+=======
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
 flist1 <- list(
     dist ~ dnorm( mean=a+b*speed , sd=sigma ) ,
     b ~ dnorm(0,1) ,
     sigma ~ dcauchy(0,1)
 )
 
+<<<<<<< HEAD
 flist1 <- list(
     dist ~ dnorm( mean=mu , sd=sigma ) ,
     mu ~ a+b*speed ,
@@ -248,6 +307,8 @@ flist1 <- list(
     sigma ~ dcauchy(0,1)
 )
 
+=======
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
 flist2 <- list(
     dist ~ dnorm( mean=a+b*speed , sd=sigma ) ,
     c(a,b) ~ dnorm(0,10) , 
@@ -262,7 +323,11 @@ flist3 <- list(
     sigma ~ dcauchy(0,1)
 )
 
+<<<<<<< HEAD
 fit <- map( flist1 , start=list(a=40,b=0.1,sigma=20) , data=cars , debug=FALSE )
+=======
+fit <- map( flist3 , start=list(a=40,b=0.1,sigma=20) , data=cars )
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
 
 #########
 
@@ -298,6 +363,7 @@ fit3a <- map( flist0 , data=list(y=y,x=x) , start=list(a=0,b=0) )
 
 fit3b <- map( flist1 , data=list(y=y,x=x) , start=list(a=0,b=0) )
 
+<<<<<<< HEAD
 plot( y ~ x )
 p <- sample.naive.posterior(fit3b)
 xseq <- seq(-1,1,length.out=20)
@@ -305,5 +371,10 @@ pi.mu <- sapply( xseq , function(x) mean(logistic(p$a+p$b*x)) )
 pi.ci <- sapply( xseq , function(x) PCI(logistic(p$a+p$b*x)) )
 lines( xseq , pi.mu )
 shade( pi.ci , xseq )
+=======
+p <- sample.naive.posterior(fit3b)
+dens(p$b,adj=1)
+curve( dnorm(x,0,10) , from=-10, to=15 , lty=2 , add=TRUE )
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
 
 } #EXAMPLES

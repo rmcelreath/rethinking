@@ -1,6 +1,10 @@
 # plotting
 
+<<<<<<< HEAD
 dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , add=FALSE , ...) {
+=======
+dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , ...) {
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     the.class <- class(x)[1]
     if ( the.class=="data.frame" ) {
         # full posterior
@@ -14,10 +18,14 @@ dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , sh
         # vector
         if ( rm.na==TRUE ) x <- x[ !is.na(x) ]
         thed <- density(x,adjust=adj)
+<<<<<<< HEAD
         if ( add==FALSE )
             plot( thed , main=main , ... )
         else
             lines( thed$x , thed$y , ... )
+=======
+        plot( thed , main=main , ... )
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
         if ( show.HPDI != FALSE ) {
             hpd <- HPDI( x , prob=show.HPDI )
             shade( thed , hpd )
@@ -43,11 +51,14 @@ contour.xyz <- function( x , y , z , ... ) {
     contour( ux , uy , m , ... )
 }
 
+<<<<<<< HEAD
 # just converts inputs to form expected by image()
 image.xyz <- function( x , y , z , ... ) {
     image( unique(x) , unique(y) , matrix(z, length(unique(x)), length(unique(y)) ) , ... )
 }
 
+=======
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
 # plot new y values on secondary y-axis on right side
 plot2y <- function( ... , y2lab="2nd axis" , y2col=NULL ) {
     if ( is.null(y2col) ) y2col <- "black"
@@ -216,7 +227,11 @@ segmentsby <- function( x , y , by , ... ) {
     }
 }
 
+<<<<<<< HEAD
 shade <- function( object , lim , label=NULL , col=col.alpha("black",0.15) , border=NA , ... ) {
+=======
+shade <- function( object , lim , label=NULL , col="#00000066" , border=NA , ... ) {
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     if ( missing(lim) ) stop( "Interval limits missing." )
     if ( missing(object) ) stop( "No density or formula object." )
     from <- lim[1]

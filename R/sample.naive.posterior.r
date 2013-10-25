@@ -1,10 +1,16 @@
 # sample naive posterior
 
+<<<<<<< HEAD
 # convenience wrapper for sampling from quadratic approx posterior into a data frame
 # also capable of averaging over models, if given a list() as first argument
 sample.naive.posterior <- function( ... ) sample.qa.posterior( ... )
 
 sample.qa.posterior <- function( model , n=10000 , clean.names=TRUE , method="AICc" , nobs=0 , add.names=FALSE , fill.na=0 , verbose=FALSE ) {
+=======
+# convenience wrapper for sampling from naive posterior into a data frame
+# also capable of averaging over models, if given a list() as first argument
+sample.naive.posterior <- function( model , n=10000 , clean.names=TRUE , method="AICc" , nobs=0 , add.names=FALSE , fill.na=0 , verbose=FALSE ) {
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
     require(MASS)
     require(bbmle)
     # need own BIC, as one in stats doesn't allow nobs
@@ -26,7 +32,11 @@ sample.qa.posterior <- function( model , n=10000 , clean.names=TRUE , method="AI
             return()
         }
         if ( length( model ) < 2 ) {
+<<<<<<< HEAD
             return( sample.qa.posterior( model[[1]] , n=n , method=method , nobs=nobs ) )
+=======
+            return( sample.naive.posterior( model[[1]] , n=n , method=method , nobs=nobs ) )
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
         }
         if ( method=="AIC" ) factors <- sapply( model , AIC )
         if ( nobs==0 ) {
@@ -45,11 +55,19 @@ sample.qa.posterior <- function( model , n=10000 , clean.names=TRUE , method="AI
         for ( i in 1:length(model) ) {
             if ( nn[i]==0 ) {
                 f.zeros <- TRUE
+<<<<<<< HEAD
                 sim.post[[i]] <- sample.qa.posterior( model[[i]] , n=2 ) 
                 # 2 appears to be minimum to get columns to populate from mvrnorm
                 # need column names from these zero samples models
             } else {
                 sim.post[[i]] <- sample.qa.posterior( model[[i]] , n=max(nn[i],2) )
+=======
+                sim.post[[i]] <- sample.naive.posterior( model[[i]] , n=2 ) 
+                # 2 appears to be minimum to get columns to populate from mvrnorm
+                # need column names from these zero samples models
+            } else {
+                sim.post[[i]] <- sample.naive.posterior( model[[i]] , n=max(nn[i],2) )
+>>>>>>> 237191d968757446a068da51b5e5fee3f8e4e16e
             }
         }
         if ( f.zeros==TRUE ) {
