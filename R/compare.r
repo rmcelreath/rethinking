@@ -8,7 +8,7 @@ compare.show <- function( object ) {
 setMethod( "show" , "compareIC" , function(object) compare.show(object) )
 
 # AICc/BIC model comparison table
-compare <- function( ... , nobs=NULL , sort="AICc" , delta=TRUE , digits=4 ) {
+compare <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE , delta=TRUE , DICsamples=1e4 ) {
     require(bbmle)
     
     if ( is.null(nobs) ) {
@@ -38,27 +38,52 @@ compare <- function( ... , nobs=NULL , sort="AICc" , delta=TRUE , digits=4 ) {
     mnames <- as.character(mnames)[2:(length(L)+1)]
     
     AICc.list <- sapply( L , function(z) AICc( z , nobs=nobs ) )
-    BIC.list <- sapply( L , function(z) myBIC( z , nobs=nobs ) )
     dAICc <- AICc.list - min( AICc.list )
-    dBIC <- BIC.list - min( BIC.list )
-    
     post.AICc <- exp( -0.5*dAICc ) / sum( exp(-0.5*dAICc) )
-    post.BIC <- exp( -0.5*dBIC ) / sum( exp(-0.5*dBIC) )
-    
-    #post.AICc <- format.pval( post.AICc , digits=digits )
-    #post.BIC <- format.pval( post.BIC , digits=digits )
+    if ( BIC==TRUE ) {
+        BIC.list <- sapply( L , function(z) myBIC( z , nobs=nobs ) )
+        dBIC <- BIC.list - min( BIC.list )
+        post.BIC <- exp( -0.5*dBIC ) / sum( exp(-0.5*dBIC) )
+    }
     
     k <- sapply( L , getdf )
     
-    result <- data.frame( k=k , AICc=AICc.list , BIC=BIC.list , w.AICc=post.AICc , w.BIC=post.BIC )
+    result <- data.frame( k=k , AICc=AICc.list , w.AICc=post.AICc )
+    if ( BIC==TRUE ) 
+        result <- data.frame( k=k , AICc=AICc.list , BIC=BIC.list , w.AICc=post.AICc , w.BIC=post.BIC )
+
     if ( delta==TRUE ) {
-        r2 <- data.frame( dAICc=dAICc , dBIC=dBIC )
+        r2 <- data.frame( dAICc=dAICc )
+        if ( BIC==TRUE ) r2 <- data.frame( dAICc=dAICc , dBIC=dBIC )
         result <- cbind( result , r2 )
     }
+
+    # DIC from quadratic approx posterior defined by vcov and coef
+    if ( DIC==TRUE ) {
+        DIC.list <- rep( NA , length(L) )
+        pD.list <- rep( NA , length(L) )
+        for ( i in 1:length(L) ) {
+            m <- L[[i]]
+            if ( class(m)=="map" ) {
+                post <- sample.qa.posterior( m , n=DICsamples )
+                message( paste("Computing DIC for model",mnames[i]) )
+                dev <- sapply( 1:nrow(post) , function(i) 2*m@fminuslogl( post[i,] ) )
+                dev.hat <- deviance(m)
+                DIC.list[i] <- dev.hat + 2*( mean(dev) - dev.hat )
+                pD.list[i] <- ( DIC.list[i] - dev.hat )/2
+            }
+        }
+        ddic <- DIC.list - min(DIC.list)
+        wdic <- exp( -0.5*ddic ) / sum( exp(-0.5*ddic) )
+        rdic <- data.frame( DIC=as.numeric(DIC.list) , pD=pD.list , wDIC=wdic , dDIC=ddic )
+        result <- cbind( result , rdic )
+    }
+
+    # add model names to rows
     rownames( result ) <- mnames
     
     if ( !is.null(sort) ) {
-        result <- result[ order( result$AICc ) , ]
+        result <- result[ order( result[[sort]] ) , ]
     }
     
     new( "compareIC" , output=result )

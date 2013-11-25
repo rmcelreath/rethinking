@@ -36,6 +36,7 @@ map( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
     \item{optim}{List return by \code{optim}}
     \item{data}{The data}
     \item{formula}{Formula list}
+    \item{fminuslogl}{Minus log-likelihood function that accepts a vector of parameter values}
 }
 \references{McElreath 2011, Statistical Rethinking.}
 \author{Richard McElreath}

@@ -3,7 +3,8 @@ setClass("map", representation( call = "language",
                                 vcov = "matrix",
                                 optim = "list",
                                 data = "list",
-                                formula = "list"))
+                                formula = "list",
+                                fminuslogl = "function"))
 
 setMethod("coef", "map", function(object) {
     object@coef
@@ -29,6 +30,12 @@ setMethod("deviance", "map",
 function (object, ...)
 {
   -2*logLik(object)
+})
+
+setMethod("AIC", "map",
+function (object, ...)
+{
+  -2*logLik(object) + 2*length(coef(object))
 })
 
 setMethod("show", "map", function(object){

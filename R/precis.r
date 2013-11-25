@@ -128,13 +128,7 @@ xcoef <- function( model ) {
             result <- c( result , sigma )
         }
         sigma.resid <- attr( vc , "sc" )
-        # new lme4 uses "useSc" attribute to flag for residual variance
-        # so "sc" is always present, but "useSc" may be TRUE or FALSE
-        # should worry about deprecated lme4 model fits?
-        if ( !is.na(sigma.resid) & attr( vc , "useSc" ) ) {
-            names(sigma.resid) <- "(Residual)"
-            result <- c( result , sigma.resid )
-        }
+        if ( !is.na(sigma.resid) ) result['(residual)'] <- sigma.resid
     }
     xcheckconvergence( model )
     result

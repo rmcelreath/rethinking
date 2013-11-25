@@ -206,16 +206,19 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     # compute minus log-likelihood at MAP, ignoring priors to do so
     # need this for correct deviance calculation, as deviance ignores priors
     fit$minuslogl <- make_minuslogl( fit$par , flist=flist.ll , data=data )
-    
+
+    fmll <- function(pars) make_minuslogl( pars , flist=flist.ll , data=data )
+
     ########################################
     # build and return result
-    m <- new("map" , 
+    m <- new( "map" , 
             call = match.call(), 
             coef = fit$par, 
             vcov = vcov,
             optim = fit,
             data = as.list(data),
-            formula = flist.orig)
+            formula = flist.orig,
+            fminuslogl = fmll )
     attr(m,"df") = length(m@coef)
     if (!missing(data)) attr(m,"nobs") = length(data[[1]])
     m
