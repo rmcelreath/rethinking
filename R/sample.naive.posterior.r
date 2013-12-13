@@ -107,7 +107,7 @@ sample.qa.posterior <- function( model , n=10000 , clean.names=TRUE , method="AI
     } else {
         # single model passed
         mu <- 0
-        if ( class(model)[1] %in% c("mer","bmer") ) {
+        if ( class(model)[1] %in% c("mer","bmer","glmerMod","lmerMod") ) {
             mu <- fixef(model)
         } else {
             mu <- xcoef(model)
