@@ -66,7 +66,7 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
         RHS <- f[[3]]
         LHS <- f[[2]]
         fname <- as.character( RHS[[1]] )
-        if ( fname=="+" | fname=="*" | fname=="-" | fname=="/" ) {
+        if ( fname=="+" | fname=="*" | fname=="-" | fname=="/" | fname=="%*%" ) {
             # linear model formula with no density function
             thetext <- as.character(RHS)
             thetext <- list( as.character(LHS) , paste( RHS[2] , RHS[1] , RHS[3] , collapse=" " ) )
@@ -92,6 +92,32 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
             thetext <- paste( RHS[[1]] , "(" , args_text , ")" , sep="" )
         }
         return( thetext )
+    }
+    
+    ##############
+    # grep function for search-replace of linear model symbols
+    # trick is that symbol needs to be preceded by [(=*+ ] so grep doesn't replace copies embedded inside other symbols
+    # e.g. don't want to expand the "p" inside "ample"
+    #
+    # target : string to search for (usually parameter name like "mu")
+    # replacement : what to replace with (usually a linear model)
+    # x : where to search, usually a formula as character
+    # add.par : whether to enclose replacement in parentheses
+    
+    mygrep <- function( target , replacement , x , add.par=TRUE ) {
+        wild <- "[()=*+ ]"
+        pattern <- paste( wild , target , wild , sep="" , collapse="" )
+        m <- regexpr( pattern , x )
+        if ( m==-1 ) return( x )
+        s <- regmatches( x=x , m=m )
+        
+        if ( add.par==TRUE ) replacement <- paste( "(" , replacement , ")" , collapse="" )
+        
+        w.start <- substr(s,1,1)
+        w.end <- substr(s,nchar(s),nchar(s))
+        
+        r <- paste( w.start , replacement , w.end , sep="" , collapse="" )
+        gsub( pattern=s , replacement=r , x=x , fixed=TRUE )
     }
     
     ########################################
@@ -140,12 +166,25 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
 
     # check for linear models in flist2 and do search-replace in likelihood
     if ( length(flist2) > 1 ) {
-        for ( i in 2:length(flist2) ) {
+        for ( i in length(flist2):2 ) {
+            # linear models are class list
             if ( class(flist2[[i]])=="list" ) {
                 LHS <- flist2[[i]][[1]]
                 RHS <- flist2[[i]][[2]]
                 # replace in likelihood
-                flist2[[1]] <- gsub( LHS , RHS , flist2[[1]] )
+                #flist2[[1]] <- gsub( LHS , RHS , flist2[[1]] )
+                flist2[[1]] <- mygrep( LHS , RHS , flist2[[1]] , add.par=FALSE )
+                
+                # also search in other linear models above this one
+                if ( i > 2 ) {
+                    # RHSp <- paste( "(" , RHS , ")" , collapse="" )
+                    for ( j in (i-1):2 ) {
+                        if ( class(flist2[[j]])=="list" ) {
+                            #flist2[[j]][[2]] <- gsub( LHS , RHSp , flist2[[j]][[2]] )
+                            flist2[[j]][[2]] <- mygrep( LHS , RHS , flist2[[j]][[2]] , add.par=TRUE )
+                        }
+                    }
+                }
                 # remove symbol from list of parameters with priors
                 pars_with_priors[[ LHS ]] <- NULL
             }

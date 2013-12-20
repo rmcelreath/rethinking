@@ -1,7 +1,7 @@
 Package: rethinking
 Type: Package
 Title: Statistical Rethinking book package
-Version: 1.25
+Version: 1.26
 Date: 2013-12-13
 Author: Richard McElreath
 Maintainer: Richard McElreath <mcelreath@ucdavis.edu>

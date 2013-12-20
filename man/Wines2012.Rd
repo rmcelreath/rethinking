@@ -23,7 +23,7 @@ data(Wines2012)
 }
 \value{
 }
-\references{}
+\references{Raw data from http://www.liquidasset.com/report161.html}
 \seealso{}
 \examples{
 }
