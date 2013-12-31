@@ -136,16 +136,25 @@ xcoef <- function( model ) {
 
 xcheckconvergence <- function( model ) {
     the.class <- class(model)[1]
+    k <- 0
     if ( the.class=="mle2" ) {
         if ( model@details$convergence != 0 ) {
             k <- model@details$convergence
-            message( paste("Caution, model may not have converged.") )
-            if ( k==1 ) {
-                message( "Code 1: Maximum iterations reached." )
-            }
-            if ( k==10 ) {
-                message( "Code 10: Degenerate Nelder-Mead simplex." )
-            }
+        }
+    }
+    if ( the.class=="map" ) {
+        if ( model@optim$convergence != 0 ) {
+            k <- model@optim$convergence
+        }
+    }
+    
+    if ( k > 0 ) {
+        message( paste("Caution, model may not have converged.") )
+        if ( k==1 ) {
+            message( "Code 1: Maximum iterations reached." )
+        }
+        if ( k==10 ) {
+            message( "Code 10: Degenerate Nelder-Mead simplex." )
         }
     }
 }

@@ -15,6 +15,7 @@ map( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
   \item{data}{A data frame or list containing the data}
   \item{method}{Search method for \code{optim}. Defaults to \code{BFGS}.}
   \item{hessian}{If \code{TRUE}, attempts to compute the Hessian}
+  \item{debug}{If \code{TRUE}, prints various internal steps to help with debugging}
   \item{...}{Additional arguments to pass to \code{optim}}
 }
 \details{
@@ -26,6 +27,8 @@ map( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
   
   Prior formulas take the same form, but the outcome should be a parameter name. Identical priors can be defined for multiple parameters by using \code{c(par1,par2,...)} on the left hand side of the formula. See example below.
   
+  Linear models can be specified as formulas of the form \code{mu ~ a + b*x} for a direct link. To use a link function, use the form \code{link(mu) ~ a + b*x} or \code{mu ~ invlink(a + b*x)}. The names "link" and "invlink" must be recognized by \code{map}. It currently recognizes \code{log}/\code{exp} and \code{logit}/\code{logistic}. Any other link function can be coded directly into the likelihood formula. For example \code{dfoo(par=invlink(mu))}.
+  
   Methods are defined for \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, and \code{show}.
 }
 \value{
@@ -33,7 +36,7 @@ map( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
     \item{call}{The function call}
     \item{coef}{The estimated posterior modes}
     \item{vcov}{Variance-covariance matrix}
-    \item{optim}{List return by \code{optim}}
+    \item{optim}{List returned by \code{optim}}
     \item{data}{The data}
     \item{formula}{Formula list}
     \item{fminuslogl}{Minus log-likelihood function that accepts a vector of parameter values}
@@ -44,7 +47,8 @@ map( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
 \examples{
 data(cars)
 flist <- list(
-    dist ~ dnorm( mean=a+b*speed , sd=sigma ) ,
+    dist ~ dnorm( mean=mu , sd=sigma ) ,
+    mu ~ a+b*speed ,
     c(a,b) ~ dnorm(0,10) , 
     sigma ~ dcauchy(0,1)
 )
@@ -55,11 +59,13 @@ y <- c( rep(0,10) , rep(1,10) )
 x <- c( rep(-1,9) , rep(1,11) )
 
 flist0 <- list(
-    y ~ dbinom( prob=logistic( a + b*x ) , size=1 )
+    y ~ dbinom( prob=p , size=1 ) ,
+    logit(p) ~ a + b*x
 )
 
 flist1 <- list(
-    y ~ dbinom( prob=logistic( a + b*x ) , size=1 ),
+    y ~ dbinom( prob=p , size=1 ),
+    logit(p) ~ a + b*x ,
     c(a,b) ~ dnorm(0,10)
 )
 

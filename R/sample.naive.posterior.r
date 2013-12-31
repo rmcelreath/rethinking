@@ -4,7 +4,7 @@
 # also capable of averaging over models, if given a list() as first argument
 sample.naive.posterior <- function( ... ) sample.qa.posterior( ... )
 
-sample.qa.posterior <- function( model , n=10000 , clean.names=TRUE , method="AICc" , nobs=0 , add.names=FALSE , fill.na=0 , verbose=FALSE ) {
+sample.qa.posterior <- function( model , n=10000 , clean.names=TRUE , model.weights="AICc" , nobs=0 , add.names=FALSE , fill.na=0 , verbose=FALSE ) {
     require(MASS)
     require(bbmle)
     # need own BIC, as one in stats doesn't allow nobs
@@ -20,24 +20,43 @@ sample.qa.posterior <- function( model , n=10000 , clean.names=TRUE , method="AI
     }
     if ( class(model)[1]=="list" ) {
         # list of models passed
-        valid.methods <- c("AIC","AICc","BIC")
-        if ( !any(method==valid.methods) ) {
-            cat( paste("Unknown model averaging method:",method) )
-            return()
-        }
+        
+        # check for list of length 1
         if ( length( model ) < 2 ) {
-            return( sample.qa.posterior( model[[1]] , n=n , method=method , nobs=nobs ) )
+            return( sample.qa.posterior( model[[1]] , n=n , nobs=nobs ) )
         }
-        if ( method=="AIC" ) factors <- sapply( model , AIC )
-        if ( nobs==0 ) {
-            if ( method=="AICc" ) factors <- sapply( model , AICc )
-            if ( method=="BIC" ) factors <- sapply( model , BIC )
+        
+        # check method
+        valid.methods <- c("AIC","AICc","BIC")
+        use.custom <- FALSE
+        if ( class(model.weights)=="numeric" ) {
+            if ( length(model.weights)!=length(model) ) {
+                stop( "Custom model weights must be same length as list of models." )
+            } else {
+                use.custom <- TRUE
+                post <- model.weights
+            }
         } else {
-            if ( method=="AICc" ) factors <- sapply( model , function(z) AICc(z,nobs=nobs) )
-            if ( method=="BIC" ) factors <- sapply( model , function(z) myBIC(z,nobs=nobs) )
+            if ( !any(model.weights==valid.methods) ) {
+                stop( paste("Unknown model averaging method:",model.weights) )
+            }
         }
-        factors <- factors - min( factors )
-        post <- exp( -1/2 * factors )/sum( exp( -1/2 * factors ) )
+        
+        # compute from metric
+        if ( use.custom==FALSE ) {
+            if ( model.weights=="AIC" ) factors <- sapply( model , AIC )
+            if ( nobs==0 ) {
+                if ( model.weights=="AICc" ) factors <- sapply( model , AICc )
+                if ( model.weights=="BIC" ) factors <- sapply( model , BIC )
+            } else {
+                if ( model.weights=="AICc" ) factors <- sapply( model , function(z) AICc(z,nobs=nobs) )
+                if ( model.weights=="BIC" ) factors <- sapply( model , function(z) myBIC(z,nobs=nobs) )
+            }
+            factors <- factors - min( factors )
+            # compute weights
+            post <- exp( -1/2 * factors )/sum( exp( -1/2 * factors ) )
+        }
+        
         sim.post <- vector( "list" , length(model) )
         f.zeros <- FALSE
         nn <- round(n*post)

@@ -60,16 +60,18 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
         dparser(flist,e)
     }
     
+    link.names <- c("log","logit")
+    invlink.names <- c("exp","logistic")
     formula2text <- function( f ) {
     # must keep named arguments with names, 
     # so user can pass arguments out of order to density function
         RHS <- f[[3]]
         LHS <- f[[2]]
         fname <- as.character( RHS[[1]] )
-        if ( fname=="+" | fname=="*" | fname=="-" | fname=="/" | fname=="%*%" ) {
-            # linear model formula with no density function
-            thetext <- as.character(RHS)
-            thetext <- list( as.character(LHS) , paste( RHS[2] , RHS[1] , RHS[3] , collapse=" " ) )
+        if ( fname=="+" | fname=="*" | fname=="-" | fname=="/" | fname=="%*%" | fname %in% invlink.names ) {
+            # linear model formula with no density (but maybe invlink) function
+            # return a list with parameter name in [[1]] and text of RHS in [[2]]
+            thetext <- list( as.character(LHS) , paste( deparse(RHS) , collapse=" " ) )
         } else {
             # likelihood or prior formula
             n_args <- length(RHS)
@@ -124,6 +126,7 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     # convert formulas to text in proper call order
     
     # check for vectorized priors and expand
+    # check for link functions on left and convert to inv-link on right
     # also build list of parameters with priors as we go
     pars_with_priors <- list()
     if ( length(flist) > 1 ) {
@@ -133,17 +136,28 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
                 stop( "Input not a formula." )
             LHS <- flist[[i]][[2]]
             if ( class(LHS)=="call" ) {
-                if ( as.character(LHS[[1]])=="c" ) {
-                    # found a vector prior
-                    newflist <- list()
-                    num_pars <- length(LHS) - 1
-                    for ( j in 1:num_pars ) {
-                        newflist[[j]] <- flist[[i]]
-                        newflist[[j]][[2]] <- LHS[[j+1]]
-                        pars_with_priors[[ as.character(LHS[[j+1]]) ]] <- 1
-                    } #j
-                    flist[[i]] <- newflist
-                    flag_flatten <- TRUE
+                if ( as.character(LHS[[1]])=="c" | as.character(LHS[[1]]) %in% link.names ) {
+                    if ( as.character(LHS[[1]])=="c" ) {
+                        # found a vector prior
+                        newflist <- list()
+                        num_pars <- length(LHS) - 1
+                        for ( j in 1:num_pars ) {
+                            newflist[[j]] <- flist[[i]]
+                            newflist[[j]][[2]] <- LHS[[j+1]]
+                            pars_with_priors[[ as.character(LHS[[j+1]]) ]] <- 1
+                        } #j
+                        flist[[i]] <- newflist
+                        flag_flatten <- TRUE
+                    }
+                    if ( as.character(LHS[[1]]) %in% link.names ) {
+                        the.link <- as.character( LHS[[1]] )
+                        # strip link from left hand side
+                        flist[[i]][[2]] <- flist[[i]][[2]][[2]]
+                        # move inverse link to right hand side
+                        the.invlink <- invlink.names[ which(link.names==the.link) ]
+                        old.RHS <- flist[[i]][[3]]
+                        flist[[i]][[3]] <- as.call( list( as.name(the.invlink) , old.RHS ) ) 
+                    }
                 } else {
                     # a call other than c() detected on left hand side
                     stop( paste("Invalid prior specification:",flist[[i]]) )
@@ -158,12 +172,11 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     if (debug) print(flist)
     
     # convert from formulas to text
+    # this also splits linear models
     flist2 <- lapply( flist , formula2text )
 
-    if (debug) {
-        print(flist2)
-    }
-
+    if (debug) print(flist2)
+    
     # check for linear models in flist2 and do search-replace in likelihood
     if ( length(flist2) > 1 ) {
         for ( i in length(flist2):2 ) {
@@ -247,7 +260,7 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     fit$minuslogl <- make_minuslogl( fit$par , flist=flist.ll , data=data )
 
     fmll <- function(pars) make_minuslogl( pars , flist=flist.ll , data=data )
-
+    
     ########################################
     # build and return result
     m <- new( "map" , 
@@ -260,6 +273,9 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
             fminuslogl = fmll )
     attr(m,"df") = length(m@coef)
     if (!missing(data)) attr(m,"nobs") = length(data[[1]])
+    # check convergence and warn
+    xcheckconvergence(m)
+    # result
     m
 }
 
@@ -320,7 +336,13 @@ flist2 <- list(
     b ~ dnorm(0,1)
 )
 
-fit2 <- map( flist2 , data=chimpanzees , start=list(a=0,b=0) , debug=FALSE )
+flist4 <- list(
+    pulled.left ~ dbinom( prob=p , size=1 ),
+    logit(p) ~ a + b*prosoc.left ,
+    c(a,b) ~ dnorm(0,1)
+)
+
+fit2 <- map( flist3 , data=chimpanzees , start=list(a=0,b=0) , debug=TRUE )
 
 ########
 # regularized logistic regression example
