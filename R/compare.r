@@ -67,7 +67,13 @@ compare <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE , del
             if ( class(m)=="map" ) {
                 post <- sample.qa.posterior( m , n=DICsamples )
                 message( paste("Computing DIC for model",mnames[i]) )
-                dev <- sapply( 1:nrow(post) , function(i) 2*m@fminuslogl( post[i,] ) )
+                dev <- sapply( 1:nrow(post) , 
+                    function(i) {
+                        p <- post[i,]
+                        names(p) <- names(post)
+                        2*m@fminuslogl( p ) 
+                    }
+                )
                 dev.hat <- deviance(m)
                 DIC.list[i] <- dev.hat + 2*( mean(dev) - dev.hat )
                 pD.list[i] <- ( DIC.list[i] - dev.hat )/2

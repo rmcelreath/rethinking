@@ -3,6 +3,11 @@
 \name{NEWS}
 \title{rethinking News}
 \encoding{UTF-8}
+\section{CHANGES IN VERSION 1.2.8 (2013-01-20)}{
+  \itemize{
+     \item Fixed bug with \code{compare} not computing DIC for single parameter models, due to dropped variable names when subsetting
+   }
+}
 \section{CHANGES IN VERSION 1.2.7 (2013-12-29)}{
   \itemize{
      \item added \code{map} convergence warnings

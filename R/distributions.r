@@ -61,7 +61,7 @@ rbeta2 <- function( n , prob , theta ) {
     rbeta( n , shape1=a , shape2=b )
 }
 
-# based on Ben Bolker's dbetabinom in emdbook package
+# Ben Bolker's dbetabinom from emdbook package
 dbetabinom <- function (x, prob, size, theta, shape1, shape2, log = FALSE) 
 {
     if (missing(prob) && !missing(shape1) && !missing(shape2)) {
@@ -71,6 +71,7 @@ dbetabinom <- function (x, prob, size, theta, shape1, shape2, log = FALSE)
     v <- lfactorial(size) - lfactorial(x) - lfactorial(size - 
         x) - lbeta(theta * (1 - prob), theta * prob) + lbeta(size - 
         x + theta * (1 - prob), x + theta * prob)
+    nonint <- function(x) (abs((x) - floor((x)+0.5)) > 1e-7)
     if (any(n <- nonint(x))) {
         warning("non-integer x detected; returning zero probability")
         v[n] <- -Inf
