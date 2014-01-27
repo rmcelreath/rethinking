@@ -1,13 +1,5 @@
 # distributions
 
-# convert to sigma from tau
-tau2sig <- function( tau ) 1/abs(tau)
-
-# Gaussian density that takes tau instead of sigma
-dnormtau <- function( x , mean=0 , tau=1 , log=FALSE ) dnorm( x , mean=mean , sd=tau2sig( tau ) , log=log )
-
-rnormtau <- function( n , mean=0 , tau=1 ) rnorm( n=n , mean=mean , sd=tau2sig(tau) )
-
 # ordered categorical density functions
 logistic <- function( x ) {
     p <- 1 / ( 1 + exp( -x ) )

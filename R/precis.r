@@ -1,10 +1,10 @@
 # my model summary function, précis
 
 precis.whitelist <- data.frame( 
-    class=c("map","lm","glm","mle2","mer","bmer","polr","data.frame","clmm","clmm2","list","stanfit","lmerMod","glmerMod") , 
-    coef.method=c("coef","coef","coef","coef","fixef.plus","fixef.plus","polr","chain","coef","coef","mcarray","stanfit","fixef.plus","fixef.plus") , 
-    vcov.method=c("vcov","vcov","vcov","vcov","vcov.VarCorr","vcov.VarCorr","vcov","chain","vcov","vcov","mcarray","stanfit","vcov.VarCorr","vcov.VarCorr") ,
-    nobs.method=c("nobs","nobs","nobs","mle2","mer","mer","nobs","chain","nobs","nobs","chain","stanfit","mer","mer")
+    class=c("map","map2stan","lm","glm","mle2","mer","bmer","polr","data.frame","clmm","clmm2","list","stanfit","lmerMod","glmerMod") , 
+    coef.method=c("coef","coef","coef","coef","coef","fixef.plus","fixef.plus","polr","chain","coef","coef","mcarray","stanfit","fixef.plus","fixef.plus") , 
+    vcov.method=c("vcov","vcov","vcov","vcov","vcov","vcov.VarCorr","vcov.VarCorr","vcov","chain","vcov","vcov","mcarray","stanfit","vcov.VarCorr","vcov.VarCorr") ,
+    nobs.method=c("nobs","nobs","nobs","nobs","mle2","mer","mer","nobs","chain","nobs","nobs","chain","stanfit","mer","mer")
 )
 
 # precis class definition and show method
@@ -20,7 +20,7 @@ precis.plot <- function( x , y , pars , col.ci="black" , ... ) {
         x <- x[pars,]
     }
     n <- nrow(x)
-    mu <- x$Estimate[n:1]
+    mu <- x[n:1,1]
     left <- x[[3]][n:1]
     right <- x[[4]][n:1]
     dotchart( mu , labels=rownames(x)[n:1] , xlab="Estimate" , xlim=c(min(left),max(right)) , ... )
@@ -47,18 +47,27 @@ precis <- function( model , type.s=FALSE , ci=TRUE , level=0.95 , corr=FALSE , d
         if ( corr==TRUE ) Rho <- xrho( model )
     }
     if ( found.class==FALSE ) {
-        return( paste("No handler found for model of class",the.class) )
+        message( paste("No handler found for model of class",the.class) )
+        return(invisible())
     }
     # format
     result <- data.frame( est=est , se=se )
-    colnames(result) <- c("Estimate","S.E.")
+    colnames(result) <- c("Mean","StdDev")
     if ( ci==TRUE ) {
         ci <- confint.quad( est=est , se=se , level=level )
         if ( the.class=="data.frame" ) {
-            # PCI from chain
-            ci <- t( apply( model , 2 , PCI , prob=level ) )
-            colnames(result)[1] <- "Expectation"
-            colnames(result)[2] <- "StdDev"
+            # HPDI from samples
+            ci <- t( apply( model , 2 , HPDI , prob=level ) )
+        }
+        if ( the.class=="map2stan" ) {
+            # HPDI from samples
+            post <- as.data.frame( extract.samples(model) )
+            ci <- t( apply( post , 2 , HPDI , prob=level ) )
+        }
+        if ( the.class=="stanfit" ) {
+            # HPDI from samples
+            post <- as.data.frame( extract(model) )
+            ci <- t( apply( post , 2 , HPDI , prob=level ) )
         }
         result <- cbind( result , ci )
     }

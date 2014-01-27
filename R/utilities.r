@@ -2,6 +2,9 @@
 
 # various utility functions
 
+# set help to html
+hhtml <- function() options(help_type="html")
+
 # default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
 blank <- function(ex=1) quartz("myquartz",width=3.5*ex,height=4*ex)
 blank2 <- function() {
@@ -86,74 +89,6 @@ Rho <- function( model , digits=2 ) {
     round( cov2cor(vcov(model)) , digits )
 }
 
-######
-# take a fit lm object and return a fit mle2 object with same model, data
-# uses estimates from lm as starting values for mle2
-# uses do.call()
-lm.to.mle2 <- function( model , data=NULL , tau=TRUE , skip.hessian=FALSE ) {
-    if ( class(model)[1] == "formula" ) {
-        # passed formula directly, so need to fit it ourselves
-        model <- lm( model , data=data )
-    }
-    if ( class(model)[1] != "lm" ) return( "Not a model of class lm." )
-    if ( is.null(data) ) return( "Must specify data frame." )
-    require(bbmle)
-    # extract data frame
-    dm <- model$model
-    # get factors matrix
-    fm <- attr( attr( model$model , "terms" ) , "factors" )
-    # get names of variables
-    xnames <- colnames(fm)
-    yname <- rownames(fm)[1]
-    # build vector of additive terms for formula
-    k <- length(xnames)
-    terms <- rep("",k)
-    coefnames <- paste( "b" , 1:k , sep="" )
-    for ( i in 1:k ) {
-        aterm <- ifelse( fm[,i]==1 , colnames(dm) , "" )
-        aterm <- aterm[ aterm != "" ]
-        acoef <- coefnames[i]
-        aterm <- paste( c(acoef,aterm) , collapse="*" )
-        terms[i] <- aterm
-    }
-    mu <- paste( c("a",terms) , collapse=" + " )
-    # make start list
-    startvals <- coef(model)
-    sigmastart <- sqrt( var(resid(model))*(nrow(dm)-1)/(nrow(dm)-k-1) )
-    sigmaname <- "sigma"
-    sigmaform <- "sigma"
-    if ( tau==TRUE ) {
-        sigmaname <- "tau"
-        sigmastart <- 1/sigmastart
-        sigmaform <- "1/abs(tau)"
-    }
-    thestart <- paste( c("a",coefnames,sigmaname) , c( startvals , sigmastart ) , sep="=" )
-    dostart <- paste( thestart , collapse=" , " )
-    dostart <- paste( "list(" , dostart , ")" , sep="" )
-    dostart <- eval( parse( text=dostart ) )
-    # build model formula
-    theform <- paste( yname , "~ dnorm( mean=" , mu , " , sd=" , sigmaform , ")" )
-    theformula <- formula( theform )
-    # put it all together
-    holdcall <- match.call()
-    fit.m <- do.call( mle2 , list(minuslogl=theformula , data=data , start=dostart,skip.hessian=skip.hessian) )
-    fit.m@call <- holdcall
-    fit.m@call.orig <- holdcall
-    return( fit.m )
-}
-
-# Type S error function
-type.s <- function( est , se , posterior=NULL ) {
-    n <- length(est)
-    if ( is.null(posterior) ) {
-        pr.s <- pnorm( rep(0,n) , mean=est , sd=se )
-        pr.s <- ifelse( pr.s > 0.5 , 1-pr.s , pr.s )
-    } else {
-        # compute from posterior rather than standard error
-    }
-    pr.s
-}
-
 # finds mode of a continuous density
 chainmode <- function( chain , ... ) {
     dd <- density(chain , ...)
@@ -165,7 +100,7 @@ chainmode <- function( chain , ... ) {
 HPDI <- function( samples , prob=0.95 ) {
     # require(coda)
     class.samples <- class(samples)[1]
-    coerce.list <- c( "numeric" , "matrix" , "data.frame" , "integer" )
+    coerce.list <- c( "numeric" , "matrix" , "data.frame" , "integer" , "array" )
     if ( class.samples %in% coerce.list ) {
         # single chain for single variable
         samples <- as.mcmc( samples )

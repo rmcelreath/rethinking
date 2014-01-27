@@ -252,57 +252,11 @@ shade <- function( object , lim , label=NULL , col=col.alpha("black",0.15) , bor
     }
 }
 
-
-# mcmc utilities
-
-plotchain <- function(x , mean=TRUE , main=thecall[2][[1]] ) {
-    thecall <- match.call()
-    plot(x,col="slateblue",type="l",ylab="value",main=main)
-    if ( mean==TRUE ) {
-        imean <- rep(0,length(x))
-        imean[1] <- x[1]
-        for ( i in 2:length(x) ) {
-            imean[i] <- ( imean[i-1]*(i-1) + x[i] )/i
-        }
-        lines( 1:length(x) , imean , col="white" , lwd=4 , type="l" )
-        lines( 1:length(x) , imean , col="orange" , lwd=2 , type="l" )
-    }
-}
-
-plotpost <- function(x , burn=0.1 , width=1 , main=thecall[2][[1]] , ci=FALSE , ... ) {
-    thecall <- match.call()
-    xend <- floor( (length(x)*burn) )
-    plot( density( x[-c(1:xend)] , adjust=width ) , col="slateblue" , lwd=2 , main=main , ... )
-    if ( ci==TRUE ) {
-        x2 <- x[-c(1:xend)] # removed burn in
-        mu <- mean( x2 )
-        ci95 <- quantile( x2 , probs=c(0.025,0.975) )
-        lines( c(mu,mu) , c(0,1000) , col="orange" , lty=2 )
-        lines( c(ci95[1],ci95[1]) , c(0,1000) , col="orange" , lty=2 )
-        lines( c(ci95[2],ci95[2]) , c(0,1000) , col="orange" , lty=2 )
-        themode <- chainmode( x2 )
-        lines( c(themode,themode) , c(0,1000) , col="orange" , lty=1 )
-    }
-}
-
-plotmcmc <- function( mcmc , ci=TRUE , width=1 ) {
-    # takes associated chains in the form of a data frame,
-    # rows: parameters
-    # col 1: chains
-    # col 2: posteriors
-    npar <- ncol(mcmc)
-    par(mfrow=c(npar,2))
-    for ( i in 1:npar ) {
-        plotchain( mcmc[,i] , main=colnames(mcmc)[i] )
-        plotpost( mcmc[,i] , main=colnames(mcmc)[i] , ci=ci , width=width )
-    }
-}
-
-mcmcpairs <- function( posterior , cex=0.3 , pch=16 , col=col.alpha("slateblue",0.2) , n=1000 , ... ) {
+mcmcpairs <- function( posterior , cex=0.3 , pch=16 , col=col.alpha("slateblue",0.2) , n=1000 , adj=1 , ... ) {
     panel.dens <- function(x, ...) {
         usr <- par("usr"); on.exit(par(usr))
         par(usr = c(usr[1:2], 0, 1.5) )
-        h <- density(x,adj=0.5)
+        h <- density(x,adj=adj)
         y <- h$y
         y <- y/max(y)
         abline( v=0 , col="gray" , lwd=0.5 )
