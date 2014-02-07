@@ -3,7 +3,7 @@
 # various utility functions
 
 # set help to html
-hhtml <- function() options(help_type="html")
+htmlhelp <- function() options(help_type="html")
 
 # default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
 blank <- function(ex=1) quartz("myquartz",width=3.5*ex,height=4*ex)

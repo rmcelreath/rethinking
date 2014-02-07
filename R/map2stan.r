@@ -59,7 +59,10 @@ map2stan <- function( flist , data , start , sample=TRUE , iter=2000 , chains=1 
         dpois = 'poisson',
         poisson = 'poisson',
         dgamma = 'gamma',
-        gamma = 'gamma'
+        gamma = 'gamma',
+        dlaplace = 'double_exponential',
+        double_exponential = 'double_exponential',
+        laplace = 'double_exponential'
     )
     
     inverse_links <- list(
@@ -148,12 +151,6 @@ map2stan <- function( flist , data , start , sample=TRUE , iter=2000 , chains=1 
         density <- density_sub_list[[ as.character(fl[[3]][[1]]) ]]
         # must be either normal or multi_normal, so always 2 parameters
         mu <- fl[[3]][[2]]
-        if ( length(mu)>1 ) {
-            # parameters for means
-        } else {
-            # a zero or a single parameter for mean
-            mu <- rep( as.character(mu) , length(pars) )
-        }
         Sigma <- as.character( fl[[3]][[3]] )
         pars_in <- list( mu , Sigma )
         list(
@@ -387,17 +384,40 @@ map2stan <- function( flist , data , start , sample=TRUE , iter=2000 , chains=1 
     if ( nv > 0 ) {
         for ( i in 1:nv ) {
             pars <- fp[['vprior']][[i]][['pars_out']]
+            parsin <- fp[['vprior']][[i]][['pars_in']]
             if ( length(pars)>1 ) {
                 use_tpar <- TRUE
+                # declare vector outputs
                 for ( j in 1:length(pars) ) {
                     m_tpar <- concat( m_tpar , indent , "vector[" , Nname , "] " , pars[[j]] , ";\n" )
                 } #j
+                # check for parameters in first input -- may need transform there
+                use_input_transform <- FALSE
+                if ( fp[['vprior']][[i]][['density']]=="multi_normal" ) {
+                    if ( length(parsin[[1]]) > 1 ) {
+                        use_input_transform <- TRUE
+                        # vector of parameters like c(a,b)
+                        # will use transform mu_GROUP in model block
+                        # so declare vector here
+                        m_tpar <- concat( m_tpar , indent , "vector[" , length(pars) , "] mu_" , fp[['vprior']][[i]][['group']] , ";\n" )
+                    }
+                }
+                # assign 'real' outputs to vector
                 m_tpar <- concat( m_tpar , indent , "for ( j in 1:" , Nname , " ) {\n" )
                 for ( j in 1:length(pars) ) {
                     fakename <- concat( "vary_" , fp[['vprior']][[i]][['group']] )
                     m_tpar <- concat( m_tpar , indent , indent , pars[[j]] , "[j] <- " , fakename , "[j," , j , "];\n" )
                 } #j
                 m_tpar <- concat( m_tpar , indent , "}\n" )
+                if ( use_input_transform==TRUE ) {
+                    # transform for vector of multi_normal means
+                    mu <- parsin[[1]]
+                    mu[[1]] <- NULL # erase function 'c'
+                    vecname <- concat( "mu_" , fp[['vprior']][[i]][['group']] )
+                    for ( j in 1:length(mu) ) {
+                        m_tpar <- concat( m_tpar , indent , vecname , "[" , j , "] <- " , as.character(mu[[j]]) , ";\n" )
+                    }
+                }
             }
         }#nv
     }
@@ -443,15 +463,38 @@ map2stan <- function( flist , data , start , sample=TRUE , iter=2000 , chains=1 
             gname <- fp[['vprior']][[i]][['group']]
             Nname <- concat( "N_" , gname )
             dname <- fp[['vprior']][[i]][['density']]
-            Sname <- fp[['vprior']][[i]][['pars_in']][[2]]
             num_out <- length( fp[['vprior']][[i]][['pars_out']] )
             if ( num_out > 1 ) {
-                vmeans <- concat( "rep_vector(0," , num_out , ")" )
-                m_model <- concat( m_model , indent , "for ( j in 1:" , Nname , " ) " , "vary_" , gname , "[j] ~ " , dname , "( " , vmeans , " , " , Sname , " );\n" )
+                # multivariate distribution
+                if ( dname=="multi_normal" ) {
+                    if ( length(fp[['vprior']][[i]][['pars_in']][[1]])>1 ) {
+                        # a vector of inputs c() to a single density parameter
+                        # try using transformed parameter vector for it
+                        parsin <- fp[['vprior']][[i]][['pars_in']]
+                        parsin[[1]] <- concat( "mu_" , gname )
+                        inputstxt <- paste( parsin , collapse=" , " , sep="" )
+                    }
+                    if ( fp[['vprior']][[i]][['pars_in']][[1]]=="0" ) {
+                        # repeat zero mean for vector mean of multi_normal
+                        parsin <- fp[['vprior']][[i]][['pars_in']]
+                        parsin[[1]] <- concat( "rep_vector(0," , num_out , ")" )
+                        inputstxt <- paste( parsin , collapse=" , " , sep="" )
+                    }
+                } else {
+                    # just copy inputs as given
+                    inputstxt <- paste( fp[['vprior']][[i]][['pars_in']] , collapse=" , " , sep="" )
+                }
+                m_model <- concat( m_model , indent , "for ( j in 1:" , Nname , " ) " , "vary_" , gname , "[j] ~ " , dname , "( " , inputstxt , " );\n" )
             } else {
-                vmeans <- 0
+                # single variate distribution
                 poname <- fp[['vprior']][[i]][['pars_out']][[1]]
-                m_model <- concat( m_model , indent , "for ( j in 1:" , Nname , " ) " , poname , "[j] ~ " , dname , "( " , vmeans , " , " , Sname , " );\n" )
+                npi <- length( fp[['vprior']][[i]][['pars_in']] )
+                if ( npi > 1 ) {
+                    parsintxt <- paste( fp[['vprior']][[i]][['pars_in']] , collapse=" , " , sep="" )
+                } else {
+                    parsintxt <- fp[['vprior']][[i]][['pars_in']][[1]]
+                }
+                m_model <- concat( m_model , indent , "for ( j in 1:" , Nname , " ) " , poname , "[j] ~ " , dname , "( " , parsintxt , " );\n" )
             }
         }
     } #nv
@@ -648,6 +691,8 @@ map2stan <- function( flist , data , start , sample=TRUE , iter=2000 , chains=1 
 # EXAMPLES
 if ( FALSE ) {
 
+library(rethinking)
+
 f <- list(
     y ~ dnorm(mu,sigma),
     mu ~ a + aj + (b+bj)*x,
@@ -676,6 +721,26 @@ f3 <- list(
     sigma_a ~ dcauchy(0,1)
 )
 
+# now with fixed effect inside prior
+f4 <- list(
+    y ~ dnorm(mu,sigma),
+    mu ~ aj + b*x,
+    aj|id ~ dnorm( a , sigma_a ),
+    a ~ dnorm(0,10),
+    b ~ dnorm(0,1),
+    sigma ~ dcauchy(0,1),
+    sigma_a ~ dcauchy(0,1)
+)
+
+f5 <- list(
+    y ~ dnorm(mu,sigma),
+    mu ~ aj + bj*x,
+    c(aj,bj)|id ~ dmvnorm( c(a,b) , Sigma_id ),
+    a ~ dnorm(0,10),
+    b ~ dnorm(0,1),
+    sigma ~ dcauchy(0,1)
+)
+
 # simulate data
 library(MASS)
 N <- 1000 # 1000 cases
@@ -696,9 +761,9 @@ beta <- mvrnorm( J , mu=mu , Sigma=Sigma )
 y <- rnorm( N , mean=beta[id,1]+beta[id,2]*x , sd=sigma )
 y2 <- rbinom( N , size=1 , prob=logistic( y-8 ) )
 
-m <- map2stan( f , data=list(y=y,x=x,id=id) , start=list(a=10,b=0,sigma=3) , sample=TRUE , debug=FALSE )
+m <- map2stan( f2 , data=list(y=y,x=x,id=id) , start=list(a=10,b=0,sigma=3) , sample=TRUE , debug=FALSE )
 
-m <- map2stan( f3 , data=list(y=y2,x=x,id=id) , start=list(a=0,b=0) , sample=TRUE , debug=FALSE )
+m2 <- map2stan( f , data=list(y=y,x=x,id=id) , start=list(a=10,b=0,sigma=3) , sample=TRUE , debug=FALSE )
 
 
 } #EXAMPLES

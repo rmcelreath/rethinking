@@ -107,14 +107,14 @@ dzerogamma <- function( x , prob , mu , scale , log=TRUE ) {
 }
 
 # laplace (double exponential)
-dlaplace <- function(x,lambda,location=0,log=FALSE) {
+dlaplace <- function(x,location=0,lambda=1,log=FALSE) {
     # f(y) = (1/(2b)) exp( -|y-a|/b )
     l <- (1/(2*lambda))*exp( -abs(x-location)/lambda )
     if ( log==TRUE ) l <- log(l)
     l
 }
 
-rlaplace <- function(n,lambda,location=0) {
+rlaplace <- function(n,location=0,lambda=1) {
     # generate an exponential sample, then generate a random sign, then add location
     y <- rexp(n=n,rate=lambda) * sample( c(-1,1) , size=n , replace=TRUE )
     y <- y + location
