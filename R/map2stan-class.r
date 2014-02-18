@@ -23,9 +23,9 @@ extract.samples <- function(object) {
     return(p)
 }
 
-plotchains <- function(object,...) {
+plotchains <- function(object , pars=names(object@start) , ...) {
     if ( class(object)=="map2stan" )
-        rstan::traceplot( object@stanfit , ask=TRUE , pars=names(object@start) , ... )
+        rstan::traceplot( object@stanfit , ask=TRUE , pars=pars , ... )
 }
 
 plotpost <- function(object,n=1000,col=col.alpha("slateblue",0.3),cex=0.8,pch=16,...) {

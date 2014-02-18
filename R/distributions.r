@@ -54,7 +54,7 @@ rbeta2 <- function( n , prob , theta ) {
 }
 
 # Ben Bolker's dbetabinom from emdbook package
-dbetabinom <- function (x, prob, size, theta, shape1, shape2, log = FALSE) 
+dbetabinom <- function (x, size, prob, theta, shape1, shape2, log = FALSE) 
 {
     if (missing(prob) && !missing(shape1) && !missing(shape2)) {
         prob <- shape1/(shape1 + shape2)
@@ -83,16 +83,14 @@ rgamma2 <- function( n , mu , scale ) {
     rgamma( n , shape=mu/scale , scale=scale )
 }
 
-dgampois <- function( x , mu=NULL , shape=NULL , scale=NULL , rate=NULL , log=FALSE ) {
-    if ( !is.null(rate) ) scale <- 1/rate
-    if ( !is.null(mu) ) shape <- mu / scale
+dgampois <- function( x , mu , scale , log=FALSE ) {
+    shape <- mu / scale
     prob <- 1 / ( 1 + scale )
     dnbinom( x , size=shape , prob=prob , log=log )
 }
 
-rgampois <- function( n , mu=NULL , shape=NULL , scale=NULL , rate=NULL ) {
-    if ( !is.null(rate) ) scale <- 1/rate
-    if ( !is.null(mu) ) shape <- mu / scale
+rgampois <- function( n , mu , scale ) {
+    shape <- mu / scale
     prob <- 1 / ( 1 + scale )
     rnbinom( n , size=shape , prob=prob )
 }
@@ -128,4 +126,22 @@ multilogistic <- function( x , lambda=1 , diff=TRUE , log=FALSE ) {
     if ( log==FALSE ) result <- f / sum(f)
     if ( log==TRUE ) result <- log(f) - log(sum(f))
     result
+}
+
+
+dlkjcorr <- function( x , eta=1 , log=TRUE ) {
+    det(x)^(eta-1)
+}
+
+rinvwishart <- function(s,df,Sigma,Prec) {
+    #s-by-s Inverse Wishart matrix, df degree of freedom, precision matrix
+    #Prec. Distribution of W^{-1} for Wishart W with nu=df+s-1 degree of
+    # freedoom, covar martix Prec^{-1}.
+    # NOTE  mean of riwish is proportional to Prec
+    if ( missing(Prec) ) Prec <- solve(Sigma)
+    if (df<=0) stop ("Inverse Wishart algorithm requires df>0")
+    R <- diag(sqrt(2*rgamma(s,(df + s  - 1:s)/2)))
+    R[outer(1:s, 1:s,  "<")] <- rnorm (s*(s-1)/2)
+    S <- t(solve(R))%*% chol(Prec)
+    return(t(S)%*%S)
 }

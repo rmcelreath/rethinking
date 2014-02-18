@@ -5,6 +5,9 @@
 # set help to html
 htmlhelp <- function() options(help_type="html")
 
+# set CRAB mirror
+setcran <- function(themirror="http://cran.stat.ucla.edu/") options(repos=structure(c(CRAN=themirror)))
+
 # default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
 blank <- function(ex=1) quartz("myquartz",width=3.5*ex,height=4*ex)
 blank2 <- function() {
