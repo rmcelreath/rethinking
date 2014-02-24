@@ -35,9 +35,9 @@ map2stan( flist , data , start , sample=TRUE , iter=2000 , chains=1 ,
   
   The Stan model code includes a generated quantities block that computes the deviance for each vector (iteration) of parameter samples. When sampling completes, \code{map2stan} computes DIC, the deviance information criterion, from the samples. DIC information is available from \code{show} and \code{DIC}, as well as being attributes of the returned object.
   
-  Functions meant for processing \code{map2stan} fits are: \code{plotchains}, \code{extract.samples}, and \code{stancode}.
+  Functions meant for (re)processing \code{map2stan} fits are: \code{extract.samples}, \code{resample}, and \code{stancode}.
   
-  Methods are defined for \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, and \code{show}.
+  Methods are defined for \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, \code{plot}, \code{pairs}, and \code{show}.
 }
 \value{
     Returns an object of class \code{map} with the following slots.
@@ -52,7 +52,7 @@ map2stan( flist , data , start , sample=TRUE , iter=2000 , chains=1 ,
 }
 \references{McElreath 2011, Statistical Rethinking.}
 \author{Richard McElreath}
-\seealso{\code{\link{map}},\code{\link{stan}}}
+\seealso{\code{\link{resample}},\code{\link{map}},\code{\link{stan}}}
 \examples{
 library(rethinking)
 data(chimpanzees)
@@ -83,7 +83,8 @@ m2 <- map2stan(
 
 precis(m2)
 summary(m2)
-plotchains(m2)
+plot(m2)
+pairs(m2)
 
 # now RStan fit of model with varying intercepts on actor
 # note initial values for each varying intercept in start
@@ -103,7 +104,8 @@ m3 <- map2stan(
 )
 
 precis(m3)
-plotchains(m3)
+plot(m3)
+pairs(m3)
 
 # varying intercepts on actor and experimental block
 m4 <- map2stan(
@@ -125,7 +127,7 @@ m4 <- map2stan(
 
 precis(m4)
 summary(m4)
-plotchains(m4)
+plot(m4)
 
 # compare posterior means
 coeftab(m2,m3,m4)

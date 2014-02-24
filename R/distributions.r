@@ -7,7 +7,7 @@ logistic <- function( x ) {
     p
 }
 
-pordlogit <- function( x , a , phi , log=FALSE ) {
+pordlogit <- function( x , phi , a , log=FALSE ) {
     a <- c( as.numeric(a) , Inf )
     if ( length(phi) == 1 ) {
         p <- logistic( a[x] - phi )
@@ -21,7 +21,7 @@ pordlogit <- function( x , a , phi , log=FALSE ) {
     p
 }
 
-dordlogit <- function( x , a , phi , log=FALSE ) {
+dordlogit <- function( x , phi , a , log=FALSE ) {
     a <- c( as.numeric(a) , Inf )
     p <- logistic( a[x] - phi )
     na <- c( -Inf , a )
@@ -31,7 +31,7 @@ dordlogit <- function( x , a , phi , log=FALSE ) {
     p
 }
 
-rordlogit <- function( n , a , phi=0 ) {
+rordlogit <- function( n , phi=0 , a ) {
     a <- c( as.numeric(a) , Inf )
     k <- 1:length(a)
     p <- dordlogit( k , a=a , phi=phi , log=FALSE )
@@ -144,4 +144,41 @@ rinvwishart <- function(s,df,Sigma,Prec) {
     R[outer(1:s, 1:s,  "<")] <- rnorm (s*(s-1)/2)
     S <- t(solve(R))%*% chol(Prec)
     return(t(S)%*%S)
+}
+
+log_sum_exp <- function( x ) {
+    xmax <- max(x)
+    xsum <- sum( exp( x - xmax ) )
+    xmax + log(xsum)
+}
+
+# faster but less accurate version
+#dzipois <- function( x , p , lambda , log=TRUE ) {
+#    ll <- ifelse( x==0 , p + (1-p)*exp(-lambda) , (1-p)*dpois(x,lambda,FALSE) )
+#    log(ll)
+#}
+
+# zero-inflated poisson distribution
+# this is slow, but accurate
+dzipois <- function(x,p,lambda,log=FALSE) {
+    ll <- rep(0,length(x))
+    p_i <- p[1]
+    lambda_i <- lambda[1]
+    for ( i in 1:length(x) ) {
+        if ( length(p)>1 ) p_i <- p[i]
+        if ( length(lambda)>1 ) lambda_i <- lambda[i]
+        if ( x[i]==0 ) {
+            ll[i] <- log_sum_exp( c( log(p_i) , log(1-p_i)+dpois(x[i],lambda_i,TRUE) ) )
+        } else {
+            ll[i] <- log(1-p_i) + dpois(x[i],lambda_i,TRUE)
+        }
+    }
+    if ( log==FALSE ) ll <- exp(ll)
+    return(ll)
+}
+
+rzipois <- function(n,p,lambda) {
+    z <- rbinom(n,size=1,prob=p)
+    y <- (1-z)*rpois(n,lambda)
+    return(y)
 }
