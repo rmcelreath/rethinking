@@ -6,18 +6,22 @@
   Compiles lists of formulas, like those used in \code{map}, into Stan model code. Allows for arbitary fixed effect and mixed effect regressions. Also computes DIC.
 }
 \usage{
-map2stan( flist , data , start , sample=TRUE , iter=2000 , chains=1 , 
-    debug=FALSE , ... )
+map2stan( flist , data , start , pars , constraints=list() , types=list() , 
+    sample=TRUE , iter=2000 , chains=1 , debug=FALSE , WAIC=FALSE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{flist}{A formula or list of formulas that define the likelihood and priors. See details.}
-  \item{start}{A named list specifying parameters and their initial values}
   \item{data}{A data frame or list containing the data}
+  \item{start}{A named list specifying parameters and their initial values}
+  \item{pars}{Optional: character vector of parameters to return samples for}
+  \item{constraints}{Optional: named list of custom parameter constraints, using Stan notation}
+  \item{types}{Optional: named list of custom parameter types, using Stan notation}
   \item{sample}{If \code{FALSE}, builds Stan code without sampling}
   \item{iter}{Number of iterations of sampling. By default, half of these iterations are warmup}
   \item{chains}{Number of independent chains to sample from}
   \item{debug}{If \code{TRUE}, prints various internal steps to help with debugging}
+  \item{WAIC}{When \code{TRUE}, computes WAIC after sampling, storing the result}
   \item{...}{Additional arguments to pass to \code{\link{stan}}}
 }
 \details{

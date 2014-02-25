@@ -163,6 +163,11 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
     
     if ( class(object)!="map2stan" ) stop("Requires map2stan fit")
     
+    if ( !is.null(attr(object,"WAIC")) ) {
+        # already have it stored in object, so just return it
+        return( attr(object,"WAIC") )
+    }
+    
     # compute linear model values at each sample
     if ( refresh > 0 ) message("Constructing posterior predictions")
     lm_vals <- link( object , n=n , refresh=refresh )
@@ -197,7 +202,11 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
         for ( i in 1:n_obs ) {
             for ( j in 1:n_lm ) {
                 # pull out samples for case i only
-                lm_now[[j]] <- lm_vals[[j]][,i]
+                ndims <- length(dim(lm_vals[[j]]))
+                if ( ndims==2 )
+                    lm_now[[j]] <- lm_vals[[j]][,i]
+                if ( ndims==3 )
+                    lm_now[[j]] <- lm_vals[[j]][,i,]
             }
             names(lm_now) <- names(lm_vals)
             
@@ -217,7 +226,11 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
                 }
                 if ( pars_type[[j]]=="lm" ) {
                     # fetch n values
-                    val <- lm_vals[[ partxt ]][ , i ]
+                    ndims <- length(dim(lm_vals[[partxt]]))
+                    if ( ndims==2 )
+                        val <- lm_vals[[ partxt ]][ , i ]
+                    if ( ndims==3 )
+                        val <- lm_vals[[ partxt ]][ , i , ]
                 }
                 e[[ partxt ]] <- val
             }

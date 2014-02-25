@@ -7,477 +7,484 @@
 
 # to-do:
 # (-) handle improper input more gracefully
-# (-) how to support WAIC?
 
 ########################################
-    # distribution function templates
+# distribution function templates
+
+concat <- function( ... ) {
+    paste( ... , collapse="" , sep="" )
+}
     
-    map2stan.templates <- list(
-        Gaussian = list(
-            name = "Gaussian",
-            R_name = "dnorm",
-            stan_name = "normal",
-            num_pars = 2,
-            par_names = c("mu","sigma"),
-            par_bounds = c("","<lower=0>"),
-            par_types = c("real","real"),
-            out_type = "real",
-            par_map = function(k,...) {
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        MVGaussian = list(
-            name = "MVGaussian",
-            R_name = "dmvnorm",
-            stan_name = "multi_normal",
-            num_pars = 2,
-            par_names = c("Mu","Sigma"),
-            par_bounds = c("",""),
-            par_types = c("vector","cov_matrix"),
-            out_type = "vector",
-            par_map = function(k,n,parenvir,...) {
-                # k is list of input parameters
-                # n is dimension of multi_normal
-                kout <- k
-                
-                # make sure Mu matches length
-                if ( class(k[[1]])=="numeric" ) {
-                    # numeric means -- make sure match dimension
-                    kout[[1]] <- concat( "rep_vector(" , k[[1]] , "," , n , ")" )
-                }
-                
-                # check for vector of parameters in Mu
-                if ( class(k[[1]])=="call" ) {
-                    fname <- as.character(k[[1]][[1]])
-                    if ( fname=="c" ) {
-                        # vector, so constuct vector data type in Stan code
-                        # and add vector to transformed parameters
-                        pars <- list()
-                        for ( i in 2:(n+1) ) pars[[i-1]] <- as.character(k[[1]][[i]])
-                        vname <- concat( "Mu_" , paste(pars,collapse="") )
-                        
-                        # add declaration to transformed parameters
-                        m_tpars1 <- concat( m_tpars1 , indent , "vector[" , n , "] " , vname , ";\n" )
-                        # add transformation
-                        m_tpars2 <- concat( m_tpars2 , indent , "for ( j in 1:" , n , " ) {\n" )
-                        for ( i in 1:n ) {
-                            m_tpars2 <- concat( m_tpars2 , indent,indent , vname , "[" , i , "] <- " , pars[[i]] , ";\n" )
-                        }
-                        m_tpars2 <- concat( m_tpars2 , indent , "}\n" )
-                        
-                        # assign tpars text to parent environment?
-                        assign( "m_tpars1" , m_tpars1 , envir=parenvir )
-                        assign( "m_tpars2" , m_tpars2 , envir=parenvir )
-                        
-                        # finally, replace k[[1]] with vector name
-                        kout[[1]] <- vname
+map2stan.templates <- list(
+    Gaussian = list(
+        name = "Gaussian",
+        R_name = "dnorm",
+        stan_name = "normal",
+        num_pars = 2,
+        par_names = c("mu","sigma"),
+        par_bounds = c("","<lower=0>"),
+        par_types = c("real","real"),
+        out_type = "real",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    MVGaussian = list(
+        name = "MVGaussian",
+        R_name = "dmvnorm",
+        stan_name = "multi_normal",
+        num_pars = 2,
+        par_names = c("Mu","Sigma"),
+        par_bounds = c("",""),
+        par_types = c("vector","cov_matrix"),
+        out_type = "vector",
+        par_map = function(k,n,parenvir,...) {
+            # k is list of input parameters
+            # n is dimension of multi_normal
+            kout <- k
+            
+            # make sure Mu matches length
+            if ( class(k[[1]])=="numeric" ) {
+                # numeric means -- make sure match dimension
+                kout[[1]] <- concat( "rep_vector(" , k[[1]] , "," , n , ")" )
+            }
+            
+            # check for vector of parameters in Mu
+            if ( class(k[[1]])=="call" ) {
+                fname <- as.character(k[[1]][[1]])
+                if ( fname=="c" ) {
+                    # vector, so constuct vector data type in Stan code
+                    # and add vector to transformed parameters
+                    pars <- list()
+                    for ( i in 2:(n+1) ) pars[[i-1]] <- as.character(k[[1]][[i]])
+                    vname <- concat( "Mu_" , paste(pars,collapse="") )
+                    
+                    # add declaration to transformed parameters
+                    m_tpars1 <- concat( m_tpars1 , indent , "vector[" , n , "] " , vname , ";\n" )
+                    # add transformation
+                    m_tpars2 <- concat( m_tpars2 , indent , "for ( j in 1:" , n , " ) {\n" )
+                    for ( i in 1:n ) {
+                        m_tpars2 <- concat( m_tpars2 , indent,indent , vname , "[" , i , "] <- " , pars[[i]] , ";\n" )
                     }
+                    m_tpars2 <- concat( m_tpars2 , indent , "}\n" )
+                    
+                    # assign tpars text to parent environment?
+                    assign( "m_tpars1" , m_tpars1 , envir=parenvir )
+                    assign( "m_tpars2" , m_tpars2 , envir=parenvir )
+                    
+                    # finally, replace k[[1]] with vector name
+                    kout[[1]] <- vname
                 }
-                
-                # result
-                if (debug==TRUE) print(kout)
-                return(kout);
-            },
-            vectorized = FALSE
-        ),
-        MVGaussianSRS = list(
-            # MVGauss with diag(sigma)*Rho*diag(sigma) for covariance
-            name = "MVGaussianSRS",
-            R_name = "dmvnorm2",
-            stan_name = "multi_normal",
-            num_pars = 3,
-            par_names = c("Mu","Sigma","Rho"),
-            par_bounds = c("","<lower=0>",""),
-            par_types = c("vector","vector","cor_matrix"),
-            out_type = "vector",
-            par_map = function(k,n,e,...) {
-                # k is list of input parameters
-                # n is dimension of multi_normal
-                # e is calling environment
-                
-                # only going to need two slots in result
-                kout <- k
-                kout[[3]] <- NULL
-                
-                ###########
-                # Mu
-                
-                # make sure Mu matches length
-                if ( class(k[[1]])=="numeric" ) {
-                    # numeric means -- make sure match dimension
-                    kout[[1]] <- concat( "rep_vector(" , k[[1]] , "," , n , ")" )
-                }
-                # check for vector of parameters in Mu
-                if ( class(k[[1]])=="call" ) {
-                    fname <- as.character(k[[1]][[1]])
-                    if ( fname=="c" ) {
-                        # vector, so constuct vector data type in Stan code
-                        # and add vector to transformed parameters
-                        pars <- list()
-                        for ( i in 2:(n+1) ) pars[[i-1]] <- as.character(k[[1]][[i]])
-                        vname <- concat( "Mu_" , paste(pars,collapse="") )
-                        
-                        # get tpars from parent
-                        m_tpars1 <- get( "m_tpars1" , envir=e )
-                        m_tpars2 <- get( "m_tpars2" , envir=e )
-                        
-                        # add declaration to transformed parameters
-                        m_tpars1 <- concat( m_tpars1 , indent , "vector[" , n , "] " , vname , ";\n" )
-                        # add transformation
-                        m_tpars2 <- concat( m_tpars2 , indent , "for ( j in 1:" , n , " ) {\n" )
-                        for ( i in 1:n ) {
-                            m_tpars2 <- concat( m_tpars2 , indent,indent , vname , "[" , i , "] <- " , pars[[i]] , ";\n" )
-                        }
-                        m_tpars2 <- concat( m_tpars2 , indent , "}\n" )
-                        
-                        # assign tpars text to parent environment
-                        assign( "m_tpars1" , m_tpars1 , envir=e )
-                        assign( "m_tpars2" , m_tpars2 , envir=e )
-                        
-                        # finally, replace k[[1]] with vector name
-                        kout[[1]] <- vname
+            }
+            
+            # result
+            if (debug==TRUE) print(kout)
+            return(kout);
+        },
+        vectorized = FALSE
+    ),
+    MVGaussianSRS = list(
+        # MVGauss with diag(sigma)*Rho*diag(sigma) for covariance
+        name = "MVGaussianSRS",
+        R_name = "dmvnorm2",
+        stan_name = "multi_normal",
+        num_pars = 3,
+        par_names = c("Mu","Sigma","Rho"),
+        par_bounds = c("","<lower=0>",""),
+        par_types = c("vector","vector","cor_matrix"),
+        out_type = "vector",
+        par_map = function(k,n,e,...) {
+            # k is list of input parameters
+            # n is dimension of multi_normal
+            # e is calling environment
+            
+            # only going to need two slots in result
+            kout <- k
+            kout[[3]] <- NULL
+            
+            ###########
+            # Mu
+            
+            # make sure Mu matches length
+            if ( class(k[[1]])=="numeric" ) {
+                # numeric means -- make sure match dimension
+                kout[[1]] <- concat( "rep_vector(" , k[[1]] , "," , n , ")" )
+            }
+            # check for vector of parameters in Mu
+            if ( class(k[[1]])=="call" ) {
+                fname <- as.character(k[[1]][[1]])
+                if ( fname=="c" ) {
+                    # vector, so constuct vector data type in Stan code
+                    # and add vector to transformed parameters
+                    pars <- list()
+                    for ( i in 2:(n+1) ) pars[[i-1]] <- as.character(k[[1]][[i]])
+                    vname <- concat( "Mu_" , paste(pars,collapse="") )
+                    
+                    # get tpars from parent
+                    m_tpars1 <- get( "m_tpars1" , envir=e )
+                    m_tpars2 <- get( "m_tpars2" , envir=e )
+                    
+                    # add declaration to transformed parameters
+                    m_tpars1 <- concat( m_tpars1 , indent , "vector[" , n , "] " , vname , ";\n" )
+                    # add transformation
+                    m_tpars2 <- concat( m_tpars2 , indent , "for ( j in 1:" , n , " ) {\n" )
+                    for ( i in 1:n ) {
+                        m_tpars2 <- concat( m_tpars2 , indent,indent , vname , "[" , i , "] <- " , pars[[i]] , ";\n" )
                     }
+                    m_tpars2 <- concat( m_tpars2 , indent , "}\n" )
+                    
+                    # assign tpars text to parent environment
+                    assign( "m_tpars1" , m_tpars1 , envir=e )
+                    assign( "m_tpars2" , m_tpars2 , envir=e )
+                    
+                    # finally, replace k[[1]] with vector name
+                    kout[[1]] <- vname
                 }
-                
-                ###########
-                # Sigma and Rho
-                # construct covariance matrix from
-                #   diag_matrix(Sigma)*Rho*diag_matrix(Sigma)
-                # Then can specify separate priors on Sigma and Rho
-                # need to use transformed parameter for construction, 
-                #   so calc not repeated in loop
-                # Naming convention for cov_matrix: SRS_SigmaRho
-                
-                Sigma_name <- as.character(k[[2]])
-                Rho_name <- as.character(k[[3]])
-                Cov_name <- concat( "SRS_" , Sigma_name , Rho_name )
-                
-                # get tpars from parent
-                m_tpars1 <- get( "m_tpars1" , envir=e )
-                m_tpars2 <- get( "m_tpars2" , envir=e )
-                
-                # build transformed parameter
-                m_tpars1 <- concat( m_tpars1 , indent , "cov_matrix[" , n , "] " , Cov_name , ";\n" )
-                m_tpars2 <- concat( m_tpars2 , indent , Cov_name , " <- diag_matrix(" , Sigma_name , ")*" , Rho_name , "*diag_matrix(" , Sigma_name , ");\n" )
-                
-                # now replace name
-                kout[[2]] <- Cov_name
-                
-                # assign tpars text to parent environment
-                assign( "m_tpars1" , m_tpars1 , envir=e )
-                assign( "m_tpars2" , m_tpars2 , envir=e )
-                
-                # result
-                return(kout);
-            },
-            vectorized = FALSE
-        ),
-        Cauchy = list(
-            name = "Cauchy",
-            R_name = "dcauchy",
-            stan_name = "cauchy",
-            num_pars = 2,
-            par_names = c("location","scale"),
-            par_bounds = c("","<lower=0>"),
-            par_types = c("real","real"),
-            out_type = "real",
-            par_map = function(k,...) {
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        Ordered = list(
-            name = "Ordered",
-            R_name = "dordlogit",
-            stan_name = "ordered_logistic",
-            num_pars = 2,
-            par_names = c("eta","cutpoints"),
-            par_bounds = c("",""),
-            par_types = c("real","vector"),
-            out_type = "int",
-            par_map = function(k,e,...) {
-                # linear model eta doesn't need any special treatment
-                # the cutpoints need to be declared as type ordered with length K-1,
-                #   where K is number of levels in outcome
-                # try to do as much here as we can
-                
-                # make sure cutpoints are not in R vector form
-                cuts <- k[[2]]
-                if ( class(cuts)=="call" ) {
-                    # convert to single name
-                    cuts_name <- "cutpoints"
-                    # get start values for individual pars in start list
-                    s <- get( "start" , e )
-                    cutpars <- list()
-                    cutstart <- list()
-                    for ( i in 2:length(cuts) ) {
-                        cutpars[[i-1]] <- as.character(cuts[[i]])
-                        cutstart[[i-1]] <- s[[ cutpars[[i-1]] ]]
-                        s[[ cutpars[[i-1]] ]] <- NULL # remove old naming
-                    }
-                    s[[ cuts_name ]] <- as.numeric(cutstart)
-                    assign( "start" , s , e )
-                    # insert explicit type into types list
-                    type_list <- get( "types" , e )
-                    type_list[[ cuts_name ]] <- concat( "ordered[" , length(cutpars) , "]" )
-                    assign( "types" , type_list , e )
-                    # rename
-                    k[[2]] <- cuts_name
-                } else {
-                    # just a name, hopefully
-                    cuts_name <- as.character(k[[2]])
-                    # for now, user must specify types=list(cutpoints="ordered[K]")
-                    # check
-                    type_list <- get( "types" , e )
-                    if ( is.null(type_list[[cuts_name]]) ) {
-                        message(concat("Warning: No explicit type declared for ",cuts_name))
-                    }
-                    k[[2]] <- cuts_name
+            }
+            
+            ###########
+            # Sigma and Rho
+            # construct covariance matrix from
+            #   diag_matrix(Sigma)*Rho*diag_matrix(Sigma)
+            # Then can specify separate priors on Sigma and Rho
+            # need to use transformed parameter for construction, 
+            #   so calc not repeated in loop
+            # Naming convention for cov_matrix: SRS_SigmaRho
+            
+            Sigma_name <- as.character(k[[2]])
+            Rho_name <- as.character(k[[3]])
+            Cov_name <- concat( "SRS_" , Sigma_name , Rho_name )
+            
+            # get tpars from parent
+            m_tpars1 <- get( "m_tpars1" , envir=e )
+            m_tpars2 <- get( "m_tpars2" , envir=e )
+            
+            # build transformed parameter
+            m_tpars1 <- concat( m_tpars1 , indent , "cov_matrix[" , n , "] " , Cov_name , ";\n" )
+            m_tpars2 <- concat( m_tpars2 , indent , Cov_name , " <- diag_matrix(" , Sigma_name , ")*" , Rho_name , "*diag_matrix(" , Sigma_name , ");\n" )
+            
+            # now replace name
+            kout[[2]] <- Cov_name
+            
+            # assign tpars text to parent environment
+            assign( "m_tpars1" , m_tpars1 , envir=e )
+            assign( "m_tpars2" , m_tpars2 , envir=e )
+            
+            # result
+            return(kout);
+        },
+        vectorized = FALSE
+    ),
+    Cauchy = list(
+        name = "Cauchy",
+        R_name = "dcauchy",
+        stan_name = "cauchy",
+        num_pars = 2,
+        par_names = c("location","scale"),
+        par_bounds = c("","<lower=0>"),
+        par_types = c("real","real"),
+        out_type = "real",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    Ordered = list(
+        name = "Ordered",
+        R_name = "dordlogit",
+        stan_name = "ordered_logistic",
+        num_pars = 2,
+        par_names = c("eta","cutpoints"),
+        par_bounds = c("",""),
+        par_types = c("real","vector"),
+        out_type = "int",
+        par_map = function(k,e,...) {
+            # linear model eta doesn't need any special treatment
+            # the cutpoints need to be declared as type ordered with length K-1,
+            #   where K is number of levels in outcome
+            # try to do as much here as we can
+            
+            # make sure cutpoints are not in R vector form
+            cuts <- k[[2]]
+            if ( class(cuts)=="call" ) {
+                # convert to single name
+                cuts_name <- "cutpoints"
+                # get start values for individual pars in start list
+                s <- get( "start" , e )
+                cutpars <- list()
+                cutstart <- list()
+                for ( i in 2:length(cuts) ) {
+                    cutpars[[i-1]] <- as.character(cuts[[i]])
+                    cutstart[[i-1]] <- s[[ cutpars[[i-1]] ]]
+                    s[[ cutpars[[i-1]] ]] <- NULL # remove old naming
                 }
-                
-                # add [i] to eta -- ordered not vectorized
-                # this should work for both linear models and variables
-                eta <- as.character(k[[1]])
-                k[[1]] <- concat( eta , "[i]" )
-                
-                # result
-                return(k);
-            },
-            vectorized = FALSE
-        ),
-        LKJ_Corr = list(
-            # LKJ corr_matrix; eta=1 is uniform correlation matrices
-            name = "LKJ_Corr",
-            R_name = "dlkjcorr",
-            stan_name = "lkj_corr",
-            num_pars = 1,
-            par_names = c("eta"),
-            par_bounds = c("<lower=0>"),
-            par_types = c("real"),
-            out_type = "corr_matrix",
-            par_map = function(k,...) {
-                return(k);
-            },
-            vectorized = FALSE
-        ),
-        invWishart = list(
-            # ye olde inverse wishart prior -- nu is df
-            name = "invWishart",
-            R_name = "dinvwishart",
-            stan_name = "inv_wishart",
-            num_pars = 2,
-            par_names = c("nu","Sigma"),
-            par_bounds = c("<lower=0>",""),
-            par_types = c("real","matrix"),
-            out_type = "matrix",
-            par_map = function(k,...) {
-                # process Sigma
-                # check if diag(n) format and translate to Stan broadcast code
-                if ( class(k[[2]])=="call" ) {
-                    # could be function call
-                    fname <- as.character(k[[2]][[1]])
-                    if ( fname=="diag" ) {
-                        n <- as.integer(k[[2]][[2]])
-                        k[[2]] <- concat("diag_matrix(rep_vector(1,",n,"))")
-                    }
+                s[[ cuts_name ]] <- as.numeric(cutstart)
+                assign( "start" , s , e )
+                # insert explicit type into types list
+                type_list <- get( "types" , e )
+                type_list[[ cuts_name ]] <- concat( "ordered[" , length(cutpars) , "]" )
+                assign( "types" , type_list , e )
+                # rename
+                k[[2]] <- cuts_name
+            } else {
+                # just a name, hopefully
+                cuts_name <- as.character(k[[2]])
+                # for now, user must specify types=list(cutpoints="ordered[K]")
+                # check
+                type_list <- get( "types" , e )
+                if ( is.null(type_list[[cuts_name]]) ) {
+                    message(concat("Warning: No explicit type declared for ",cuts_name))
                 }
-                # result
-                return(k);
-            },
-            vectorized = FALSE
-        ),
-        Laplace = list(
-            name = "Laplace",
-            R_name = "dlaplace",
-            stan_name = "double_exponential",
-            num_pars = 2,
-            par_names = c("location","scale"),
-            par_bounds = c("<lower=0>","<lower=0>"),
-            par_types = c("real","real"),
-            out_type = "real",
-            par_map = function(k,...) {
-                # Stan uses 1/lambda for second parameter
-                lambda <- as.character(k[[2]])
-                k[[2]] <- concat( "1/",lambda )
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        Uniform = list(
-            name = "Uniform",
-            R_name = "dunif",
-            stan_name = "uniform",
-            num_pars = 2,
-            par_names = c("alpha","beta"),
-            par_bounds = c("<lower=0>","<lower=0>"),
-            par_types = c("real","real"),
-            out_type = "real",
-            par_map = function(k,...) {
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        Binomial = list(
-            name = "Binomial",
-            R_name = "dbinom",
-            stan_name = "binomial",
-            num_pars = 2,
-            par_names = c("size","prob"),
-            par_bounds = c("<lower=1>","<lower=0,upper=1>"),
-            par_types = c("int","real"),
-            out_type = "int",
-            par_map = function(k,...) {
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        Beta = list(
-            name = "Beta",
-            R_name = "dbeta",
-            stan_name = "beta",
-            num_pars = 2,
-            par_names = c("alpha","beta"),
-            par_bounds = c("<lower=0>","<lower=0>"),
-            par_types = c("real","real"),
-            out_type = "real",
-            par_map = function(k,...) {
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        BetaBinomial = list(
-            name = "BetaBinomial",
-            R_name = "dbetabinom",
-            stan_name = "beta_binomial",
-            num_pars = 3,
-            par_names = c("size","prob","theta"),
-            par_bounds = c("<lower=1>","<lower=0>","<lower=0>"),
-            par_types = c("int","real","real"),
-            out_type = "int",
-            par_map = function(k,...) {
-                p_name <- k[[2]];
-                theta_name <- k[[3]];
-                k[[2]] <- concat(p_name,"*",theta_name);
-                k[[3]] <- concat("(1-",p_name,")*",theta_name);
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        Poisson = list(
-            name = "Poisson",
-            R_name = "dpois",
-            stan_name = "poisson",
-            num_pars = 1,
-            par_names = c("lambda"),
-            par_bounds = c("<lower=0>"),
-            par_types = c("real"),
-            out_type = "int",
-            par_map = function(k,...) {
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        Exponential = list(
-            name = "Exponential",
-            R_name = "dexp",
-            stan_name = "exponential",
-            num_pars = 1,
-            par_names = c("lambda"),
-            par_bounds = c("<lower=0>"),
-            par_types = c("real"),
-            out_type = "real",
-            par_map = function(k,...) {
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        Gamma = list(
-            name = "Gamma",
-            R_name = "dgamma",
-            stan_name = "gamma",
-            num_pars = 2,
-            par_names = c("alpha","beta"),
-            par_bounds = c("<lower=0>","lower=0"),
-            par_types = c("real","real"),
-            out_type = "real",
-            par_map = function(k,...) {
-                # alpha is shape
-                # beta is rate
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        Gamma2 = list(
-            name = "Gamma2",
-            R_name = "dgamma2",
-            stan_name = "gamma",
-            num_pars = 2,
-            par_names = c("alpha","beta"),
-            par_bounds = c("<lower=0>","lower=0"),
-            par_types = c("real","real"),
-            out_type = "real",
-            par_map = function(k,...) {
-                # alpha is shape
-                # beta is rate
-                # mu = alpha/scale
-                # scale = 1/beta
-                mu <- as.character(k[[1]])
-                scale <- as.character(k[[2]])
-                k[[1]] <- concat( mu , "/" , scale )
-                k[[2]] <- concat( "1/" , scale )
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        GammaPoisson = list(
-            name = "GammaPoisson",
-            R_name = "dgampois",
-            stan_name = "neg_binomial",
-            num_pars = 2,
-            par_names = c("alpha","beta"),
-            par_bounds = c("<lower=0>","<lower=0>"),
-            par_types = c("real","real"),
-            out_type = "int",
-            par_map = function(k,...) {
-                mu_name <- k[[1]];
-                scale_name <- k[[2]];
-                k[[1]] <- concat(mu_name,"/",scale_name);
-                k[[2]] <- concat("1/",scale_name);
-                return(k);
-            },
-            vectorized = TRUE
-        ),
-        ZeroInflatedPoisson = list(
-            # not built into Stan, but can build from log_prob calculations
-            # need to flag by using 'increment_log_prob' as distribution name
-            # then provide separate model{} and gq{} code segments
-            name = "ZeroInflatedPoisson",
-            R_name = "dzipois",
-            stan_name = "increment_log_prob",
-            stan_code = 
+                k[[2]] <- cuts_name
+            }
+            
+            # add [i] to eta -- ordered not vectorized
+            # this should work for both linear models and variables
+            eta <- as.character(k[[1]])
+            k[[1]] <- concat( eta , "[i]" )
+            
+            # result
+            return(k);
+        },
+        vectorized = FALSE
+    ),
+    LKJ_Corr = list(
+        # LKJ corr_matrix; eta=1 is uniform correlation matrices
+        name = "LKJ_Corr",
+        R_name = "dlkjcorr",
+        stan_name = "lkj_corr",
+        num_pars = 1,
+        par_names = c("eta"),
+        par_bounds = c("<lower=0>"),
+        par_types = c("real"),
+        out_type = "corr_matrix",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = FALSE
+    ),
+    invWishart = list(
+        # ye olde inverse wishart prior -- nu is df
+        name = "invWishart",
+        R_name = "dinvwishart",
+        stan_name = "inv_wishart",
+        num_pars = 2,
+        par_names = c("nu","Sigma"),
+        par_bounds = c("<lower=0>",""),
+        par_types = c("real","matrix"),
+        out_type = "matrix",
+        par_map = function(k,...) {
+            # process Sigma
+            # check if diag(n) format and translate to Stan broadcast code
+            if ( class(k[[2]])=="call" ) {
+                # could be function call
+                fname <- as.character(k[[2]][[1]])
+                if ( fname=="diag" ) {
+                    n <- as.integer(k[[2]][[2]])
+                    k[[2]] <- concat("diag_matrix(rep_vector(1,",n,"))")
+                }
+            }
+            # result
+            return(k);
+        },
+        vectorized = FALSE
+    ),
+    Laplace = list(
+        name = "Laplace",
+        R_name = "dlaplace",
+        stan_name = "double_exponential",
+        num_pars = 2,
+        par_names = c("location","scale"),
+        par_bounds = c("<lower=0>","<lower=0>"),
+        par_types = c("real","real"),
+        out_type = "real",
+        par_map = function(k,...) {
+            # Stan uses 1/lambda for second parameter
+            lambda <- as.character(k[[2]])
+            k[[2]] <- concat( "1/",lambda )
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    Uniform = list(
+        name = "Uniform",
+        R_name = "dunif",
+        stan_name = "uniform",
+        num_pars = 2,
+        par_names = c("alpha","beta"),
+        par_bounds = c("<lower=0>","<lower=0>"),
+        par_types = c("real","real"),
+        out_type = "real",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    Binomial = list(
+        name = "Binomial",
+        R_name = "dbinom",
+        stan_name = "binomial",
+        num_pars = 2,
+        par_names = c("size","prob"),
+        par_bounds = c("<lower=1>","<lower=0,upper=1>"),
+        par_types = c("int","real"),
+        out_type = "int",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    Beta = list(
+        name = "Beta",
+        R_name = "dbeta",
+        stan_name = "beta",
+        num_pars = 2,
+        par_names = c("alpha","beta"),
+        par_bounds = c("<lower=0>","<lower=0>"),
+        par_types = c("real","real"),
+        out_type = "real",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    BetaBinomial = list(
+        name = "BetaBinomial",
+        R_name = "dbetabinom",
+        stan_name = "beta_binomial",
+        num_pars = 3,
+        par_names = c("size","prob","theta"),
+        par_bounds = c("<lower=1>","<lower=0>","<lower=0>"),
+        par_types = c("int","real","real"),
+        out_type = "int",
+        par_map = function(k,...) {
+            p_name <- k[[2]];
+            theta_name <- k[[3]];
+            k[[2]] <- concat(p_name,"*",theta_name);
+            k[[3]] <- concat("(1-",p_name,")*",theta_name);
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    Poisson = list(
+        name = "Poisson",
+        R_name = "dpois",
+        stan_name = "poisson",
+        num_pars = 1,
+        par_names = c("lambda"),
+        par_bounds = c("<lower=0>"),
+        par_types = c("real"),
+        out_type = "int",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    Exponential = list(
+        name = "Exponential",
+        R_name = "dexp",
+        stan_name = "exponential",
+        num_pars = 1,
+        par_names = c("lambda"),
+        par_bounds = c("<lower=0>"),
+        par_types = c("real"),
+        out_type = "real",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    Gamma = list(
+        name = "Gamma",
+        R_name = "dgamma",
+        stan_name = "gamma",
+        num_pars = 2,
+        par_names = c("alpha","beta"),
+        par_bounds = c("<lower=0>","lower=0"),
+        par_types = c("real","real"),
+        out_type = "real",
+        par_map = function(k,...) {
+            # alpha is shape
+            # beta is rate
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    Gamma2 = list(
+        name = "Gamma2",
+        R_name = "dgamma2",
+        stan_name = "gamma",
+        num_pars = 2,
+        par_names = c("alpha","beta"),
+        par_bounds = c("<lower=0>","lower=0"),
+        par_types = c("real","real"),
+        out_type = "real",
+        par_map = function(k,...) {
+            # alpha is shape
+            # beta is rate
+            # mu = alpha/scale
+            # scale = 1/beta
+            mu <- as.character(k[[1]])
+            scale <- as.character(k[[2]])
+            k[[1]] <- concat( mu , "/" , scale )
+            k[[2]] <- concat( "1/" , scale )
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    GammaPoisson = list(
+        name = "GammaPoisson",
+        R_name = "dgampois",
+        stan_name = "neg_binomial",
+        num_pars = 2,
+        par_names = c("alpha","beta"),
+        par_bounds = c("<lower=0>","<lower=0>"),
+        par_types = c("real","real"),
+        out_type = "int",
+        par_map = function(k,...) {
+            mu_name <- k[[1]];
+            scale_name <- k[[2]];
+            k[[1]] <- concat(mu_name,"/",scale_name);
+            k[[2]] <- concat("1/",scale_name);
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    ZeroInflatedPoisson = list(
+        # not built into Stan, but can build from log_prob calculations
+        # need to flag by using 'increment_log_prob' as distribution name
+        # then provide separate model{} and gq{} code segments
+        name = "ZeroInflatedPoisson",
+        R_name = "dzipois",
+        stan_name = "increment_log_prob",
+        stan_code = 
 "if (OUTCOME == 0)
-    increment_log_prob(log_sum_exp(bernoulli_log(1,PAR1),
-        bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2)));
-    else
-    increment_log_prob(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
-            stan_dev = 
+increment_log_prob(log_sum_exp(bernoulli_log(1,PAR1),
+    bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2)));
+else
+increment_log_prob(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
+        stan_dev = 
 "if (OUTCOME == 0)
-    dev <- dev + (-2)*(log_sum_exp(bernoulli_log(1,PAR1),
-        bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2)));
-    else
-    dev <- dev + (-2)*(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
-            num_pars = 2,
-            par_names = c("p","lambda"),
-            par_bounds = c("",""),
-            par_types = c("real","real"),
-            out_type = "int",
-            par_map = function(k,...) {
-                return(k);
-            },
-            vectorized = FALSE
-        )
+dev <- dev + (-2)*(log_sum_exp(bernoulli_log(1,PAR1),
+    bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2)));
+else
+dev <- dev + (-2)*(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
+        num_pars = 2,
+        par_names = c("p","lambda"),
+        par_bounds = c("",""),
+        par_types = c("real","real"),
+        out_type = "int",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = FALSE
     )
+)
+
+
+##################
+# map2stan itself
 
 map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , chains=1 , debug=FALSE , WAIC=FALSE , ... ) {
     
@@ -529,6 +536,58 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         paste( ... , collapse="" , sep="" )
     }
     
+    ##############
+    # grep function for search-replace of linear model symbols
+    # trick is that symbol needs to be preceded by [(=*+ ] so grep doesn't replace copies embedded inside other symbols
+    # e.g. don't want to expand the "p" inside "ample"
+    #
+    # target : string to search for (usually parameter name like "mu")
+    # replacement : what to replace with (usually a linear model)
+    # x : where to search, usually a formula as character
+    # add.par : whether to enclose replacement in parentheses
+    
+    wildpatt <- "[()=*+/ ]"
+    
+    mygrep <- function( target , replacement , x , add.par=TRUE ) {
+        wild <- wildpatt
+        pattern <- paste( wild , target , wild , sep="" , collapse="" )
+        
+        m <- gregexpr( pattern , x )
+        
+        if ( length(m[[1]])==1 )
+            if ( m==-1 ) return( x )
+        
+        s <- regmatches( x=x , m=m )
+        
+        if ( add.par==TRUE ) replacement <- paste( "(" , replacement , ")" , collapse="" )
+        
+        if ( class(s)=="list" ) s <- s[[1]]
+        w.start <- substr(s,1,1)
+        w.end <- substr(s,nchar(s),nchar(s))
+        
+        for ( i in 1:length(s) ) {
+            r <- paste( w.start[i] , replacement , w.end[i] , sep="" , collapse="" )
+            x <- gsub( pattern=s[i] , replacement=r , x=x , fixed=TRUE )
+        }
+        return(x)
+    }
+    
+    mygrep_old <- function( target , replacement , x , add.par=TRUE ) {
+        wild <- wildpatt
+        pattern <- paste( wild , target , wild , sep="" , collapse="" )
+        m <- regexpr( pattern , x )
+        if ( m==-1 ) return( x )
+        s <- regmatches( x=x , m=m )
+        
+        if ( add.par==TRUE ) replacement <- paste( "(" , replacement , ")" , collapse="" )
+        
+        w.start <- substr(s,1,1)
+        w.end <- substr(s,nchar(s),nchar(s))
+        
+        r <- paste( w.start , replacement , w.end , sep="" , collapse="" )
+        gsub( pattern=s , replacement=r , x=x , fixed=TRUE )
+    }
+    
     # for converting characters not allows by Stan
     undot <- function( astring ) {
         astring <- gsub( "." , "_" , astring , fixed=TRUE )
@@ -546,8 +605,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         # remove space buffer
         substr( o , start=2 , stop=nchar(o)-1 )
     }
+    
     detectvar <- function( target , x ) {
-        wild <- "[()=*+/ ]"
+        wild <- wildpatt
         x2 <- paste( " " , x , " " , collapse="" , sep="" )
         pattern <- paste( wild , target , wild , sep="" , collapse="" )
         m <- regexpr( pattern , x2 )
@@ -556,33 +616,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     
     ########################################
     # parse formulas
-    
-    ##############
-    # grep function for search-replace of linear model symbols
-    # trick is that symbol needs to be preceded by [(=*+ ] so grep doesn't replace copies embedded inside other symbols
-    # e.g. don't want to expand the "p" inside "ample"
-    #
-    # target : string to search for (usually parameter name like "mu")
-    # replacement : what to replace with (usually a linear model)
-    # x : where to search, usually a formula as character
-    # add.par : whether to enclose replacement in parentheses
-    
-    mygrep <- function( target , replacement , x , add.par=TRUE ) {
-        wild <- "[()=*+/ ]"
-        pattern <- paste( wild , target , wild , sep="" , collapse="" )
-        m <- regexpr( pattern , x )
-        if ( m==-1 ) return( x )
-        s <- regmatches( x=x , m=m )
         
-        if ( add.par==TRUE ) replacement <- paste( "(" , replacement , ")" , collapse="" )
-        
-        w.start <- substr(s,1,1)
-        w.end <- substr(s,nchar(s),nchar(s))
-        
-        r <- paste( w.start , replacement , w.end , sep="" , collapse="" )
-        gsub( pattern=s , replacement=r , x=x , fixed=TRUE )
-    }
-    
     # extract likelihood(s)
     extract_likelihood <- function( fl ) {
         #

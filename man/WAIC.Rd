@@ -22,7 +22,11 @@ WAIC( object , n=1000 , refresh=0.1 , ... )
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{
+Watanabe, S. 2010. Asymptotic equivalence of Bayes cross validation and Widely Applicable Information Criterion in singular learning theory. Journal of Machine Learning Research 11:3571-3594.
+
+Gelman, A., J. Hwang, and A. Vehtari. 2013. Understanding predictive information criteria for Bayesian models.
+}
 \author{Richard McElreath}
 \seealso{\code{\link{map2stan}}, \code{\link{link}}}
 \examples{

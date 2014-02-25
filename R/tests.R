@@ -1,3 +1,25 @@
+test.map2stan.eagles <- function() {
+    data(eagles)
+    d <- eagles
+    d$PL <- ifelse( d$P=="L" , 1 , 0 )
+    d$VL <- ifelse( d$V=="L" , 1 , 0 )
+    d$PA <- ifelse( d$A=="A" , 1 , 0 )
+    
+    m <- map2stan(
+      list(
+        y~dbinom(n,p),
+        logit(p) ~ a + (ba*PA) + (bv*VL) + (bp*PL) + (bpa*PL*PA),
+        a~dnorm(0,10),
+        bp~dnorm(0,5),
+        bv~dnorm(0,5),
+        ba~dnorm(0,5),
+        bpa~dnorm(0,5)
+      ),
+      data=d, start=list(a=0, bp=0, bv=0, ba=0, bpa=0) , sample=TRUE )
+  
+  return(m)
+
+}
 
 test.map2stan.pois <- function() {
     

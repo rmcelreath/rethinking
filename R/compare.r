@@ -95,3 +95,15 @@ compare <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE , del
     new( "compareIC" , output=result )
 }
 
+# convert estimated D_test values to weights
+ICweights <- function( dev ) {
+    d <- dev - min(dev)
+    f <- exp(-0.5*d)
+    w <- f/sum(f)
+    return(w)
+}
+
+# build ensemble of samples using DIC/WAIC weights
+ensemble <- function( ... ) {
+    L <- list(...)
+}

@@ -24,11 +24,6 @@ extract.samples <- function(object) {
     return(p)
 }
 
-# build ensemble of samples using DIC weights
-ensemble <- function( ... ) {
-    L <- list(...)
-}
-
 plotchains <- function(object , pars=names(object@start) , ...) {
     if ( class(object)=="map2stan" )
         rstan::traceplot( object@stanfit , ask=TRUE , pars=pars , ... )
@@ -66,10 +61,25 @@ function (object, ...)
   attr(object,"deviance")
 })
 
-DIC <- function( object ) {
-    val <- attr(object,"DIC")
-    attr(val,"pD") <- attr(object,"pD")
-    val
+DIC <- function( object , n=1000 ) {
+    if ( class(object)=="map2stan") {
+        val <- attr(object,"DIC")
+        attr(val,"pD") <- attr(object,"pD")
+    }
+    if ( class(object)=="map" ) {
+        post <- sample.qa.posterior( object , n=n )
+        dev <- sapply( 1:nrow(post) , 
+            function(i) {
+                p <- post[i,]
+                names(p) <- names(post)
+                2*object@fminuslogl( p ) 
+            }
+        )
+        dev.hat <- deviance(object)
+        val <- as.numeric( dev.hat + 2*( mean(dev) - dev.hat ) )
+        attr(val,"pD") <- as.numeric( ( val - dev.hat )/2 )
+    }
+    return(val)
 }
 
 setMethod("show", "map2stan", function(object){
@@ -95,6 +105,15 @@ setMethod("show", "map2stan", function(object){
     
     cat("Effective number of parameters (pD): ")
     cat(round(as.numeric(attr(object,"pD")),2),"\n")
+    
+    if ( !is.null(attr(object,"WAIC")) ) {
+        waic <- attr(object,"WAIC")
+        cat("\nWAIC: ")
+        cat( round(as.numeric(waic),2) , "\n" )
+        
+        cat("pWAIC: ")
+        cat( round(as.numeric(attr(waic,"pWAIC")),2) , "\n" )
+    }
     
   })
 
