@@ -182,3 +182,30 @@ rzipois <- function(n,p,lambda) {
     y <- (1-z)*rpois(n,lambda)
     return(y)
 }
+
+# zero-inflated binomial distribution
+# this is slow, but accurate
+dzibinom <- function(x,p_zero,size,prob,log=FALSE) {
+    ll <- rep(0,length(x))
+    pz_i <- p_zero[1]
+    size_i <- size[1]
+    prob_i <- prob[1]
+    for ( i in 1:length(x) ) {
+        if ( length(p_zero)>1 ) pz_i <- p_zero[i]
+        if ( length(size)>1 ) size_i <- size[i]
+        if ( length(prob)>1 ) prob_i <- prob[i]
+        if ( x[i]==0 ) {
+            ll[i] <- log_sum_exp( c( log(pz_i) , log(1-pz_i)+dbinom(x[i],size_i,prob_i,TRUE) ) )
+        } else {
+            ll[i] <- log(1-pz_i) + dbinom(x[i],size_i,prob_i,TRUE)
+        }
+    }
+    if ( log==FALSE ) ll <- exp(ll)
+    return(ll)
+}
+
+rzibinom <- function(n,p_zero,size,prob) {
+    z <- rbinom(n,size=1,prob=p_zero)
+    y <- (1-z)*rbinom(n,size,prob)
+    return(y)
+}

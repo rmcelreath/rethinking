@@ -50,6 +50,8 @@ map2stan.templates <- list(
                 kout[[1]] <- concat( "rep_vector(" , k[[1]] , "," , n , ")" )
             }
             
+            indent <- "    "
+            
             # check for vector of parameters in Mu
             if ( class(k[[1]])=="call" ) {
                 fname <- as.character(k[[1]][[1]])
@@ -105,6 +107,8 @@ map2stan.templates <- list(
             
             ###########
             # Mu
+            
+            indent <- "    "
             
             # make sure Mu matches length
             if ( class(k[[1]])=="numeric" ) {
@@ -479,6 +483,35 @@ dev <- dev + (-2)*(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
             return(k);
         },
         vectorized = FALSE
+    ),
+    ZeroInflatedBinomial = list(
+        # not built into Stan, but can build from log_prob calculations
+        # need to flag by using 'increment_log_prob' as distribution name
+        # then provide separate model{} and gq{} code segments
+        name = "ZeroInflatedBinomial",
+        R_name = "dzibinom",
+        stan_name = "increment_log_prob",
+        stan_code = 
+"if (OUTCOME == 0)
+increment_log_prob(log_sum_exp(bernoulli_log(1,PAR1),
+    bernoulli_log(0,PAR1) + binomial_log(OUTCOME,PAR2,PAR3)));
+else
+increment_log_prob(bernoulli_log(0,PAR1) + binomial_log(OUTCOME,PAR2,PAR3));",
+        stan_dev = 
+"if (OUTCOME == 0)
+dev <- dev + (-2)*(log_sum_exp(bernoulli_log(1,PAR1),
+    bernoulli_log(0,PAR1) + binomial_log(OUTCOME,PAR2,PAR3)));
+else
+dev <- dev + (-2)*(bernoulli_log(0,PAR1) + binomial_log(OUTCOME,PAR2,PAR3));",
+        num_pars = 2,
+        par_names = c("prob1","size","prob2"),
+        par_bounds = c("",""),
+        par_types = c("real","int","real"),
+        out_type = "int",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = FALSE
     )
 )
 
@@ -827,6 +860,13 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             # check for binomial size variable and mark used
             if ( lik$likelihood=='binomial' | lik$likelihood=='beta_binomial' ) {
                 sizename <- as.character(lik$pars[[1]])
+                if ( !is.null( d[[sizename]] ) ) {
+                    fp[['used_predictors']] <- listappend( fp[['used_predictors']] , list( var=undot(sizename) , N=lik$N_name , type="int" ) )
+                }
+            }
+            if ( lik$template=="ZeroInflatedBinomial" ) {
+                # second paramter of zibinom is binomial size variable
+                sizename <- as.character(lik$pars[[2]])
                 if ( !is.null( d[[sizename]] ) ) {
                     fp[['used_predictors']] <- listappend( fp[['used_predictors']] , list( var=undot(sizename) , N=lik$N_name , type="int" ) )
                 }
