@@ -81,7 +81,6 @@ map2stan.templates <- list(
             }
             
             # result
-            if (debug==TRUE) print(kout)
             return(kout);
         },
         vectorized = FALSE
@@ -893,9 +892,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         }
         
         # test for varying effects prior
+        # can use `|` or `[` to specify varying effects (vector of parameters)
         if ( length( flist[[i]][[2]] ) == 3 ) {
             fname <- as.character( flist[[i]][[2]][[1]] )
-            if ( fname=="|" ) {
+            if ( fname=="|" | fname=="[" ) {
                 n <- length( fp[['vprior']] )
                 fp[['vprior']][[n+1]] <- extract_vprior( flist[[i]] )
                 next
@@ -1185,10 +1185,14 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             # add correct length to numeric vectors (non-matrix)
             if ( type=="real" & length(start[[i]])>1 ) {
                 type <- concat( "vector[" , length(start[[i]]) , "]" )
+                if ( length(grep("sigma",pname))>0 )
+                    type <- concat( "vector<lower=0>[" , length(start[[i]]) , "]" )
             }
             
             # add non-negative restriction to any parameter with 'sigma' in name
-            if ( type=="real" & length(grep("sigma",pname))>0 ) type <- "real<lower=0>"
+            if ( length(grep("sigma",pname))>0 ) {
+                if ( type=="real" ) type <- "real<lower=0>"
+            }
             
             # any custom constraint?
             constraint <- constraints[[pname]]
