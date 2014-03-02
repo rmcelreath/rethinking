@@ -741,7 +741,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             pars_out = pars ,
             density = density ,
             pars_in = pars_in ,
-            group = group_var ,
+            group = undot(group_var) ,
             template = tmplt$name
         )
     }
