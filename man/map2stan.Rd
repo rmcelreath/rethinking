@@ -39,7 +39,7 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   
   The Stan model code includes a generated quantities block that computes the deviance for each vector (iteration) of parameter samples. When sampling completes, \code{map2stan} computes DIC, the deviance information criterion, from the samples. DIC information is available from \code{show} and \code{DIC}, as well as being attributes of the returned object.
   
-  Functions meant for (re)processing \code{map2stan} fits are: \code{extract.samples}, \code{resample}, and \code{stancode}.
+  Functions meant for (re)processing \code{map2stan} fits are: \code{extract.samples}, \code{\link{resample}}, and \code{stancode}.
   
   Methods are defined for \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, \code{plot}, \code{pairs}, and \code{show}.
 }
@@ -96,7 +96,7 @@ m3 <- map2stan(
     list(
         pulled_left ~ dbinom(1,theta),
         logit(theta) ~ a + aj + bp*prosoc_left + bpc*condition*prosoc_left,
-        aj|actor ~ dnorm( 0 , sigma_actor ),
+        aj[actor] ~ dnorm( 0 , sigma_actor ),
         a ~ dnorm(0,10),
         bp ~ dnorm(0,10),
         bpc ~ dnorm(0,10),
@@ -116,8 +116,8 @@ m4 <- map2stan(
     list(
         pulled_left ~ dbinom(1,theta),
         logit(theta) ~ a + aj + ak + bp*prosoc_left + bpc*condition*prosoc_left,
-        aj|actor ~ dnorm( 0 , sigma_actor ),
-        ak|blockid ~ dnorm( 0 , sigma_block ),
+        aj[actor] ~ dnorm( 0 , sigma_actor ),
+        ak[blockid] ~ dnorm( 0 , sigma_block ),
         a ~ dnorm(0,10),
         bp ~ dnorm(0,10),
         bpc ~ dnorm(0,10),

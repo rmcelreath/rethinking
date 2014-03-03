@@ -7,6 +7,7 @@
 
 # to-do:
 # (-) handle improper input more gracefully
+# (-) add "as is" formula type, with quoted text on RHS to dump into Stan code
 
 ########################################
 # distribution function templates
@@ -1054,7 +1055,19 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             d[[ N_txt ]] <- N
             
             # mark grouping variable used
-            fp[['used_predictors']] <- listappend( fp[['used_predictors']] , list(var=vprior$group,N=length(d[[vprior$group]]) ) )
+            #fp[['used_predictors']] <- listappend( fp[['used_predictors']] , list(var=vprior$group,N=length(d[[vprior$group]]) ) )
+            # check likelihoods for matching length and use that N_name
+            if ( length(fp[['likelihood']])>0 ) {
+                groupN <- length(d[[vprior$group]])
+                for ( j in 1:length(fp[['likelihood']]) ) {
+                    if ( fp[['likelihood']][[j]]$N_cases == groupN ) {
+                        fp[['used_predictors']] <- listappend( fp[['used_predictors']] , list(var=vprior$group,N=fp[['likelihood']][[j]]$N_name ) )
+                    }
+                }#j
+            } else {
+                # just add raw integer length
+                fp[['used_predictors']] <- listappend( fp[['used_predictors']] , list(var=vprior$group,N=length(d[[vprior$group]]) ) )
+            }
         }#i
     }
     
@@ -1173,6 +1186,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         for ( i in 1:n ) {
             pname <- names(start)[i]
             type <- "real"
+            constraint <- ""
             
             if ( class(start[[i]])=="matrix" ) {
                 # check for square matrix? just use nrow for now.
@@ -1187,19 +1201,30 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 type <- concat( "vector[" , length(start[[i]]) , "]" )
                 if ( length(grep("sigma",pname))>0 )
                     type <- concat( "vector<lower=0>[" , length(start[[i]]) , "]" )
+                # check for varying effect vector by peeking at vprior list
+                # we want symbolic length name here, if varying effect vector
+                nvp <- length( fp[['vprior']] )
+                if ( nvp > 0 ) {
+                    for ( j in 1:nvp ) {
+                        pars_out <- fp[['vprior']][[j]]$pars_out
+                        for ( k in 1:length(pars_out) ) {
+                            if ( pars_out[[k]]==pname ) {
+                                type <- concat( "vector[N_" , fp[['vprior']][[j]]$group , "]" )
+                            }
+                        }#k
+                    }#j
+                }
             }
             
             # add non-negative restriction to any parameter with 'sigma' in name
             if ( length(grep("sigma",pname))>0 ) {
-                if ( type=="real" ) type <- "real<lower=0>"
+                if ( type=="real" ) constraint <- "<lower=0>"
             }
             
             # any custom constraint?
-            constraint <- constraints[[pname]]
-            if ( is.null(constraint) ) {
-                constraint <- ""
-            } else {
-                constraint <- concat( "<" , constraint , ">" )
+            constrainttxt <- constraints[[pname]]
+            if ( !is.null(constrainttxt) ) {
+                constraint <- concat( "<" , constrainttxt , ">" )
             }
             
             # any custom type?

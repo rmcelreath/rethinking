@@ -31,7 +31,7 @@ link <- function( fit , data , n=1000 , probs=NULL , refresh=0.1 , ... ) {
     }
     
     # number of samples
-    n_samples <- fit@stanfit@sim$iter - fit@stanfit@sim$warmup
+    n_samples <- dim( post[[1]] )[1]
     if ( n == 0 ) n <- n_samples # special flag for all samples in fit
     if ( n_samples < n ) n <- n_samples
     

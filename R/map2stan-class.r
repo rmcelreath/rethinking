@@ -84,7 +84,14 @@ DIC <- function( object , n=1000 ) {
 
 setMethod("show", "map2stan", function(object){
 
-    cat("\nmap2stan model fit\n")
+    cat("map2stan model fit\n")
+    iter <- object@stanfit@sim$iter
+    warm <- object@stanfit@sim$warmup
+    chains <- object@stanfit@sim$chains
+    chaintxt <- " chain\n"
+    if ( chains>1 ) chaintxt <- " chains\n"
+    tot_samples <- (iter-warm)*chains
+    cat(concat( tot_samples , " samples from " , chains , chaintxt ))
     
     cat("\nFormula:\n")
     for ( i in 1:length(object@formula) ) {
@@ -124,13 +131,27 @@ setMethod("summary", "map2stan", function(object){
 })
 
 # resample from compiled map2stan fit
-resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , ... ) {
+# can also run on multiple cores
+resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , ... ) {
     if ( class(object)!="map2stan" )
         stop( "Requires map2stan fit or stanfit object" )
     
     init <- list()
-    for ( i in 1:chains ) init[[i]] <- object@start
-    fit <- stan( fit=object@stanfit , data=object@data , init=init , pars=object@pars , iter=iter , warmup=warmup , chains=chains , ... )
+    if ( cores==1 | chains==1 ) {
+        for ( i in 1:chains ) init[[i]] <- object@start
+        fit <- stan( fit=object@stanfit , data=object@data , init=init , pars=object@pars , iter=iter , warmup=warmup , chains=chains , ... )
+    } else {
+        init[[1]] <- object@start
+        require(parallel)
+        # hand off to mclapply
+        sflist <- mclapply( 1:chains , mc.cores=cores ,
+            function(chainid)
+                stan( fit=object@stanfit , data=object@data , init=init , pars=object@pars , iter=iter , warmup=warmup , chains=1 , chain_id=chainid , ... )
+        )
+        # merge result
+        fit <- sflist2stanfit(sflist)
+    }
+    
     result <- object
     result@stanfit <- fit
     return(result)
@@ -172,7 +193,7 @@ setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=1
 })
 
 # my trace plot function
-tracerplot <- function( object , col=c("slateblue","black","orange","green") , alpha=0.7 , bg=gray(0.6,0.5) , ask=TRUE , ... ) {
+tracerplot <- function( object , col=c("slateblue","orange","red","green") , alpha=0.7 , bg=gray(0.6,0.5) , ask=TRUE , ... ) {
     chain.cols <- col
     
     if ( class(object)!="map2stan" ) stop( "requires map2stan fit" )
@@ -216,7 +237,7 @@ tracerplot <- function( object , col=c("slateblue","black","orange","green") , a
         mtext( paste("n_eff =",round(neff,0)) , 3 , adj=1 , cex=0.8 )
     }
     plot_chain <- function( x , nc , ... ) {
-        lines( 1:n_iter , x , col=col.alpha(chain.cols[nc],alpha) )
+        lines( 1:n_iter , x , col=col.alpha(chain.cols[nc],alpha) , lwd=0.5 )
     }
     
     # fetch n_eff
