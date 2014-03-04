@@ -31,6 +31,20 @@ map2stan.templates <- list(
         },
         vectorized = TRUE
     ),
+    StudentT = list(
+        name = "StudentT",
+        R_name = "dstudent",
+        stan_name = "student_t",
+        num_pars = 3,
+        par_names = c("nu","mu","sigma"),
+        par_bounds = c("<lower=0>","","<lower=0>"),
+        par_types = c("real","real","real"),
+        out_type = "real",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = TRUE
+    ),
     MVGaussian = list(
         name = "MVGaussian",
         R_name = "dmvnorm",
@@ -1353,7 +1367,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         attr(result,"DIC") = dic
         attr(result,"pD") = pD
         attr(result,"deviance") = dhat
-        if (!missing(d)) attr(result,"nobs") = length(d[[ fp[['likelihood']][[1]][['outcome']] ]])
+        try( 
+            if (!missing(d)) attr(result,"nobs") = length(d[[ fp[['likelihood']][[1]][['outcome']] ]]) , 
+            silent=TRUE
+        )
         
         # compute WAIC?
         if ( WAIC==TRUE ) {

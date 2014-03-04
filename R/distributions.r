@@ -209,3 +209,9 @@ rzibinom <- function(n,p_zero,size,prob) {
     y <- (1-z)*rbinom(n,size,prob)
     return(y)
 }
+
+# Student's t, with scale and location parameters
+
+dstudent <- function( x , nu , mu , sigma , log=TRUE ) {
+    
+}
