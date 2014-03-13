@@ -29,7 +29,7 @@ precis.plot <- function( x , y , pars , col.ci="black" , ... ) {
 }
 setMethod( "plot" , "precis" , function(x,y,...) precis.plot(x,y,...) )
 
-precis <- function( model , type.s=FALSE , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE ) {
+precis <- function( model , pars , type.s=FALSE , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE ) {
     the.class <- class(model)[1]
     found.class <- FALSE
     if ( the.class=="numeric" ) {

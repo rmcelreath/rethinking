@@ -1,6 +1,10 @@
 # posterior predictions for map2stan model fits
 # defaults to using original data
 
+# to do:
+# (*) fix dzipois not vectorizing properly inside WAIC calculation -- can just repeat x to match length of parameter inputs?
+# (*) fix dordlogit in WAIC calculation -- not sure what issue is
+
 # new link function that doesn't invoke Stan
 link <- function( fit , data , n=1000 , probs=NULL , refresh=0.1 , ... ) {
 
@@ -174,6 +178,10 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
     post <- extract.samples( object )
     
+    n_samples <- dim( post[[1]] )[1]
+    if ( n == 0 ) n <- n_samples # special flag for all samples in fit
+    #if ( n_samples < n ) n <- n_samples
+    
     # compute log-lik at each sample
     liks <- object@formula_parsed$likelihood
     n_lik <- length( liks )
@@ -221,7 +229,10 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
             names(lm_now) <- names(lm_vals)
             
             # ready environment
-            e <- list( outcome=object@data[[outcome]][i] )
+            outvar <- object@data[[outcome]][i]
+            # trick to get dzipois to vectorize correctly over samples
+            if ( dname=="dzipois" ) outvar <- rep(outvar,n)
+            e <- list( outcome=outvar )
             names(e)[1] <- outcome
             for ( j in 1:length(pars) ) {
                 partxt <- as.character( pars[[j]] )

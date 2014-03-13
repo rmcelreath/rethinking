@@ -6,6 +6,9 @@
 # templates map R density functions onto Stan functions
 
 # to-do:
+# (*) need to do p*theta and (1-p)*theta multiplication outside likelihood in betabinomial (similar story for gammapoisson) --- or is there an operator for pairwise vector multiplication?
+# (*) nobs calculation after fitting needs to account for aggregated binomial
+# (*) fix detection of correlation matrix type, "rho" versus "Rho" -- should just insert into type list at dmvnorm2
 # (-) handle improper input more gracefully
 # (-) add "as is" formula type, with quoted text on RHS to dump into Stan code
 
@@ -15,7 +18,7 @@
 concat <- function( ... ) {
     paste( ... , collapse="" , sep="" )
 }
-    
+
 map2stan.templates <- list(
     Gaussian = list(
         name = "Gaussian",
@@ -1375,7 +1378,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         # compute WAIC?
         if ( WAIC==TRUE ) {
             message("Computing WAIC")
-            waic <- WAIC( result )
+            waic <- WAIC( result , n=0 ) # n=0 to use all available samples
             attr(result,"WAIC") = waic
         }
         
