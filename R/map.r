@@ -1,5 +1,18 @@
 # MAP - maximum a posteriori estimation
 
+# utility function to convert alist() construction with <- tagged linear model to regular ~ variety
+flist_untag <- function(flist) {
+    for ( i in 1:length(flist) ) {
+        if ( class(flist[[i]])=="<-" ) {
+            # tagged formula, so convert to ~ formula expression
+            flist[[i]][[1]] <- as.name("~")
+        }
+        flist[[i]] <- eval(flist[[i]])
+    }
+    as.list(flist)
+}
+
+# main event
 map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... ) {
     
     ########################################
@@ -19,6 +32,7 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     }
     
     flist.orig <- flist
+    flist <- flist_untag(flist)
     
     ########################################
     # check for common issues

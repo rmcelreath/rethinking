@@ -13,7 +13,7 @@ col.dist( x , mu = 0 , sd = 1 , col="slateblue" )
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{acol}{A color name or RGB color}
-  \item{alpha}{amount of transparency to apply, where 1 means fully transparent}
+  \item{alpha}{alpha transparency, where 1 means fully opaque and 0 fully transparent}
   \item{amt}{amount of desaturation of color to apply, where 1 means totally desaturated (grayscale)}
   \item{x}{A vector of values to use for calculating distances. See details below.}
   \item{mu}{Value (or vector of values) to use for calculating distances}

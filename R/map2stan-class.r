@@ -12,8 +12,10 @@ setMethod("coef", "map2stan", function(object) {
     object@coef
 })
 
-extract.samples <- function(object) {
-    p <- extract(object@stanfit)
+setMethod("extract.samples","map2stan",
+function(object) {
+    require(rstan)
+    p <- rstan::extract(object@stanfit)
     # get rid of dev and lp__
     p[['dev']] <- NULL
     p[['lp__']] <- NULL
@@ -23,6 +25,7 @@ extract.samples <- function(object) {
     }
     return(p)
 }
+)
 
 plotchains <- function(object , pars=names(object@start) , ...) {
     if ( class(object)=="map2stan" )
@@ -63,8 +66,15 @@ function (object, ...)
 
 DIC <- function( object , n=1000 ) {
     if ( class(object)=="map2stan") {
-        val <- attr(object,"DIC")
-        attr(val,"pD") <- attr(object,"pD")
+        if ( !is.null(attr(object,"DIC")) ) {
+            val <- attr(object,"DIC")
+            attr(val,"pD") <- attr(object,"pD")
+        } else {
+            # must compute
+            v <- DIC.map2stan(object)
+            val <- v[1]
+            attr(val,"pD") <- v[2]
+        }
     }
     if ( class(object)=="map" ) {
         post <- sample.qa.posterior( object , n=n )
@@ -80,6 +90,35 @@ DIC <- function( object , n=1000 ) {
         attr(val,"pD") <- as.numeric( ( val - dev.hat )/2 )
     }
     return(val)
+}
+
+DIC.map2stan <- function( object ) {
+    fit <- object@stanfit
+    # compute DIC
+    dev.post <- extract(fit, "dev", permuted = TRUE, inc_warmup = FALSE)
+    dbar <- mean( dev.post$dev )
+    # to compute dhat, need to feed parameter averages back into compiled stan model
+    post <- extract( fit )
+    Epost <- list()
+    for ( i in 1:length(post) ) {
+        dims <- length( dim( post[[i]] ) )
+        name <- names(post)[i]
+        if ( name!="lp__" & name!="dev" ) {
+            if ( dims==1 ) {
+                Epost[[ name ]] <- mean( post[[i]] )
+            } else {
+                Epost[[ name ]] <- apply( post[[i]] , 2:dims , mean )
+            }
+        }
+    }#i
+    
+    # push expected values back through model and fetch deviance
+    #message("Taking one more sample now, at expected values of parameters, in order to compute DIC")
+    fit2 <- stan( fit=fit , init=list(Epost) , data=object@data , pars="dev" , chains=1 , iter=1 , refresh=-1 )
+    dhat <- as.numeric( extract(fit2,"dev") )
+    pD <- dbar - dhat
+    dic <- dbar + pD
+    return( c( dic , pD ) )
 }
 
 setMethod("show", "map2stan", function(object){
@@ -154,6 +193,7 @@ resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , ...
     
     result <- object
     result@stanfit <- fit
+    attr(result,"DIC") <- NULL # clear out any old DIC calculation
     return(result)
 }
 

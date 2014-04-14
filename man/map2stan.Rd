@@ -3,7 +3,7 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Build RStan models from formulas}
 \description{
-  Compiles lists of formulas, like those used in \code{map}, into Stan model code. Allows for arbitary fixed effect and mixed effect regressions. Also computes DIC.
+  Compiles lists of formulas, like those used in \code{map}, into Stan model code. Allows for arbitary fixed effect and mixed effect regressions. Also computes DIC and WAIC.
 }
 \usage{
 map2stan( flist , data , start , pars , constraints=list() , types=list() , 

@@ -47,7 +47,7 @@ setMethod("show", "map", function(object){
         print( object@formula[[i]] )
     }
     
-    cat("\nEstimates:\n")
+    cat("\nMAP values:\n")
     print(coef(object))
     
     cat("\nLog-likelihood: ")
@@ -63,3 +63,25 @@ setMethod("summary", "map", function(object){
     precis(object)
     
 })
+
+setGeneric("extract.samples",
+function( object , n=10000 , clean.names=TRUE , ... ) {
+    require(MASS)
+    mu <- 0
+    if ( class(object)[1] %in% c("mer","bmer","glmerMod","lmerMod") ) {
+        mu <- fixef(object)
+    } else {
+        mu <- xcoef(object)
+    }
+    result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
+    if ( clean.names==TRUE ) {
+        # convert (Intercept) to Intercept
+        for ( i in 1:ncol(result) ) {
+            if ( colnames(result)[i] == "(Intercept)" ) {
+                colnames(result)[i] <- "Intercept"
+            }
+        }
+    }
+    result
+}
+)

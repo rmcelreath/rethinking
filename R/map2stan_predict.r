@@ -2,16 +2,24 @@
 # defaults to using original data
 
 # to do:
-# (*) fix dzipois not vectorizing properly inside WAIC calculation -- can just repeat x to match length of parameter inputs?
+# (*) fix dzipois vectorization hack --- need to fix dzipois itself
 # (*) fix dordlogit in WAIC calculation -- not sure what issue is
 
 # new link function that doesn't invoke Stan
-link <- function( fit , data , n=1000 , probs=NULL , refresh=0.1 , ... ) {
+link <- function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , ... ) {
 
     if ( class(fit)!="map2stan" ) stop("Requires map2stan fit")
     if ( missing(data) ) data <- fit@data
     
     post <- extract.samples(fit)
+    
+    # replace with any elements of replace list
+    if ( length( replace ) > 0 ) {
+        for ( i in 1:length(replace) ) {
+            post[[ names(replace)[i] ]] <- replace[[i]]
+        }
+    }
+    
     lm <- fit@formula_parsed$lm
     lik <- fit@formula_parsed$lik
     n_lm <- length(lm)
@@ -74,9 +82,9 @@ link <- function( fit , data , n=1000 , probs=NULL , refresh=0.1 , ... ) {
     rhs <- list()
     for ( k in 1:n_lm ) {
         # ready linear model code
-        rhs <- fit@formula_parsed$lm[[k]]$RHS
-        rhs <- gsub( "[i]" , "" , rhs , fixed=TRUE )
-        rhs[[k]] <- rhs
+        rhs0 <- fit@formula_parsed$lm[[k]]$RHS
+        rhs0 <- gsub( "[i]" , "" , rhs0 , fixed=TRUE )
+        rhs[[k]] <- rhs0
     }
     
     for ( i in 1:n ) {
@@ -221,10 +229,11 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
             for ( j in 1:n_lm ) {
                 # pull out samples for case i only
                 ndims <- length(dim(lm_vals[[j]]))
+                i_use <- min( i , dim(lm_vals[[j]])[2] )
                 if ( ndims==2 )
-                    lm_now[[j]] <- lm_vals[[j]][,i]
+                    lm_now[[j]] <- lm_vals[[j]][,i_use]
                 if ( ndims==3 )
-                    lm_now[[j]] <- lm_vals[[j]][,i,]
+                    lm_now[[j]] <- lm_vals[[j]][,i_use,]
             }
             names(lm_now) <- names(lm_vals)
             

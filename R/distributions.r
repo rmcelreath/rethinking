@@ -95,15 +95,6 @@ rgampois <- function( n , mu , scale ) {
     rnbinom( n , size=shape , prob=prob )
 }
 
-###
-# zero-inflated gamma functions
-dzerogamma <- function( x , prob , mu , scale , log=TRUE ) {
-    p1 <- dgamma2( x , mu=mu , s=scale , log=FALSE )
-    p <- ifelse( x==0 , prob , (1-prob)*p1 )
-    if ( log==TRUE ) p <- log(p)
-    p
-}
-
 # laplace (double exponential)
 dlaplace <- function(x,location=0,lambda=1,log=FALSE) {
     # f(y) = (1/(2b)) exp( -|y-a|/b )
@@ -181,6 +172,15 @@ rzipois <- function(n,p,lambda) {
     z <- rbinom(n,size=1,prob=p)
     y <- (1-z)*rpois(n,lambda)
     return(y)
+}
+
+# zero-augmented gamma2 distribution
+dzagamma2 <- function(x,prob,mu,scale,log=FALSE) {
+    K <- as.data.frame(cbind(x=x,prob=prob,mu=mu,scale=scale))
+    llg <- dgamma( x , shape=mu/scale , scale=scale , log=TRUE )
+    ll <- ifelse( K$x==0 , log(K$prob) , log(1-K$prob) + llg )
+    if ( log==FALSE ) ll <- exp(ll)
+    ll
 }
 
 # zero-inflated binomial distribution

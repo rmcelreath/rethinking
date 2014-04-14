@@ -143,3 +143,6 @@ sample.qa.posterior <- function( model , n=10000 , clean.names=TRUE , model.weig
     }
     result
 }
+
+# converting to use extract_samples for everything
+

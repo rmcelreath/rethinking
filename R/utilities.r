@@ -117,11 +117,13 @@ HPDI <- function( samples , prob=0.95 ) {
     result
 }
 
-# percentile confidence interval
+# percentile confidence/credible interval
 PCI <- function( samples , prob=0.95 ) {
     a <- (1-prob)/2
     quantile( samples , probs=c(a,1-a) )
 }
+PI <- PCI
+
 
 se <- function( model ) {
     sqrt( diag( vcov(model) ) )
@@ -171,3 +173,16 @@ replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
     cat("\n")
     result
 }
+
+# check index vector
+check_index <- function( x ) {
+    y <- sort(unique(x))
+    n <- length(y)
+    message( concat( "Length: ",n ) )
+    message( concat( "Range: ",min(y)," / ",max(y) ) )
+    if ( max(y) != n ) message( "Maximum index different than number of unique values" )
+    diffs <- sapply( 2:n , function(i) y[i] - y[i-1] )
+    if ( any(diffs)!=1 ) message( "At least one gap in consecutive values" )
+}
+
+coerce_index <- function( x ) as.integer(as.factor(as.character(x)))
