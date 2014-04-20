@@ -6,7 +6,7 @@ This R package accompanies a course and book on Bayesian data analysis. It conta
 For example, a simple linear regression could be specified with this list of formulas:
 
 ```
-f <- list(
+f <- alist(
     y ~ dnorm( mu , sigma ),
     mu ~ dnorm( 0 , 10 ),
     sigma ~ dcauchy( 0 , 1 )
@@ -62,9 +62,9 @@ generated quantities{
 
 While ``map`` is limited to fixed effects models for the most part, ``map2stan`` can specify multilevel models, even quite complex ones. For example, a simple varying intercepts model looks like:
 ```
-f2 <- list(
+f2 <- alist(
     y ~ dnorm( mu , sigma ),
-    mu ~ a + aj,
+    mu <- a + aj,
     aj[group] ~ dnorm( 0 , sigma_group ),
     a ~ dnorm( 0 , 10 ),
     sigma ~ dcauchy( 0 , 1 ),
@@ -73,9 +73,9 @@ f2 <- list(
 ```
 And with varying slopes as well:
 ```
-f3 <- list(
+f3 <- alist(
     y ~ dnorm( mu , sigma ),
-    mu ~ a + aj + (b + bj)*x,
+    mu <- a + aj + (b + bj)*x,
     c(aj,bj)[group] ~ dmvnorm( 0 , Sigma_group ),
     a ~ dnorm( 0 , 10 ),
     b ~ dnorm( 0 , 1 ),
@@ -85,10 +85,10 @@ f3 <- list(
 ```
 And ``map2stan`` supports decomposition of covariance matrices into vectors of standard deviations and a correlation matrix, such that priors can be specified independently for each:
 ```
-f4 <- list(
+f4 <- alist(
     y ~ dnorm( mu , sigma ),
     mu ~ a + aj + (b + bj)*x,
-    c(aj,bj)[group] ~ dmvnorm2( 0 , sigma_group , Rho_group ),
+    c(aj,bj)[group] <- dmvnorm2( 0 , sigma_group , Rho_group ),
     a ~ dnorm( 0 , 10 ),
     b ~ dnorm( 0 , 1 ),
     sigma ~ dcauchy( 0 , 1 ),
