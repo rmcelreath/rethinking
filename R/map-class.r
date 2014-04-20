@@ -4,7 +4,9 @@ setClass("map", representation( call = "language",
                                 optim = "list",
                                 data = "list",
                                 formula = "list",
-                                fminuslogl = "function"))
+                                formula_parsed = "list",
+                                fminuslogl = "function",
+                                links = "list"))
 
 setMethod("coef", "map", function(object) {
     object@coef

@@ -74,9 +74,9 @@ d <- list(
 
 # RStan fit
 m2 <- map2stan(
-    list(
+    alist(
         pulled_left ~ dbinom(1,theta),
-        logit(theta) ~ a + bp*prosoc_left + bpc*condition*prosoc_left ,
+        logit(theta) <- a + bp*prosoc_left + bpc*condition*prosoc_left ,
         a ~ dnorm(0,10),
         bp ~ dnorm(0,10),
         bpc ~ dnorm(0,10)
@@ -93,9 +93,9 @@ pairs(m2)
 # now RStan fit of model with varying intercepts on actor
 # note initial values for each varying intercept in start
 m3 <- map2stan(
-    list(
+    alist(
         pulled_left ~ dbinom(1,theta),
-        logit(theta) ~ a + aj + bp*prosoc_left + bpc*condition*prosoc_left,
+        logit(theta) <- a + aj + bp*prosoc_left + bpc*condition*prosoc_left,
         aj[actor] ~ dnorm( 0 , sigma_actor ),
         a ~ dnorm(0,10),
         bp ~ dnorm(0,10),
@@ -113,9 +113,9 @@ pairs(m3)
 
 # varying intercepts on actor and experimental block
 m4 <- map2stan(
-    list(
+    alist(
         pulled_left ~ dbinom(1,theta),
-        logit(theta) ~ a + aj + ak + bp*prosoc_left + bpc*condition*prosoc_left,
+        logit(theta) <- a + aj + ak + bp*prosoc_left + bpc*condition*prosoc_left,
         aj[actor] ~ dnorm( 0 , sigma_actor ),
         ak[blockid] ~ dnorm( 0 , sigma_block ),
         a ~ dnorm(0,10),

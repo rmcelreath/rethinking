@@ -7,8 +7,36 @@ compare.show <- function( object ) {
 }
 setMethod( "show" , "compareIC" , function(object) compare.show(object) )
 
+# new compare function, defaulting to DIC
+compare <- function( ... , n=1e3 , sort="DIC" ) {
+    # retrieve list of models
+    L <- list(...)
+    if ( is.list(L[[1]]) && length(L)==1 )
+        L <- L[[1]]
+    
+    # retrieve model names from function call
+    mnames <- match.call()
+    mnames <- as.character(mnames)[2:(length(L)+1)]
+    
+    DIC.list <- lapply( L , function(z) DIC( z , n=n ) )
+    pD.list <- sapply( DIC.list , function(x) attr(x,"pD") )
+    DIC.list <- unlist(DIC.list)
+    
+    dDIC <- DIC.list - min( DIC.list )
+    w.DIC <- ICweights( DIC.list )
+    
+    result <- data.frame( DIC=DIC.list , pD=pD.list , dDIC=dDIC , weight=w.DIC )
+    rownames(result) <- mnames
+    
+    if ( !is.null(sort) ) {
+        result <- result[ order( result[[sort]] ) , ]
+    }
+    
+    new( "compareIC" , output=result )
+}
+
 # AICc/BIC model comparison table
-compare <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE , delta=TRUE , DICsamples=1e4 ) {
+compare_old <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE , delta=TRUE , DICsamples=1e4 ) {
     require(bbmle)
     
     if ( is.null(nobs) ) {

@@ -77,7 +77,7 @@ DIC <- function( object , n=1000 ) {
         }
     }
     if ( class(object)=="map" ) {
-        post <- sample.qa.posterior( object , n=n )
+        post <- extract.samples( object , n=n )
         dev <- sapply( 1:nrow(post) , 
             function(i) {
                 p <- post[i,]

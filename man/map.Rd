@@ -3,14 +3,14 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Find maximum a posteriori (MAP) estimates}
 \description{
-  Find mode of posterior density for arbitrary fixed effect models.
+  Find mode of posterior distribution for arbitrary fixed effect models.
 }
 \usage{
 map( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{flist}{A formula or list of formulas that define the likelihood and priors. See details.}
+  \item{flist}{A formula or \code{alist} of formulas that define the likelihood and priors. See details.}
   \item{start}{A named list specifying parameters and their initial values}
   \item{data}{A data frame or list containing the data}
   \item{method}{Search method for \code{optim}. Defaults to \code{BFGS}.}
@@ -27,9 +27,9 @@ map( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
   
   Prior formulas take the same form, but the outcome should be a parameter name. Identical priors can be defined for multiple parameters by using \code{c(par1,par2,...)} on the left hand side of the formula. See example below.
   
-  Linear models can be specified as formulas of the form \code{mu ~ a + b*x} for a direct link. To use a link function, use the form \code{link(mu) ~ a + b*x} or \code{mu ~ invlink(a + b*x)}. The names "link" and "invlink" must be recognized by \code{map}. It currently recognizes \code{log}/\code{exp} and \code{logit}/\code{logistic}. Any other link function can be coded directly into the likelihood formula. For example \code{dfoo(par=invlink(mu))}.
+  Linear models can be specified as formulas of the form \code{mu <- a + b*x} for a direct link. To use a link function, use the form \code{link(mu) <- a + b*x} or \code{mu <- invlink(a + b*x)}. The names "link" and "invlink" must be recognized by \code{map}. It currently recognizes \code{log}/\code{exp} and \code{logit}/\code{logistic}. Any other link function can be coded directly into the likelihood formula. For example \code{y ~ dfoo(invlink(mu))}.
   
-  Methods are defined for \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, and \code{show}.
+  Methods are defined for \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, \code{link}, \link{DIC}, and \code{show}.
 }
 \value{
     Returns an object of class \code{map} with the following slots.
@@ -46,9 +46,9 @@ map( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
 \seealso{\code{\link{optim}}}
 \examples{
 data(cars)
-flist <- list(
+flist <- alist(
     dist ~ dnorm( mean=mu , sd=sigma ) ,
-    mu ~ a+b*speed ,
+    mu <- a+b*speed ,
     c(a,b) ~ dnorm(0,10) , 
     sigma ~ dcauchy(0,1)
 )
@@ -58,14 +58,14 @@ fit <- map( flist , start=list(a=40,b=0.1,sigma=20) , data=cars )
 y <- c( rep(0,10) , rep(1,10) )
 x <- c( rep(-1,9) , rep(1,11) )
 
-flist0 <- list(
+flist0 <- alist(
     y ~ dbinom( prob=p , size=1 ) ,
-    logit(p) ~ a + b*x
+    logit(p) <- a + b*x
 )
 
-flist1 <- list(
+flist1 <- alist(
     y ~ dbinom( prob=p , size=1 ),
-    logit(p) ~ a + b*x ,
+    logit(p) <- a + b*x ,
     c(a,b) ~ dnorm(0,10)
 )
 

@@ -7,6 +7,7 @@ flist_untag <- function(flist) {
             # tagged formula, so convert to ~ formula expression
             flist[[i]][[1]] <- as.name("~")
         }
+        # eval required to convert from class language to class formula
         flist[[i]] <- eval(flist[[i]])
     }
     as.list(flist)
@@ -191,16 +192,26 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
 
     if (debug) print(flist2)
     
+    links <- list()
+    
     # check for linear models in flist2 and do search-replace in likelihood
     if ( length(flist2) > 1 ) {
+        # loop in reverse order, so linear models lower down get pulled up
         for ( i in length(flist2):2 ) {
             # linear models are class list
             if ( class(flist2[[i]])=="list" ) {
                 LHS <- flist2[[i]][[1]]
                 RHS <- flist2[[i]][[2]]
+                # save current likelihood, so can check for link
+                lik_save <- flist2[[1]]
                 # replace in likelihood
-                #flist2[[1]] <- gsub( LHS , RHS , flist2[[1]] )
                 flist2[[1]] <- mygrep( LHS , RHS , flist2[[1]] , add.par=FALSE )
+                
+                # need a link function?
+                if ( flist2[[1]] != lik_save ) {
+                    # build a link function with current linear model in it
+                    links[[ length(links)+1 ]] <- flist2[[i]]
+                }
                 
                 # also search in other linear models above this one
                 if ( i > 2 ) {
@@ -272,7 +283,8 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
     # compute minus log-likelihood at MAP, ignoring priors to do so
     # need this for correct deviance calculation, as deviance ignores priors
     fit$minuslogl <- make_minuslogl( fit$par , flist=flist.ll , data=data )
-
+    
+    # function to use later in computing DIC
     fmll <- function(pars) make_minuslogl( pars , flist=flist.ll , data=data )
     
     ########################################
@@ -284,7 +296,9 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
             optim = fit,
             data = as.list(data),
             formula = flist.orig,
-            fminuslogl = fmll )
+            formula_parsed = flist2,
+            fminuslogl = fmll,
+            links = links )
     attr(m,"df") = length(m@coef)
     if (!missing(data)) attr(m,"nobs") = length(data[[1]])
     # check convergence and warn
@@ -338,6 +352,7 @@ fit <- map( flist1 , start=list(a=40,b=0.1,sigma=20) , data=cars , debug=FALSE )
 
 #########
 
+library(rethinking)
 data(chimpanzees)
 
 flist1 <- list(
@@ -350,13 +365,13 @@ flist2 <- list(
     b ~ dnorm(0,1)
 )
 
-flist4 <- list(
+flist4 <- alist(
     pulled.left ~ dbinom( prob=p , size=1 ),
-    logit(p) ~ a + b*prosoc.left ,
+    logit(p) <- a + b*prosoc.left ,
     c(a,b) ~ dnorm(0,1)
 )
 
-fit2 <- map( flist3 , data=chimpanzees , start=list(a=0,b=0) , debug=TRUE )
+fit2 <- map( flist4 , data=chimpanzees , start=list(a=0,b=0) , debug=FALSE )
 
 ########
 # regularized logistic regression example

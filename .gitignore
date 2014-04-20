@@ -3,3 +3,4 @@
 .RData
 *.Rproj
 .DS_Store
+man/.Rapp.history

@@ -6,7 +6,8 @@
 # (*) fix dordlogit in WAIC calculation -- not sure what issue is
 
 # new link function that doesn't invoke Stan
-link <- function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , ... ) {
+setMethod("link", "map2stan",
+function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , ... ) {
 
     if ( class(fit)!="map2stan" ) stop("Requires map2stan fit")
     if ( missing(data) ) data <- fit@data
@@ -61,7 +62,13 @@ link <- function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list(
         }
         if ( !is.na(outcome) ) {
             n_cases <- length( data[[ outcome ]] )
-            K <- max( fit@data[[ outcome ]] ) # get max level from original data
+            if ( n_cases > 0 )
+                K <- max( fit@data[[ outcome ]] ) # get max level from original data
+            else {
+                # outcome not found, so just fill with 1s
+                n_cases <- length( data[[1]] ) # just hope is informative
+                data[[outcome]] <- rep(1,n_cases)
+            }
         }
         # empty array with right dims
         lm_out[[ lm_names[i] ]] <- array( 0 , dim=c( n , n_cases ) )
@@ -146,14 +153,14 @@ link <- function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list(
     }#i
     
     if ( !is.null(probs) ) {
-        
+        #NYI
     }
     
     if ( refresh>0 ) cat("\n")
     
     return( lm_out )
 }
-
+)
 
 predict.ordlogit <- function( phi , a ) {
     K <- 1:(length(a)+1)
@@ -323,9 +330,9 @@ data(willowtitn)
 d <- willowtitn
 
 m <- map2stan(
-    list(
+    alist(
         n ~ dzipois( p , lambda ),
-        log(lambda) ~ an + bn*percforest ,
+        log(lambda) <- an + bn*percforest ,
         logit(p) ~ ap + bp*percforest ,
         c(an,ap,bn,bp) ~ dnorm(0,10)
     ),
@@ -351,10 +358,10 @@ d$male <- ifelse( d$applicant.gender=="male" , 1 , 0 )
 d$dept <- as.integer(d$dept)
 
 m <- map2stan(
-    list(
+    alist(
         admit ~ dbinom( applications , p ),
-        logit(p) ~ a + ak + b*male,
-        ak|dept ~ dnorm(0,sigma),
+        logit(p) <- a + ak + b*male,
+        ak[dept] ~ dnorm(0,sigma),
         a ~ dnorm(0,10),
         b ~ dnorm(0,10),
         sigma ~ dcauchy(0,2.5)
