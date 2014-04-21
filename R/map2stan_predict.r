@@ -7,7 +7,7 @@
 
 # new link function that doesn't invoke Stan
 setMethod("link", "map2stan",
-function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , ... ) {
+function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
 
     if ( class(fit)!="map2stan" ) stop("Requires map2stan fit")
     if ( missing(data) ) data <- fit@data
@@ -157,6 +157,9 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , ... 
     }
     
     if ( refresh>0 ) cat("\n")
+    
+    if ( flatten==TRUE )
+        if ( length(lm_out)==1 ) lm_out <- lm_out[[1]]
     
     return( lm_out )
 }

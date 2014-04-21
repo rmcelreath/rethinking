@@ -7,12 +7,15 @@ function( fit , data , n=1000 , ... ) {
 )
 
 setMethod("link", "map",
-function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , ... ) {
+function( fit , data , n=1000 , post , probs=NULL , refresh=0.1 , flatten=TRUE , ... ) {
 
     if ( class(fit)!="map" ) stop("Requires map fit")
     if ( missing(data) ) data <- fit@data
     
-    post <- extract.samples(fit,n=n)
+    if ( missing(post) ) 
+        post <- extract.samples(fit,n=n)
+    else
+        n <- length(post[[1]])
     
     nlm <- length(fit@links)
     
@@ -49,6 +52,10 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , ... 
     }
     
     if ( refresh>0 ) cat("\n")
+    
+    if ( flatten==TRUE )
+        if ( length(link_out)==1 ) link_out <- link_out[[1]]
+    
     return(link_out)
 }
 )
@@ -62,7 +69,7 @@ data(chimpanzees)
 fit <- map(
     alist(
         pulled.left ~ dbinom( 1 , p ),
-        logit(p) ~ a + b*prosoc.left,
+        logit(p) <- a + b*prosoc.left,
         c(a,b) ~ dnorm(0,1)
     ),
     data=chimpanzees,
@@ -71,12 +78,14 @@ fit <- map(
 
 pred <- link(fit)
 
-pred2 <- link(fit,data=list(prosoc.left=0:1))
+pred2 <- link(fit,data=list(prosoc.left=0:1),flatten=FALSE)
+
+sim.pulls <- sim(fit,data=list(prosoc.left=0:1))
 
 fit2 <- map2stan(
     alist(
         pulled.left ~ dbinom( 1 , p ),
-        logit(p) ~ a + b*prosoc.left,
+        logit(p) <- a + b*prosoc.left,
         c(a,b) ~ dnorm(0,1)
     ),
     data=list(
