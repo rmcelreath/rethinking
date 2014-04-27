@@ -1597,6 +1597,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         # build result
         result <- new( "map2stan" , 
             call = match.call(), 
+            model = model_code,
             stanfit = fit,
             coef = coef,
             vcov = varcov,
@@ -1624,7 +1625,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         
     } else {
         # just return list
-        result <- list( 
+        result <- list(
             call = match.call(), 
             model = model_code,
             data = d,

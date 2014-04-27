@@ -1,4 +1,5 @@
 setClass("map2stan", representation( call = "language",
+                                model = "character",
                                 stanfit = "stanfit",
                                 coef = "numeric",
                                 vcov = "matrix",
@@ -37,10 +38,18 @@ plotpost <- function(object,n=1000,col=col.alpha("slateblue",0.3),cex=0.8,pch=16
     pairs(o[1:n,],col=col,cex=cex,pch=pch,...)
 }
 
-stancode <- function(object) {
-    cat( object@stanfit@stanmodel@model_code )
-    return( invisible( object@stanfit@stanmodel@model_code ) )
+setMethod("stancode", "map2stan",
+function(object) {
+    cat( object@model )
+    return( invisible( object@model ) )
 }
+)
+setMethod("stancode", "list",
+function(object) {
+    cat( object$model )
+    return( invisible( object$model ) )
+}
+)
 
 setMethod("vcov", "map2stan", function (object, ...) { object@vcov } )
 

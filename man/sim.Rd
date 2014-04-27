@@ -9,7 +9,7 @@ sim( fit , data , n=1000 , post , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{fit}{Object of class \code{map2stan}}
+  \item{fit}{Object of class \code{map} or \code{map2stan}}
   \item{data}{Optional list of data to compute predictions over}
   \item{n}{Number of samples to use}
   \item{post}{Samples from posterior. If missing, \code{sim} samples using \code{n}}

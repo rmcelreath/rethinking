@@ -10,7 +10,13 @@ setMethod("link", "map2stan",
 function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
 
     if ( class(fit)!="map2stan" ) stop("Requires map2stan fit")
-    if ( missing(data) ) data <- fit@data
+    if ( missing(data) ) {
+        data <- fit@data
+    } else {
+        # make sure all variables same length
+        # weird vectorization errors otherwise
+        data <- as.data.frame(data)
+    }
     
     post <- extract.samples(fit)
     
@@ -191,7 +197,7 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
     
     # compute linear model values at each sample
     if ( refresh > 0 ) message("Constructing posterior predictions")
-    lm_vals <- link( object , n=n , refresh=refresh )
+    lm_vals <- link( object , n=n , refresh=refresh , flatten=FALSE )
     
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
     post <- extract.samples( object )

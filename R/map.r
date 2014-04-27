@@ -295,6 +295,7 @@ map <- function( flist , start , data , method="BFGS" , hessian=TRUE , debug=FAL
             vcov = vcov,
             optim = fit,
             data = as.list(data),
+            start = start,
             formula = flist.orig,
             formula_parsed = flist2,
             fminuslogl = fmll,

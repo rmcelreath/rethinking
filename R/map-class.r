@@ -3,6 +3,7 @@ setClass("map", representation( call = "language",
                                 vcov = "matrix",
                                 optim = "list",
                                 data = "list",
+                                start = "list",
                                 formula = "list",
                                 formula_parsed = "list",
                                 fminuslogl = "function",
@@ -15,6 +16,21 @@ setMethod("coef", "map", function(object) {
 setMethod("vcov", "map", function (object, ...) { object@vcov } )
 
 setMethod("nobs", "map", function (object, ...) { attr(object,"nobs") } )
+
+setGeneric("stancode",
+function( object , ... ) {
+    print(class(object))
+}
+)
+setMethod("stancode", "map",
+function(object) {
+    # compile Stan code through map2stan
+    m <- map2stan( object@formula , data=object@data , start=object@start , sample=FALSE )
+    # display
+    cat( m$model )
+    return( invisible( m$model ) )
+}
+)
 
 setMethod("logLik", "map",
 function (object, ...)

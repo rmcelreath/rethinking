@@ -10,7 +10,13 @@ setMethod("link", "map",
 function( fit , data , n=1000 , post , probs=NULL , refresh=0.1 , flatten=TRUE , ... ) {
 
     if ( class(fit)!="map" ) stop("Requires map fit")
-    if ( missing(data) ) data <- fit@data
+    if ( missing(data) ) {
+        data <- fit@data
+    } else {
+        # make sure all variables same length
+        # weird vectorization errors otherwise
+        data <- as.data.frame(data)
+    }
     
     if ( missing(post) ) 
         post <- extract.samples(fit,n=n)
