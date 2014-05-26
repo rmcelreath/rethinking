@@ -35,6 +35,15 @@ compare <- function( ... , n=1e3 , sort="DIC" ) {
     new( "compareIC" , output=result )
 }
 
+# plot method for compareIC results shows deviance in and expected deviance out of sample, for each model, ordered top-to-bottom by rank
+setMethod("plot" , "compareIC" , function(x,y,...) {
+    dev_in <- x@output$DIC - x@output$pD
+    dev_out <- x@output$DIC
+    n <- length(dev_in)
+    dotchart( dev_in[n:1] , labels=rownames(x@output)[n:1] , xlab="deviance" , pch=16 , xlim=c(min(dev_in),max(dev_out)) , ... )
+    points( dev_out[n:1] , 1:n )
+})
+
 # AICc/BIC model comparison table
 compare_old <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE , delta=TRUE , DICsamples=1e4 ) {
     require(bbmle)
@@ -134,4 +143,69 @@ ICweights <- function( dev ) {
 # build ensemble of samples using DIC/WAIC weights
 ensemble <- function( ... ) {
     L <- list(...)
+}
+
+# tests
+if (FALSE) {
+
+library(rethinking)
+data(chimpanzees)
+
+d <- list( 
+    pulled_left = chimpanzees$pulled.left ,
+    prosoc_left = chimpanzees$prosoc.left ,
+    condition = chimpanzees$condition ,
+    actor = as.integer( chimpanzees$actor )
+)
+
+m0 <- map(
+    alist(
+        pulled_left ~ dbinom(1,theta),
+        logit(theta) <- a,
+        a ~ dnorm(0,1)
+    ) ,
+    data=d,
+    start=list(a=0)
+)
+
+m1 <- map(
+    alist(
+        pulled_left ~ dbinom(1,theta),
+        logit(theta) <- a + bp*prosoc_left,
+        a ~ dnorm(0,1),
+        bp ~ dnorm(0,1)
+    ) ,
+    data=d,
+    start=list(a=0,bp=0)
+)
+
+m2 <- map(
+    alist(
+        pulled_left ~ dbinom(1,theta),
+        logit(theta) <- a + bp*prosoc_left + bpc*condition*prosoc_left,
+        a ~ dnorm(0,1),
+        bp ~ dnorm(0,1),
+        bpc ~ dnorm(0,1)
+    ) ,
+    data=d,
+    start=list(a=0,bp=0,bpc=0)
+)
+
+m3 <- map(
+    alist(
+        pulled_left ~ dbinom(1,theta),
+        logit(theta) <- a + bp*prosoc_left + bc*condition + bpc*condition*prosoc_left,
+        a ~ dnorm(0,1),
+        bp ~ dnorm(0,1),
+        bc ~ dnorm(0,1),
+        bpc ~ dnorm(0,1)
+    ) ,
+    data=d,
+    start=list(a=0,bp=0,bc=0,bpc=0)
+)
+
+( x <- compare(m0,m1,m2,m3) )
+
+plot(x)
+
 }

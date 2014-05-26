@@ -88,7 +88,7 @@ And ``map2stan`` supports decomposition of covariance matrices into vectors of s
 f4 <- alist(
     y ~ dnorm( mu , sigma ),
     mu <- a + aj + (b + bj)*x,
-    c(aj,bj)[group] <- dmvnorm2( 0 , sigma_group , Rho_group ),
+    c(aj,bj)[group] ~ dmvnorm2( 0 , sigma_group , Rho_group ),
     a ~ dnorm( 0 , 10 ),
     b ~ dnorm( 0 , 1 ),
     sigma ~ dcauchy( 0 , 1 ),

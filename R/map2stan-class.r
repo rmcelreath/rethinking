@@ -28,6 +28,21 @@ function(object) {
 }
 )
 
+setMethod("extract.samples","stanfit",
+function(object) {
+    require(rstan)
+    p <- rstan::extract(object)
+    # get rid of dev and lp__
+    #p[['dev']] <- NULL
+    #p[['lp__']] <- NULL
+    # get rid of those ugly dimnames
+    for ( i in 1:length(p) ) {
+        attr(p[[i]],"dimnames") <- NULL
+    }
+    return(p)
+}
+)
+
 plotchains <- function(object , pars=names(object@start) , ...) {
     if ( class(object)=="map2stan" )
         rstan::traceplot( object@stanfit , ask=TRUE , pars=pars , ... )

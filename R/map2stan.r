@@ -957,15 +957,17 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         # marked for now by `&` function
         T_text <- ""
         RHS <- flist[[i]][[3]]
-        if ( class(RHS[[1]])=="name" ) {
-            if( as.character(RHS[[1]])=="&" ) {
-                # test for T[,]
-                if ( class(RHS[[3]])=="call" ) {
-                    if( length(RHS[[3]])==4 ) {
-                        if( as.character(RHS[[3]][[2]])=="T" ) {
-                            # got one, so deparse to text and remove from formula before parsing rest
-                            T_text <- deparse( RHS[[3]] )
-                            flist[[i]][[3]] <- flist[[i]][[3]][[2]] # just density part before `&`
+        if ( length(RHS)>1 ) {
+            if ( class(RHS[[1]])=="name" ) {
+                if( as.character(RHS[[1]])=="&" ) {
+                    # test for T[,]
+                    if ( class(RHS[[3]])=="call" ) {
+                        if( length(RHS[[3]])==4 ) {
+                            if( as.character(RHS[[3]][[2]])=="T" ) {
+                                # got one, so deparse to text and remove from formula before parsing rest
+                                T_text <- deparse( RHS[[3]] )
+                                flist[[i]][[3]] <- flist[[i]][[3]][[2]] # just density part before `&`
+                            }
                         }
                     }
                 }
