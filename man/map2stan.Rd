@@ -13,7 +13,7 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
 \arguments{
   \item{flist}{A formula or list of formulas that define the likelihood and priors. See details.}
   \item{data}{A data frame or list containing the data}
-  \item{start}{A named list specifying parameters and their initial values}
+  \item{start}{Optional named list specifying parameters and their initial values}
   \item{pars}{Optional: character vector of parameters to return samples for}
   \item{constraints}{Optional: named list of custom parameter constraints, using Stan notation}
   \item{types}{Optional: named list of custom parameter types, using Stan notation}
@@ -33,9 +33,11 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   
   Prior formulas take the same form, but the outcome should be a parameter name. Identical priors can be defined for multiple parameters by using \code{c(par1,par2,...)} on the left hand side of the formula. See example below.
   
-  A special case of prior formula is for varying effects. For single varying effects, such as varying intercepts alone, all that is needed is to define a prior and mark it as conditional on a grouping variable in the data. For example: \code{aj|id ~ dnorm(0,sigma_id)} specifies a vector of varying effects \code{aj}, one for each unique value in \code{id}. For correlated varying effects, such as both varying intercepts and slopes, a parameter vector is specified and a multivariate prior is used instead. For example: \code{c(aj,bj)|id ~ dmvnorm(0,Sigma_id)} specifices varying intercepts \code{aj} and varying slopes \code{bj}.
+  A special case of prior formula is for varying effects. For single varying effects, such as varying intercepts alone, all that is needed is to define a prior and mark it as conditional on a grouping variable in the data. For example: \code{aj[id] ~ dnorm(0,sigma_id)} specifies a vector of varying effects \code{aj}, one for each unique value in \code{id}. For correlated varying effects, such as both varying intercepts and slopes, a parameter vector is specified and a multivariate prior is used instead. For example: \code{c(aj,bj)[id] ~ dmvnorm(0,Sigma_id)} specifices varying intercepts \code{aj} and varying slopes \code{bj}.
   
   Linear models can be specified as formulas of the form \code{mu ~ a + b*x} for a direct link. To use a link function, use the form \code{link(mu) ~ a + b*x}. The name "link" must be recognized by \code{map2stan}. It currently recognizes \code{log} and \code{logit}.
+  
+  The \code{start} list is optional. When missing from the list, for each parameter with a defined prior, an initial value will be sampled from the prior. Sampled initial values will try to respect parameter constraints. For varying effect parameter vectors, initial values will always be set to zero. Specific initial values can be specified in the \code{start} list. See examples below. 
   
   The Stan model code includes a generated quantities block that computes the deviance for each vector (iteration) of parameter samples. When sampling completes, \code{map2stan} computes DIC, the deviance information criterion, from the samples. DIC information is available from \code{show} and \code{DIC}, as well as being attributes of the returned object.
   

@@ -6,13 +6,13 @@
   Find mode of posterior distribution for arbitrary fixed effect models.
 }
 \usage{
-map( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
+map( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{flist}{A formula or \code{alist} of formulas that define the likelihood and priors. See details.}
-  \item{start}{A named list specifying parameters and their initial values}
   \item{data}{A data frame or list containing the data}
+  \item{start}{Optional named list specifying parameters and their initial values}
   \item{method}{Search method for \code{optim}. Defaults to \code{BFGS}.}
   \item{hessian}{If \code{TRUE}, attempts to compute the Hessian}
   \item{debug}{If \code{TRUE}, prints various internal steps to help with debugging}
@@ -28,6 +28,8 @@ map( flist , start , data , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
   Prior formulas take the same form, but the outcome should be a parameter name. Identical priors can be defined for multiple parameters by using \code{c(par1,par2,...)} on the left hand side of the formula. See example below.
   
   Linear models can be specified as formulas of the form \code{mu <- a + b*x} for a direct link. To use a link function, use the form \code{link(mu) <- a + b*x} or \code{mu <- invlink(a + b*x)}. The names "link" and "invlink" must be recognized by \code{map}. It currently recognizes \code{log}/\code{exp} and \code{logit}/\code{logistic}. Any other link function can be coded directly into the likelihood formula. For example \code{y ~ dfoo(invlink(mu))}.
+  
+  The \code{start} list is optional. For each parameter with a defined prior, an initial value will be sampled from the prior. Explicit named initial values can also be provided in this list.
   
   Methods are defined for \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, \code{link}, \link{DIC}, and \code{show}.
 }

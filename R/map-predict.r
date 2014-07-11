@@ -49,10 +49,21 @@ function( fit , data , n=1000 , post , probs=NULL , refresh=0.1 , flatten=TRUE ,
             }
         
             # make environment
-            e <- list( as.list(data) , as.list(post[s,]) )
+            init <- list() # holds one row of samples across all params
+            for ( j in 1:length(post) ) {
+                par_name <- names(post)[ j ]
+                dims <- dim( post[[par_name]] )
+                # scalar
+                if ( length(dims)<2 ) init[[par_name]] <- post[[par_name]][s]
+                # vector
+                if ( length(dims)==2 ) init[[par_name]] <- post[[par_name]][s,]
+                # matrix
+                if ( length(dims)==3 ) init[[par_name]] <- post[[par_name]][s,,]
+            }#j
+            e <- list( as.list(data) , as.list(init) )
             e <- unlist( e , recursive=FALSE )
             value[s,] <- eval(parse(text=lm),envir=e)
-        }
+        }#s
         link_out[[i]] <- value
         names(link_out)[i] <- parout
     }

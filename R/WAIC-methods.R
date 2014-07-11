@@ -4,7 +4,7 @@
 
 WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
     
-    if ( class(object)!="map2stan" ) stop("Requires map2stan fit")
+    if ( !(class(object)%in%c("map2stan")) ) stop("Requires map2stan fit")
     
     if ( !is.null(attr(object,"WAIC")) ) {
         # already have it stored in object, so just return it

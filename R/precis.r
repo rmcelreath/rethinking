@@ -29,7 +29,7 @@ precis.plot <- function( x , y , pars , col.ci="black" , ... ) {
 }
 setMethod( "plot" , "precis" , function(x,y,...) precis.plot(x,y,...) )
 
-precis <- function( model , pars , type.s=FALSE , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE ) {
+precis <- function( model , depth=1 , pars , type.s=FALSE , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE ) {
     the.class <- class(model)[1]
     found.class <- FALSE
     if ( the.class=="numeric" ) {
@@ -66,7 +66,7 @@ precis <- function( model , pars , type.s=FALSE , ci=TRUE , level=0.95 , corr=FA
         }
         if ( the.class=="stanfit" ) {
             # HPDI from samples
-            post <- as.data.frame( extract(model) )
+            post <- as.data.frame( extract.samples(model) )
             ci <- t( apply( post , 2 , HPDI , prob=level ) )
         }
         result <- cbind( result , ci )
@@ -79,6 +79,26 @@ precis <- function( model , pars , type.s=FALSE , ci=TRUE , level=0.95 , corr=FA
     if ( precis.whitelist$vcov.method[ precis.whitelist$class==the.class ]=="vcov.VarCorr" ) {
         message( "Quadratic approximation (standard errors) unreliable for variance components. Use MCMC to estimate precision of variance components." )
     }
+    
+    # deal with depth
+    if ( depth==1 ) {
+        hits <- regexpr("]",rownames(result),fixed=TRUE)
+        hits_idx <- which( hits > -1 )
+        if ( length(hits_idx)>0 ) {
+            result <- result[-hits_idx,]
+            message( paste( length(hits_idx) , "vector or matrix parameters omitted in display. Use depth=2 to show them." ) )
+        }
+    }
+    
+    # deal with pars list
+    if ( !missing(pars) ) {
+        # have to handle vector/matrix parameters,
+        # so split off any [.] and then prune with names only
+        clean_names <- as.character( sapply( rownames(result) , function(s) strsplit( s , "[" , fixed=TRUE )[[1]][1] ) )
+        result <- result[ clean_names %in% pars ,]
+    }
+    
+    # result
     new( "precis" , output=result , digits=digits )
 }
 

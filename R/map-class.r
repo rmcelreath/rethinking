@@ -103,3 +103,39 @@ function( object , n=10000 , clean.names=TRUE , ... ) {
     result
 }
 )
+
+setMethod("extract.samples", "map",
+function(object,n=1e4,...){
+    require(MASS)
+    mu <- object@coef
+    result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
+    # convert vector parameters to vectors in list
+    veclist <- attr(object,"veclist")
+    name_head <- function(aname) strsplit( aname , "[" , fixed=TRUE )[[1]][1]
+    name_index <- function(aname) as.numeric(regmatches( aname , regexec( "\\[(.+)\\]" , aname ) )[[1]][2])
+    if ( length(veclist) > 0 ) {
+        new_result <- list()
+        # copy non-vector samples into new list
+        for ( i in 1:length(result) ) {
+            if ( !( name_head(names(result)[i]) %in% names(veclist) ) ) {
+                new_result[[ names(result)[i] ]] <- result[[i]]
+            }
+        }#i
+        # now build vectors out of paramters with [n] in name
+        for ( i in 1:length(veclist) ) {
+            # empty matrix with parameters on cols and samples on rows
+            # so n-by-m, where m in number of pars in vector and n is number of samples
+            new_matrix <- matrix( 0 , ncol=veclist[[i]]$n , nrow=n )
+            for ( j in 1:length(result) ) {
+                if ( name_head(names(result)[j]) == names(veclist)[i] ) {
+                    the_index <- name_index( names(result)[j] )
+                    new_matrix[,the_index] <- result[[j]]
+                }
+            }
+            new_result[[ names(veclist)[i] ]] <- new_matrix
+        }#i
+        result <- new_result
+    }
+    # return result
+    result
+})

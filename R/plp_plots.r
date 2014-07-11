@@ -1,6 +1,6 @@
 # Prior/Likelihood/Posterior plots, plp
 
-plp <- function( mapfit , prob=0.9 , ... ) {
+plp <- function( mapfit , prob=0.9 , xlim , postcol="black" , priorcol="darkgray" , ... ) {
     
     if ( !(class(mapfit) %in% c("map","map2stan")) ) {
         stop( "Requires model fit of class map or map2stan" )
@@ -61,8 +61,27 @@ plp <- function( mapfit , prob=0.9 , ... ) {
         
     }
     
+    # plot
+    offy <- (-0.1)
+    n <- length(post)
+    post2 <- as.data.frame(post)
+    prior2 <- as.data.frame(priors)
+    mu <- as.numeric( post2[2,n:1] )
+    left <- as.numeric( post2[1,n:1] )
+    right <- as.numeric( post2[3,n:1] )
+    if ( missing(xlim) ) xlim <- c(min(left),max(right))
+    dotchart( mu , labels=colnames(post2)[n:1] , xlab="Value" , xlim=xlim , col=postcol , ... )
+    for ( i in 1:length(mu) ) {
+        lines( c(left[i],right[i]) , c(i,i) , lwd=2 , col=postcol )
+        # and prior
+        j <- n - i + 1
+        points( prior2[2,j] , j-offy , col=priorcol )
+        lines( c(prior2[1,j],prior2[3,j]) , c(j,j)-offy , col=priorcol )
+    }
+    abline( v=0 , lty=1 , col=col.alpha("black",0.15) )
     
-    list(priors,post)
+    # invisible result
+    invisible(list(priors,post))
     
 }
 

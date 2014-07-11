@@ -138,9 +138,9 @@ setMethod("summary", "map2stan", function(object){
 
 # resample from compiled map2stan fit
 # can also run on multiple cores
-resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , ... ) {
-    if ( class(object)!="map2stan" )
-        stop( "Requires map2stan fit or stanfit object" )
+resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC=TRUE , ... ) {
+    if ( !(class(object)%in%(c("map2stan"))) )
+        stop( "Requires map2stan fit" )
     
     init <- list()
     if ( cores==1 | chains==1 ) {
@@ -160,7 +160,39 @@ resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , ...
     
     result <- object
     result@stanfit <- fit
-    attr(result,"DIC") <- NULL # clear out any old DIC calculation
+    
+    # compute expected values of parameters
+    s <- summary(fit)$summary
+    s <- s[ -which( rownames(s)=="lp__" ) , ]
+    s <- s[ -which( rownames(s)=="dev" ) , ]
+    if ( !is.null(dim(s)) ) {
+        coef <- s[,1]
+        # compute variance-covariance matrix
+        varcov <- matrix(NA,nrow=nrow(s),ncol=nrow(s))
+        diag(varcov) <- s[,3]^2
+    } else {
+        coef <- s[1]
+        varcov <- matrix( s[3]^2 , 1 , 1 )
+        names(coef) <- names(result@start)
+    }
+    result@coef <- coef
+    result@vcov <- varcov
+    
+    #DIC
+    if ( DIC==TRUE ) {
+        attr(result,"DIC") <- NULL
+        dic_calc <- DIC(result)
+        pD <- attr(dic_calc,"pD")
+        attr(result,"DIC") <- dic_calc
+        attr(result,"pD") <- pD
+        attr(result,"deviance") <- dic_calc - 2*pD
+    } else {
+        # clear out any old DIC calculation
+        attr(result,"DIC") <- NULL
+        attr(result,"pD") <- NULL
+        attr(result,"deviance") <- NULL
+    }
+    
     return(result)
 }
 
