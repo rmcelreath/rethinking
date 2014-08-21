@@ -283,10 +283,7 @@ tracerplot <- function( object , col=c("slateblue","orange","red","green") , alp
     n_eff <- summary(object@stanfit)$summary[,'n_eff']
     
     # make window
-    mfrow_old <- par("mfrow")
-    on.exit(par(mfrow = mfrow_old))
-    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, 
-            tck = -0.02)
+    set_nice_margins()
     par(mfrow=c(n_rows_per_page,n_cols))
     
     # draw traces

@@ -14,7 +14,7 @@ precis.show <- function( object ) {
 }
 setMethod( "show" , "precis" , function(object) precis.show(object) )
 
-precis.plot <- function( x , y , pars , col.ci="black" , ... ) {
+precis.plot <- function( x , y , pars , col.ci="black" , xlab="Value" , ... ) {
     x <- x@output
     if ( !missing(pars) ) {
         x <- x[pars,]
@@ -23,11 +23,53 @@ precis.plot <- function( x , y , pars , col.ci="black" , ... ) {
     mu <- x[n:1,1]
     left <- x[[3]][n:1]
     right <- x[[4]][n:1]
-    dotchart( mu , labels=rownames(x)[n:1] , xlab="Estimate" , xlim=c(min(left),max(right)) , ... )
+    set_nice_margins()
+    dotchart( mu , labels=rownames(x)[n:1] , xlab=xlab , xlim=c(min(left),max(right)) , ... )
     for ( i in 1:length(mu) ) lines( c(left[i],right[i]) , c(i,i) , lwd=2 , col=col.ci )
     abline( v=0 , lty=1 , col=col.alpha("black",0.15) )
 }
 setMethod( "plot" , "precis" , function(x,y,...) precis.plot(x,y,...) )
+
+# function to process a list of posterior samples from extract.samples into a summary table
+# needed because as.data.frame borks the ordering of matrix parameters like varying effects
+postlistprecis <- function( post , prob=0.95 ) {
+    n_pars <- length(post)
+    result <- data.frame( Mean=0 , StdDev=0 , lower=0 , upper=0 )
+    r <- 1
+    for ( k in 1:n_pars ) {
+        dims <- dim( post[[k]] )
+        if ( length(dims)==1 ) {
+            # single parameter
+            hpd <- as.numeric( HPDI( post[[k]] , prob=prob ) )
+            result[r,] <- c( mean(post[[k]]) , sd(post[[k]]) , hpd[1] , hpd[2] )
+            rownames(result)[r] <- names(post)[k]
+            r <- r + 1
+        }
+        if ( length(dims)==2 ) {
+            # vector of parameters
+            # loop over
+            for ( i in 1:dims[2] ) {
+                hpd <- as.numeric( HPDI( post[[k]][,i] , prob=prob ) )
+                result[r,] <- c( mean(post[[k]][,i]) , sd(post[[k]][,i]) , hpd[1] , hpd[2] )
+                rownames(result)[r] <- concat( names(post)[k] , "[" , i , "]" )
+                r <- r + 1
+            }
+        }
+        if ( length(dims)==3 ) {
+            # matrix of parameters
+            for ( i in 1:dims[2] ) {
+                for ( j in 1:dims[3] ) {
+                    hpd <- as.numeric( HPDI( post[[k]][,i,j] , prob=prob ) )
+                    result[r,] <- c( mean(post[[k]][,i,j]) , sd(post[[k]][,i,j]) , hpd[1] , hpd[2] )
+                    rownames(result)[r] <- concat( names(post)[k] , "[" , i , "," , j , "]" )
+                    r <- r + 1
+                }
+            }
+        }
+    }
+    colnames(result)[3:4] <- c(paste("lower", prob), paste("upper", prob))
+    result
+}
 
 precis <- function( model , depth=1 , pars , type.s=FALSE , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE ) {
     the.class <- class(model)[1]
@@ -58,18 +100,18 @@ precis <- function( model , depth=1 , pars , type.s=FALSE , ci=TRUE , level=0.95
         if ( the.class=="data.frame" ) {
             # HPDI from samples
             ci <- t( apply( model , 2 , HPDI , prob=level ) )
+            result <- cbind( result , ci )
         }
         if ( the.class=="map2stan" ) {
             # HPDI from samples
-            post <- as.data.frame( extract.samples(model) )
-            ci <- t( apply( post , 2 , HPDI , prob=level ) )
+            post <- extract.samples(model)
+            result <- postlistprecis( post , prob=level )
         }
         if ( the.class=="stanfit" ) {
             # HPDI from samples
-            post <- as.data.frame( extract.samples(model) )
-            ci <- t( apply( post , 2 , HPDI , prob=level ) )
+            post <- extract.samples(model)
+            result <- postlistprecis( post , prob=level )
         }
-        result <- cbind( result , ci )
     }
     if ( corr==TRUE ) {
         result <- cbind( result , Rho )

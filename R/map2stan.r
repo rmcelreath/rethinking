@@ -730,7 +730,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             rhstxt <- paste( klist , collapse=" , " )
             
             # add text to model code
-            m_model_txt <- concat( m_model_txt , indent , "for ( j in 1:" , N_txt , " ) " , lhstxt , "[j] ~ " , vprior$density , "( " , rhstxt , " )" , vprior$T_text , ";\n" )
+            # new column vectorized normal and multi_normal
+            if ( vprior$density %in% c("multi_normal","normal") )
+                m_model_txt <- concat( m_model_txt , indent , lhstxt , " ~ " , vprior$density , "( " , rhstxt , " )" , vprior$T_text , ";\n" )
+            else
+                m_model_txt <- concat( m_model_txt , indent , "for ( j in 1:" , N_txt , " ) " , lhstxt , "[j] ~ " , vprior$density , "( " , rhstxt , " )" , vprior$T_text , ";\n" )
             
             # declare each parameter with correct type from template
             outtype <- "vector"

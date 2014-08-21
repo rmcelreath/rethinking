@@ -104,15 +104,16 @@ rgampois <- function( n , mu , scale ) {
 # laplace (double exponential)
 dlaplace <- function(x,location=0,lambda=1,log=FALSE) {
     # f(y) = (1/(2b)) exp( -|y-a|/b )
-    l <- (1/(2*lambda))*exp( -abs(x-location)/lambda )
-    if ( log==TRUE ) l <- log(l)
-    l
+    # l <- (1/(2*lambda))*exp( -abs(x-location)/lambda )
+    ll <- -abs(x-location)/lambda - log(2*lambda)
+    if ( log==FALSE ) ll <- exp(ll)
+    ll
 }
 
 rlaplace <- function(n,location=0,lambda=1) {
-    # generate an exponential sample, then generate a random sign, then add location
-    y <- rexp(n=n,rate=lambda) * sample( c(-1,1) , size=n , replace=TRUE )
-    y <- y + location
+    # generate from difference of two random exponentials with rate 1/lambda
+    y <- rexp(n=n,rate=1/lambda) - rexp(n=n,rate=1/lambda)
+    y <- y + location # offset location
     y
 }
 
@@ -133,7 +134,7 @@ dlkjcorr <- function( x , eta=1 , log=TRUE ) {
 rinvwishart <- function(s,df,Sigma,Prec) {
     #s-by-s Inverse Wishart matrix, df degree of freedom, precision matrix
     #Prec. Distribution of W^{-1} for Wishart W with nu=df+s-1 degree of
-    # freedoom, covar martix Prec^{-1}.
+    # freedom, covar martix Prec^{-1}.
     # NOTE  mean of riwish is proportional to Prec
     if ( missing(Prec) ) Prec <- solve(Sigma)
     if (df<=0) stop ("Inverse Wishart algorithm requires df>0")
@@ -221,3 +222,11 @@ rzibinom <- function(n,p_zero,size,prob) {
 dstudent <- function( x , nu , mu , sigma , log=TRUE ) {
     
 }
+
+# generalized normal
+dgnorm <- function( x , mu , alpha , beta , log=FALSE ) {
+    ll <- log(beta) - log( 2*alpha*gamma(1/beta) ) - (abs(x-mu)/alpha)^beta
+    if ( log==FALSE ) ll <- exp(ll)
+    return(ll)
+}
+
