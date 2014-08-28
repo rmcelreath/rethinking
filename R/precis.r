@@ -100,8 +100,8 @@ precis <- function( model , depth=1 , pars , type.s=FALSE , ci=TRUE , level=0.95
         if ( the.class=="data.frame" ) {
             # HPDI from samples
             ci <- t( apply( model , 2 , HPDI , prob=level ) )
-            result <- cbind( result , ci )
         }
+        result <- cbind( result , ci )
         if ( the.class=="map2stan" ) {
             # HPDI from samples
             post <- extract.samples(model)
