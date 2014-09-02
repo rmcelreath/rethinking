@@ -264,18 +264,21 @@ map2stan.templates <- list(
                 assign( "start" , s , e )
                 # insert explicit type into types list
                 type_list <- get( "types" , e )
-                type_list[[ cuts_name ]] <- concat( "ordered[" , length(cutpars) , "]" )
+                #type_list[[ cuts_name ]] <- concat( "ordered[" , length(cutpars) , "]" )
+                type_list[[ cuts_name ]] <- "ordered"
                 assign( "types" , type_list , e )
                 # rename
                 k[[2]] <- cuts_name
             } else {
                 # just a name, hopefully
                 cuts_name <- as.character(k[[2]])
-                # for now, user must specify types=list(cutpoints="ordered[K]")
+                # for now, user must specify types=list(cutpoints="ordered")
                 # check
                 type_list <- get( "types" , e )
                 if ( is.null(type_list[[cuts_name]]) ) {
-                    message(concat("Warning: No explicit type declared for ",cuts_name))
+                    #message(concat("Warning: No explicit type declared for ",cuts_name))
+                    type_list[[ cuts_name ]] <- "ordered"
+                    assign( "types" , type_list , e )
                 }
                 k[[2]] <- cuts_name
             }
@@ -386,6 +389,24 @@ map2stan.templates <- list(
         par_types = c("real","real"),
         out_type = "real",
         par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = TRUE
+    ),
+    Beta2 = list(
+        name = "Beta2",
+        R_name = "dbeta2",
+        stan_name = "beta",
+        num_pars = 2,
+        par_names = c("prob","theta"),
+        par_bounds = c("<lower=0,upper=1>","<lower=0>"),
+        par_types = c("real","real"),
+        out_type = "real",
+        par_map = function(k,...) {
+            p_name <- k[[1]];
+            theta_name <- k[[2]];
+            k[[1]] <- concat(p_name,"*",theta_name);
+            k[[2]] <- concat("(1-",p_name,")*",theta_name);
             return(k);
         },
         vectorized = TRUE

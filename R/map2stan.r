@@ -38,6 +38,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         logodds = 'inv_logit'
     )
     
+    suffix_merge <- "_merge"
+    
     templates <- map2stan.templates
     
     ########################################
@@ -346,6 +348,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         used_predictors = list()
     )
     fp_order <- list()
+    impute_bank <- list()
     d <- as.list(data)
     
     ##################################
@@ -402,6 +405,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         
         # test for likelihood
         # if has distribution function on RHS and LHS is variable, then likelihood
+        # could also be distribution assumption for predictor variable, for imputation
         is_likelihood <- FALSE
         RHS <- flist[[i]][[3]]
         if ( length(RHS) > 1 ) {
@@ -437,6 +441,31 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             
             # add outcome to used variables
             fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N=lik$N_name , type=lik$out_type )
+            
+            # check for missing values
+            # if found, indicates predictor variable for imputation
+            if ( any(is.na(d[[lik$outcome]])) ) {
+                # overwrite with top 'N' name
+                fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
+                
+                # build info needed to perform imputation
+                var_missingness <- which(is.na(d[[lik$outcome]]))
+                var_temp <- ifelse( is.na(d[[lik$outcome]]) , -999 , d[[lik$outcome]] )
+                # add to impute bank
+                impute_bank[[ undot(lik$outcome) ]] <- list(
+                    N_miss = length(var_missingness),
+                    missingness = var_missingness,
+                    init = mean( d[[lik$outcome]] , na.rm=TRUE )
+                )
+                # add missingness to data list
+                missingness_name <- concat(undot(lik$outcome),"_missingness")
+                N_missing_name <- concat(lik$N_name,"_missing")
+                d[[ missingness_name ]] <- var_missingness
+                # flag as used
+                fp[['used_predictors']][[missingness_name]] <- list( var=missingness_name , N=N_missing_name , type="int" )
+                # replace variable with missing values
+                d[[lik$outcome]] <- var_temp
+            }
             
             # check for binomial size variable and mark used
             if ( lik$likelihood=='binomial' | lik$likelihood=='beta_binomial' ) {
@@ -537,6 +566,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     #####
     # add index brackets in linear models
     # be careful to detect manual bracketing for parameter vectors -> only index the index variable itself
+    # also need to replace names of variables 'x' with missing values for imputation with 'x_merge'
     # go through linear models
     n_lm <- length(fp[['lm']])
     if ( n_lm > 0 ) {
@@ -551,13 +581,26 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             for ( v in vnames ) {
                 # tag if used
                 used <- detectvar( v , fp[['lm']][[i]][['RHS']] )
+                v_name <- v
                 if ( used > -1 & v %in% names(d) ) {
                     # if variable (not lm), add to used predictors list
-                    # nup <- length(fp[['used_predictors']])
-                    fp[['used_predictors']][[undot(v)]] <- list( var=undot(v) , N=fp[['lm']][[i]][['N_name']] )
+                    if ( is.null(fp[['used_predictors']][[undot(v)]]) ) 
+                        fp[['used_predictors']][[undot(v)]] <- list( var=undot(v) , N=fp[['lm']][[i]][['N_name']] )
+                    # check for imputation
+                    if ( v %in% names(impute_bank) ) {
+                        # use x_merge in linear model of imputed variable
+                        v_name <- concat( v_name , suffix_merge )
+                    }
+                    if ( any(is.na(d[[v]])) ) {
+                        # MISSING VALUES
+                        # imputation variables should be clear by now
+                        # abort compilation
+                        stop( concat( "Variable '", v , "' has missing values (NA) in:\n" , fp[['lm']][[i]][['RHS']] , "\nEither remove cases with NA or declare a distribution to use for imputation." ) )
+                    }
                 }
                 # add index and undot the name
-                fp[['lm']][[i]][['RHS']] <- indicize( v , index , fp[['lm']][[i]][['RHS']] , replace=undot(v) )
+                # do this outside the if-block above, so linear models get index too
+                fp[['lm']][[i]][['RHS']] <- indicize( v , index , fp[['lm']][[i]][['RHS']] , replace=undot(v_name) )
                 
                 # check index variables in brackets
                 used <- detectindexvar( v , fp[['lm']][[i]][['RHS']] )
@@ -784,6 +827,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             linmod <- fp[['lm']][[i]]
             N_txt <- linmod$N_name
             
+            # if linked outcome is imputated, fall back to basic 'N'
+            N_stem <- substr(N_txt,3,nchar(N_txt))
+            if ( N_stem %in% names(impute_bank) ) {
+                N_txt <- 'N'
+            }
+            
             # open the loop
             txt1 <- concat( indent , "for ( i in 1:" , N_txt , " ) {\n" )
             m_model_txt <- concat( m_model_txt , txt1 )
@@ -813,7 +862,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             
             # add declaration of linear model local variable
             # generated quantities reuse this later on in composition
-            m_model_declare <- concat( m_model_declare , indent , "vector[" , linmod$N_name , "] " , linmod$parameter , ";\n" )
+            m_model_declare <- concat( m_model_declare , indent , "vector[" , N_txt , "] " , linmod$parameter , ";\n" )
             
         } # lm
     
@@ -882,17 +931,45 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             } else {
             
                 # regular distribution with ~
+                
+                # imputation stuff
+                if ( outcome %in% names(impute_bank) ) {
+                    # add _merge suffix
+                    outcome <- concat(outcome,suffix_merge)
+                    # build code in transformed parameters that constructs x_merge
+                    m_tpars1 <- concat( m_tpars1 , indent , "real " , outcome , "[N];\n" )
+                    m_tpars2 <- concat( m_tpars2 , indent , outcome , " <- " , lik$outcome , ";\n" )
+                    m_tpars2 <- concat( m_tpars2 , indent , "for ( u in 1:N_" , lik$outcome , "_missing ) " , outcome , "[" , lik$outcome , "_missingness[u]] <- " , lik$outcome , "_impute[u]" , ";\n" )
+                    # add x_impute to start list
+                    imputer_name <- concat(lik$outcome,"_impute")
+                    start[[ imputer_name ]] <- rep( impute_bank[[lik$outcome]]$init , impute_bank[[lik$outcome]]$N_miss )
+                    # make sure x_impute is in pars
+                    #pars[[ imputer_name ]] <- imputer_name
+                }
+                
+                # ordinary sampling statement
                 m_model_txt <- concat( m_model_txt , indent , outcome , " ~ " , lik$likelihood , "( " , parstxt , " )" , lik$T_text , ";\n" )
-                m_gq <- concat( m_gq , indent , "dev <- dev + (-2)*" , lik$likelihood , "_log( " , outcome , " , " , parstxt , " )" , lik$T_text , ";\n" )
+                
+                # don't add deviance calc when imputed predictor
+                if ( !(lik$outcome %in% names(impute_bank)) )
+                    m_gq <- concat( m_gq , indent , "dev <- dev + (-2)*" , lik$likelihood , "_log( " , outcome , " , " , parstxt , " )" , lik$T_text , ";\n" )
                 
             }
             
             # add N variable to data block, if more than one likelihood in model
-            if ( i > 1 )
-                m_data <- concat( m_data , indent , "int<lower=1> " , lik$N_name , ";\n" )
+            the_N_name <- lik$N_name
+            if ( i > 1 ) {
+                if ( lik$outcome %in% names(impute_bank) ) 
+                    the_N_name <- concat( the_N_name , "_missing" )
+                m_data <- concat( m_data , indent , "int<lower=1> " , the_N_name , ";\n" )
+            }
             
             # add number of cases to data list
-            d[[ lik$N_name ]] <- as.integer(lik$N_cases)
+            if ( lik$outcome %in% names(impute_bank) ) {
+                d[[ the_N_name ]] <- as.integer( impute_bank[[ lik$outcome ]]$N_miss )
+            } else {
+                d[[ the_N_name ]] <- as.integer( lik$N_cases )
+            }
             
         } # likelihood
         
@@ -1057,6 +1134,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     
     coef <- NULL
     varcov <- NULL
+    fp$impute_bank <- impute_bank
     if ( sample==TRUE ) {
         # compute expected values of parameters
         s <- summary(fit)$summary

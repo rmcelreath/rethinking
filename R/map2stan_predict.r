@@ -15,7 +15,7 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
     } else {
         # make sure all variables same length
         # weird vectorization errors otherwise
-        data <- as.data.frame(data)
+        #data <- as.data.frame(data)
     }
     
     post <- extract.samples(fit)
@@ -56,6 +56,7 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
     
     lm_out <- list()
     liks <- fit@formula_parsed$likelihood
+    n_cases_list <- list()
     for ( i in 1:n_lm ) {
         # find out how many cases by finding corresponding likelihood and counting cases of outcome in data
         # can't just use old number of cases (from fit), because might have new user data
@@ -76,6 +77,7 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
                 data[[outcome]] <- rep(1,n_cases)
             }
         }
+        n_cases_list[[i]] <- n_cases
         # empty array with right dims
         lm_out[[ lm_names[i] ]] <- array( 0 , dim=c( n , n_cases ) )
         
@@ -97,8 +99,40 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
         # ready linear model code
         rhs0 <- fit@formula_parsed$lm[[k]]$RHS
         rhs0 <- gsub( "[i]" , "" , rhs0 , fixed=TRUE )
+        # check for imputed predictors
+        if ( length(fit@formula_parsed$impute_bank) > 0 ) {
+            # replace each imputed variable name with merged name
+            for ( kk in 1:length(fit@formula_parsed$impute_bank) ) {
+                name_original <- names(fit@formula_parsed$impute_bank)[kk]
+                name_merge <- concat( name_original , "_merge" )
+                # _merge name should already be in linear model
+                #rhs0 <- gsub( name_original , name_merge , rhs0 , fixed=TRUE )
+                # construct merged matrix in posterior
+                #   this "parameter" in constant in columns for observed
+                #   but has samples in columns for imputed
+                n_cases <- length( data[[ name_original ]] )
+                var_merged <- matrix( NA , nrow=n , ncol=n_cases )
+                name_impute <- concat( name_original , "_impute" )
+                missingness <- fit@formula_parsed$impute_bank[[kk]]$missingness
+                for ( a_case in 1:n_cases ) {
+                    if ( a_case %in% missingness ) {
+                        # insert column of samples
+                        idx <- which( missingness==a_case )
+                        var_merged[ , a_case ] <- post[[name_impute]][, idx ]
+                    } else {
+                        # insert column of observed values
+                        var_merged[ , a_case ] <- rep( data[[ name_original ]][a_case] , n )
+                    }
+                }#a_case
+                # insert matrix into posterior
+                post[[name_merge]] <- var_merged
+                # insert template into init list
+                init[[name_merge]] <- rep(0,n_cases)
+            }#kk
+        }
+        # store
         rhs[[k]] <- rhs0
-    }
+    }#k
     
     for ( i in 1:n ) {
     

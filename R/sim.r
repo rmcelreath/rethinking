@@ -87,13 +87,13 @@ function( fit , data , n=0 , post , ... ) {
     } else {
         # make sure all variables same length
         # weird vectorization errors otherwise
-        data <- as.data.frame(data)
+        #data <- as.data.frame(data)
     }
     
     if ( missing(post) ) 
         post <- extract.samples(fit,n=n)
     
-    n <- length(post[[1]]) # in case n=0 was passed
+    n <- dim(post[[1]])[1] # in case n=0 was passed
     
     # get linear model values from link
     # use our posterior samples, so later parameters have right correlation structure
@@ -140,28 +140,38 @@ function( fit , data , n=0 , post , ... ) {
 )
 
 postcheck <- function( fit , prob=0.9 , window=20 , ... ) {
+    
+    undot <- function( astring ) {
+        astring <- gsub( "." , "_" , astring , fixed=TRUE )
+        astring
+    }
+    
     pred <- link(fit)
     sims <- sim(fit)
+    
+    if ( class(pred)=="list" )
+        if ( length(pred)>1 ) pred <- pred[[1]]
     
     # get outcome variable
     lik <- flist_untag(fit@formula)[[1]]
     outcome <- as.character(lik[[2]])
-    y <- fit@data[[outcome]]
+    y <- fit@data[[ undot(outcome) ]]
     
     # compute posterior predictions for each case
     
     mu <- apply( pred , 2 , mean )
-    mu.PI <- apply( pred , 2, PI , prob=prob )
+    mu.PI <- apply( pred , 2 , PI , prob=prob )
     y.PI <- apply( sims , 2 , PI , prob=prob )
     
     # figure out paging
     if ( length(window)==1 ) {
+        window <- min(window,length(mu))
         num_pages <- ceiling( length(mu)/window )
         cases_per_page <- window
     }
     
     # display
-    ny <- length(fit@data[[outcome]])
+    ny <- length(fit@data[[ undot(outcome) ]])
     ymin <- min(c(as.numeric(y.PI),mu,y))
     ymax <- max(c(as.numeric(y.PI),mu,y))
     
@@ -172,7 +182,8 @@ postcheck <- function( fit , prob=0.9 , window=20 , ... ) {
         
         end <- min( ny , end )
         window <- start:end
-    
+        
+        set_nice_margins()
         plot( y[window] , xlab="case" , ylab=outcome , col=rangi2 , pch=16 , ylim=c( ymin , ymax ) , xaxt="n" )
         axis( 1 , at=1:length(window) , labels=window )
         

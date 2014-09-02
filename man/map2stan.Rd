@@ -3,7 +3,7 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Build RStan models from formulas}
 \description{
-  Compiles lists of formulas, like those used in \code{map}, into Stan model code. Allows for arbitary fixed effect and mixed effect regressions. Also computes DIC and WAIC.
+  Compiles lists of formulas, like those used in \code{map}, into Stan model code. Allows for arbitary fixed effect and mixed effect regressions. Computes DIC and WAIC. Allows for simple imputation of missing values.
 }
 \usage{
 map2stan( flist , data , start , pars , constraints=list() , types=list() , 
@@ -25,7 +25,7 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   \item{...}{Additional arguments to pass to \code{\link{stan}}}
 }
 \details{
-  This command provides a convenient interface for building arbitary fixed effect and mixed effect generalized linear models, as defined by a list of formulas. Syntax is similar to \code{map}, but also allowing multivariate priors corresponding to varying (aka random) effects.
+  This command provides a convenient interface for building arbitary fixed effect and mixed effect generalized linear models, as defined by a list of formulas. Syntax is similar to \code{map}, but also allowing multivariate priors corresponding to varying (aka random) effects, as well as simple imputation schemes.
   
   \code{flist} should be a either a single formula that defines the likelihood function or rather a list of formulas that define the likelihood and linear models and priors for parameters. See examples below.
   
@@ -35,11 +35,13 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   
   A special case of prior formula is for varying effects. For single varying effects, such as varying intercepts alone, all that is needed is to define a prior and mark it as conditional on a grouping variable in the data. For example: \code{aj[id] ~ dnorm(0,sigma_id)} specifies a vector of varying effects \code{aj}, one for each unique value in \code{id}. For correlated varying effects, such as both varying intercepts and slopes, a parameter vector is specified and a multivariate prior is used instead. For example: \code{c(aj,bj)[id] ~ dmvnorm(0,Sigma_id)} specifices varying intercepts \code{aj} and varying slopes \code{bj}.
   
-  Linear models can be specified as formulas of the form \code{mu ~ a + b*x} for a direct link. To use a link function, use the form \code{link(mu) ~ a + b*x}. The name "link" must be recognized by \code{map2stan}. It currently recognizes \code{log} and \code{logit}.
+  Linear models can be specified as formulas of the form \code{mu <- a + b*x} for a direct link. To use a link function, use the form \code{link(mu) <- a + b*x}. The name "link" must be recognized by \code{map2stan}. It currently recognizes \code{log} and \code{logit}.
+  
+  Imputation of missing values is available by specifying distributions for predictor variables that contain \code{NA} values. \code{map2stan} will split the variable into observed and a vector of parameters used to estimate the missing values, assigning the same distribution to each. See the example.
   
   The \code{start} list is optional. When missing from the list, for each parameter with a defined prior, an initial value will be sampled from the prior. Sampled initial values will try to respect parameter constraints. For varying effect parameter vectors, initial values will always be set to zero. Specific initial values can be specified in the \code{start} list. See examples below. 
   
-  The Stan model code includes a generated quantities block that computes the deviance for each vector (iteration) of parameter samples. When sampling completes, \code{map2stan} computes DIC, the deviance information criterion, from the samples. DIC information is available from \code{show} and \code{DIC}, as well as being attributes of the returned object.
+  The Stan model code includes a generated quantities block that computes the deviance for each iteration of parameter samples. When sampling completes, \code{map2stan} computes DIC, the deviance information criterion, from the samples. DIC information is available from \code{show} and \code{DIC}, as well as being attributes of the returned object. WAIC can be computed with \code{WAIC}, or by setting \code{WAIC=TRUE} when calling \code{map2stan}.
   
   Functions meant for (re)processing \code{map2stan} fits are: \code{extract.samples}, \code{\link{resample}}, and \code{stancode}.
   
@@ -58,7 +60,7 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
 }
 \references{McElreath 2011, Statistical Rethinking.}
 \author{Richard McElreath}
-\seealso{\code{\link{resample}},\code{\link{map}},\code{\link{stan}}}
+\seealso{\code{\link{resample}},\code{\link{map}},\code{\link{stan}},\code{\link{link}},\code{\link{sim}},\code{\link{postcheck}}}
 \examples{
 library(rethinking)
 data(chimpanzees)
@@ -106,7 +108,7 @@ m3 <- map2stan(
     ) ,
     data=d,
     start=list(a=0,bp=0,bpc=0,sigma_actor=1,aj=rep(0,max(d$actor))),
-    iter=7000 , warmup=1000 , chains=2
+    iter=5000 , warmup=1000 , chains=2
 )
 
 precis(m3)
@@ -114,6 +116,7 @@ plot(m3)
 pairs(m3)
 
 # varying intercepts on actor and experimental block
+# also has no explicit start values
 m4 <- map2stan(
     alist(
         pulled_left ~ dbinom(1,theta),
@@ -127,8 +130,7 @@ m4 <- map2stan(
         sigma_block ~ dcauchy(0,1)
     ) ,
     data=d,
-    start=list(a=0,bp=0,bpc=0,sigma_actor=1,sigma_block=1,aj=rep(0,7),ak=rep(0,max(d$blockid))),
-    iter=20000 , warmup=5000 , chains=2
+    iter=5000 , warmup=1000 , chains=2
 )
 
 precis(m4)
@@ -137,9 +139,50 @@ plot(m4)
 
 # compare posterior means
 coeftab(m2,m3,m4)
+plot(coeftab(m2,m3,m4))
 
 # show DIC for m2,m3,m4
-sapply( list(m2,m3,m4) , DIC )
+compare(m2,m3,m4)
+plot(compare(m2,m3,m4))
+
+###########
+# Imputation example
+
+# simulate data:
+#  linear regression with two predictors
+#  both predictors have valules missing at random
+N <- 100
+N_miss <- 10
+x1 <- rnorm( N )
+x2 <- rnorm( N )
+y <- rnorm( N , 2*x1 - 0.5*x2 , 1 )
+x1[ sample(1:N,size=N_miss) ] <- NA
+x2[ sample(1:N,size=N_miss) ] <- NA
+
+# formula with distributions assigned to both predictors
+f <- alist(
+    y ~ dnorm( mu , sigma ),
+    mu <- a + b1*x1 + b2*x2,
+    x1 ~ dnorm( mu_x1, sigma_x1 ),
+    x2 ~ dnorm( mu_x2, sigma_x2 ),
+    a ~ dnorm( 0 , 100 ),
+    c(b1,b2) ~ dnorm( 0  , 10 ),
+    c(mu_x1,mu_x2) ~ dnorm( 0 , 100 ),
+    c(sigma_x1,sigma_x2) ~ dcauchy(0,2),
+    sigma ~ dcauchy(0,2)
+)
+
+m <- map2stan( f , data=list(y=y,x1=x1,x2=x2) , sample=TRUE )
+
+# show observed outcomes against retrodicted outcomes
+# cases with missing values shown with red posterior intervals
+v <- link(m)
+mu <- apply( v , 2 , mean )
+ci <- apply( v , 2 , PI )
+plot( y ~ mu )
+cicols <- ifelse( is.na(x1) | is.na(x2) , "red" , "gray" )
+for( i in 1:N ) lines( ci[,i] , rep(y[i],2) , col=cicols[i] )
+
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

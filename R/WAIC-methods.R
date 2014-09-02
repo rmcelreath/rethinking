@@ -31,6 +31,14 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
     flag_aggregated_binomial <- FALSE
     for ( k in 1:n_lik ) {
         outcome <- liks[[k]]$outcome
+        
+        # check for predictor imputation definition
+        #   if so, skip this likelihood, because not really an outcome to predict
+        if ( outcome %in% names(object@formula_parsed$impute_bank) ) {
+            # message( concat("skipping ",outcome) )
+            next
+        }
+        
         template <- map2stan.templates[[ liks[[k]]$template ]]
         dname <- template$R_name
         pars <- liks[[k]]$pars
