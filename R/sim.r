@@ -7,7 +7,9 @@ function( fit , data , n=1000 , ... ) {
 )
 
 setMethod("sim", "map",
-function( fit , data , n=1000 , post , ... ) {
+function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , ... ) {
+    # when ll=FALSE, simulates sampling, one sample for each sample in posterior
+    # when ll=TRUE, computes loglik of each observation, for each sample in posterior
     
     ########################################
     # check arguments
@@ -17,7 +19,7 @@ function( fit , data , n=1000 , post , ... ) {
     } else {
         # make sure all variables same length
         # weird vectorization errors otherwise
-        data <- as.data.frame(data)
+        #data <- as.data.frame(data)
     }
     
     if ( missing(post) ) 
@@ -28,7 +30,7 @@ function( fit , data , n=1000 , post , ... ) {
     # get linear model values from link
     # use our posterior samples, so later parameters have right correlation structure
     # don't flatten result, so we end up with a named list, even if only one element
-    pred <- link( fit , data=data , n=n , post=post , flatten=FALSE , ... )
+    pred <- link( fit , data=data , n=n , post=post , flatten=FALSE , refresh=refresh , ... )
     
     # extract likelihood, assuming it is first element of formula
     lik <- flist_untag(fit@formula)[[1]]
@@ -38,16 +40,40 @@ function( fit , data , n=1000 , post , ... ) {
     flik <- as.character(lik[[3]][[1]])
     # get simulation partner function
     rlik <- flik
-    substr( rlik , 1 , 1 ) <- "r"
+    if ( ll==FALSE ) substr( rlik , 1 , 1 ) <- "r"
+    
+    # check for aggreagted binomial, but only when ll==TRUE
+    aggregated_binomial <- FALSE
+    if ( flik=="dbinom" & ll==TRUE ) {
+        ftemp <- flist_untag(fit@formula)[[1]]
+        if ( class(ftemp[[3]][[2]])=="name" ) {
+            aggregated_binomial <- TRUE
+        }
+    }
+    
     # pull out parameters in likelihood
     pars <- vector(mode="list",length=length(lik[[3]])-1)
     for ( i in 1:length(pars) ) {
         pars[[i]] <- lik[[3]][[i+1]]
     }
+    if ( aggregated_binomial==TRUE ) {
+        # swap 'size' for '1' and outcome for vector of ones
+        # will expand to correct number of cases later
+        pars[[1]] <- 1
+        data[['ones__']] <- rep( 1 , length(data[[outcome]]) )
+        if ( refresh > 0 )
+            message("Aggregated binomial counts detected. Splitting to 0/1 outcome for WAIC calculation.")
+    }
     pars <- paste( pars , collapse=" , " )
     # build expression to evaluate
-    n_cases <- length(data[[1]])
-    xeval <- paste( rlik , "(" , n_cases , "," , pars , ")" , collapse="" )
+    n_cases <- length(data[[outcome]])
+    if ( ll==FALSE ) {
+        xeval <- paste( rlik , "(" , n_cases , "," , pars , ")" , collapse="" )
+    } else {
+        use_outcome <- outcome
+        if ( aggregated_binomial==TRUE ) use_outcome <- 'ones__'
+        xeval <- paste( rlik , "(" , use_outcome , "," , pars , ",log=TRUE )" , collapse="" )
+    }
     
     # simulate outcomes
     sim_out <- matrix(NA,nrow=n,ncol=n_cases)
@@ -73,6 +99,36 @@ function( fit , data , n=1000 , post , ... ) {
         sim_out[s,] <- eval(parse(text=xeval),envir=e)
     }
     
+    # check for aggregated binomial outcome
+    if ( aggregated_binomial==TRUE ) {
+        # aggregated binomial with data for 'size'
+        # need to split binomial counts in outcome into series of 0/1 outcomes
+        # (1) sum 'size' variable in order to get number of new cases
+        size_var <- data[[ as.character(ftemp[[3]][[2]]) ]]
+        n_newcases <- sum(size_var)
+        # (2) make new sim_out with expanded dimension
+        sim_out_new <- matrix(NA,nrow=n,ncol=n_newcases)
+        # (3) loop through each aggregated case and fill sim_out_new with bernoulli loglik
+        current_newcase <- 1
+        outcome_var <- data[[ outcome ]]
+        for ( i in 1:n_cases ) {
+            num_ones <- outcome_var[i]
+            num_zeros <- size_var[i] - num_ones
+            ll1 <- sim_out[,i]
+            ll0 <- log( 1 - exp(ll1) )
+            for ( j in 1:num_ones ) {
+                sim_out_new[,current_newcase] <- ll1
+                current_newcase <- current_newcase + 1
+            }
+            for ( j in 1:num_zeros ) {
+                sim_out_new[,current_newcase] <- ll0
+                current_newcase <- current_newcase + 1
+            }
+        }#i
+        sim_out <- sim_out_new
+    }
+    
+    # result
     return(sim_out)
 }
 )
@@ -155,7 +211,8 @@ postcheck <- function( fit , prob=0.9 , window=20 , ... ) {
     # get outcome variable
     lik <- flist_untag(fit@formula)[[1]]
     outcome <- as.character(lik[[2]])
-    y <- fit@data[[ undot(outcome) ]]
+    if ( class(fit)=="map2stan" ) outcome <- undot(outcome)
+    y <- fit@data[[ outcome ]]
     
     # compute posterior predictions for each case
     
@@ -171,7 +228,7 @@ postcheck <- function( fit , prob=0.9 , window=20 , ... ) {
     }
     
     # display
-    ny <- length(fit@data[[ undot(outcome) ]])
+    ny <- length(fit@data[[ outcome ]])
     ymin <- min(c(as.numeric(y.PI),mu,y))
     ymax <- max(c(as.numeric(y.PI),mu,y))
     

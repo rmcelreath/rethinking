@@ -1,32 +1,30 @@
 \name{compare}
 \alias{compare}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{Compare fit models using AICc/DIC/BIC}
+\title{Compare fit models using WAIC or DIC}
 \description{
-  Returns a table of model comparison statistics
+  Returns a table of model comparison statistics, by default focused on WAIC.
 }
 \usage{
-compare( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE , delta=TRUE , 
-	DICsamples=1e4 )
+compare( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{...}{A series of fit models, separated by commas}
-  \item{nobs}{Number of observations to use in calculating AICc/BIC}
+  \item{n}{Number of samples from posterior to use in computing WAIC/DIC}
   \item{sort}{Sort table by ascending values in named column}
-  \item{BIC}{Compute BIC as well}
-  \item{DIC}{Compute DIC as well. See details.}
-  \item{delta}{Include differences between AICc/BIC/DIC values}
-  \item{DICsamples}{Number of posterior samples to use in computing DIC}
+  \item{WAIC}{If \code{TRUE}, uses WAIC for comparison. If \code{FALSE}, uses DIC.}
+  \item{refresh}{Progress display update interval. 0 suppresses display.}
 }
 \details{
-  This function computes AICc and optionally BIC and DIC values for fit models and returns a table sorted by ascending values. Each row in this table is a model, and the various columns provide AICc, BIC, DIC, numbers of parameters, and model weights.
-
-  At the moment, DIC only works for models fit with \code{map}. DIC is computing using the original \code{Dhat + 2(Dbar-Dhat)} formulation, not the variance formulation. Samples are drawn from the posterior, assuming it is multivariate gaussian and defined by the variance-covariance matrix of the MAP estimates. The column \code{pD} in the results is the effective number of parameters, \code{Dbar-Dhat}.
+  This function computes WAIC and optionally DIC values for fit models and returns a table sorted by ascending values. Each row in this table is a model, and the various columns provide WAIC, effective numbers of parameters, model weights, and standard errors.
+  
+  A \code{plot} method is supported, for graphic display of the information criteria.
 }
 \value{
+An object of class \code{compareIC} with slots \code{output} (table of results) and \code{dSE} (matrix of standard errors of differences in IC between pairs of models).
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{}
 \examples{

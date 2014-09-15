@@ -15,7 +15,7 @@
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , chains=1 , debug=FALSE , verbose=FALSE , WAIC=FALSE , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , ... ) {
     
     ########################################
     # empty Stan code
@@ -1205,7 +1205,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         # compute WAIC?
         if ( WAIC==TRUE ) {
             message("Computing WAIC")
-            waic <- WAIC( result , n=0 ) # n=0 to use all available samples
+            waic <- try(WAIC( result , n=0 , pointwise=TRUE )) # n=0 to use all available samples
             attr(result,"WAIC") = waic
         }
         

@@ -1,5 +1,7 @@
 # sample naive posterior
 
+# here for historical reasons - preserved for backwards compatibility with old scripts
+
 # convenience wrapper for sampling from quadratic approx posterior into a data frame
 # also capable of averaging over models, if given a list() as first argument
 sample.naive.posterior <- function( ... ) sample.qa.posterior( ... )

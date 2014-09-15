@@ -24,6 +24,13 @@ function( fit , data , n=1000 , post , probs=NULL , refresh=0.1 , flatten=TRUE ,
         n <- length(post[[1]])
     
     nlm <- length(fit@links)
+    f_do_lm <- TRUE
+    if ( nlm==0 ) {
+        # no linear models!
+        # so need to flag to skip lm insertions into eval environment for ll
+        nlm <- 1
+        f_do_lm <- FALSE
+    }
     
     link_out <- vector(mode="list",length=nlm)
     
@@ -32,8 +39,21 @@ function( fit , data , n=1000 , post , probs=NULL , refresh=0.1 , flatten=TRUE ,
         ref_inc <- floor(n*refresh)
         ref_next <- ref_inc
         
-        parout <- fit@links[[i]][[1]]
-        lm <- fit@links[[i]][[2]]
+        if ( f_do_lm==TRUE ) {
+            parout <- fit@links[[i]][[1]]
+            lm <- fit@links[[i]][[2]]
+        } else {
+            parout <- "ll"
+            lm <- "0"
+            # hacky solution -- find density function and insert whatever expression in typical link spot
+            flik <- as.character(fit@formula[[1]][[3]][[1]])
+            # mu for Gaussian
+            if ( flik=="dnorm" ) lm <- as.character( fit@formula[[1]][[3]][[2]] )
+            # p for binomial -- assume in third spot, after size
+            if ( flik=="dbinom" ) lm <- as.character( fit@formula[[1]][[3]][[3]] )
+            # lambda for poisson
+            if ( flik=="dpois" ) lm <- as.character( fit@formula[[1]][[3]][[2]] )
+        }
         # empty matrix to hold samples-by-cases values of linear model
         value <- matrix(NA,nrow=n,ncol=length(data[[1]]))
         # for each sample

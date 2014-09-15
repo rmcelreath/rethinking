@@ -71,7 +71,7 @@ postlistprecis <- function( post , prob=0.95 ) {
     result
 }
 
-precis <- function( model , depth=1 , pars , type.s=FALSE , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE ) {
+precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE ) {
     the.class <- class(model)[1]
     found.class <- FALSE
     if ( the.class=="numeric" ) {
@@ -116,8 +116,10 @@ precis <- function( model , depth=1 , pars , type.s=FALSE , ci=TRUE , level=0.95
     if ( corr==TRUE ) {
         result <- cbind( result , Rho )
     }
-    if ( type.s==TRUE )
-        result[,"Pr(S)"] <- format.pval( type.s( est , se ) )
+    
+    #if ( type.s==TRUE )
+    #    result[,"Pr(S)"] <- format.pval( type.s( est , se ) )
+        
     if ( precis.whitelist$vcov.method[ precis.whitelist$class==the.class ]=="vcov.VarCorr" ) {
         message( "Quadratic approximation (standard errors) unreliable for variance components. Use MCMC to estimate precision of variance components." )
     }

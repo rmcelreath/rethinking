@@ -1,14 +1,15 @@
 # compare
 
 # compare class definition and show method
-setClass( "compareIC" , representation( output="data.frame" ) )
+setClass( "compareIC" , representation( output="data.frame" , dSE="matrix" ) )
+
 compare.show <- function( object ) {
     print( round( object@output , 2 ) )
 }
 setMethod( "show" , "compareIC" , function(object) compare.show(object) )
 
-# new compare function, defaulting to DIC
-compare <- function( ... , n=1e3 , sort="DIC" , WAIC=FALSE ) {
+# new compare function, defaulting to WAIC
+compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
     # retrieve list of models
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 )
@@ -18,14 +19,28 @@ compare <- function( ... , n=1e3 , sort="DIC" , WAIC=FALSE ) {
     mnames <- match.call()
     mnames <- as.character(mnames)[2:(length(L)+1)]
     
+    dSE.matrix <- matrix( NA , nrow=length(L) , ncol=length(L) )
     if ( WAIC==FALSE ) {
         DIC.list <- lapply( L , function(z) DIC( z , n=n ) )
         pD.list <- sapply( DIC.list , function(x) attr(x,"pD") )
     } else {
         # use WAIC instead of DIC
-        WAIC.list <- lapply( L , function(z) WAIC( z , n=n ) )
+        # WAIC is processed pointwise, so can compute SE of differences, and summed later
+        WAIC.list <- lapply( L , function(z) WAIC( z , n=n , refresh=refresh , pointwise=TRUE ) )
         pD.list <- sapply( WAIC.list , function(x) attr(x,"pWAIC") )
-        DIC.list <- WAIC.list
+        se.list <- sapply( WAIC.list , function(x) attr(x,"se") )
+        DIC.list <- (-2)*sapply( WAIC.list , sum )
+        # compute SE of differences between adjacent models from top to bottom in ranking
+        colnames(dSE.matrix) <- mnames
+        rownames(dSE.matrix) <- mnames
+        for ( i in 1:(length(L)-1) ) {
+            for ( j in (i+1):length(L) ) {
+                waic_ptw1 <- WAIC.list[[i]]
+                waic_ptw2 <- WAIC.list[[j]]
+                dSE.matrix[i,j] <- as.numeric( sqrt( length(waic_ptw1)*var( waic_ptw1 - waic_ptw2 ) ) )
+                dSE.matrix[j,i] <- dSE.matrix[i,j]
+            }#j
+        }#i
     }
     
     DIC.list <- unlist(DIC.list)
@@ -35,26 +50,72 @@ compare <- function( ... , n=1e3 , sort="DIC" , WAIC=FALSE ) {
     
     if ( WAIC==FALSE )
         result <- data.frame( DIC=DIC.list , pD=pD.list , dDIC=dDIC , weight=w.DIC )
-    else
-        result <- data.frame( WAIC=DIC.list , pWAIC=pD.list , dWAIC=dDIC , weight=w.DIC )
+    else {
+        # find out which model has dWAIC==0
+        topm <- which( dDIC==0 )
+        dSEcol <- dSE.matrix[,topm]
+        result <- data.frame( WAIC=DIC.list , pWAIC=pD.list , dWAIC=dDIC , 
+                              weight=w.DIC , SE=se.list , dSE=dSEcol )
+    }
     
     rownames(result) <- mnames
     
     if ( !is.null(sort) ) {
-        if ( WAIC==TRUE & sort=="DIC" ) sort <- "WAIC"
-        result <- result[ order( result[[sort]] ) , ]
+        if ( sort!=FALSE ) {
+            if ( WAIC==FALSE & sort=="WAIC" ) sort <- "DIC"
+            result <- result[ order( result[[sort]] ) , ]
+        }
     }
     
-    new( "compareIC" , output=result )
+    new( "compareIC" , output=result , dSE=dSE.matrix )
 }
 
 # plot method for compareIC results shows deviance in and expected deviance out of sample, for each model, ordered top-to-bottom by rank
-setMethod("plot" , "compareIC" , function(x,y,...) {
+setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALSE,...) {
     dev_in <- x@output[[1]] - x@output[[2]]
     dev_out <- x@output[[1]]
+    if ( !is.null(x@output[['SE']]) ) devSE <- x@output[['SE']]
+    dev_out_lower <- dev_out - devSE
+    dev_out_upper <- dev_out + devSE
+    if ( weights==TRUE ) {
+        dev_in <- ICweights(dev_in)
+        dev_out <- ICweights(dev_out)
+        dev_out_lower <- ICweights(dev_out_lower)
+        dev_out_upper <- ICweights(dev_out_upper)
+    }
     n <- length(dev_in)
-    dotchart( dev_in[n:1] , labels=rownames(x@output)[n:1] , xlab="deviance" , pch=16 , xlim=c(min(dev_in),max(dev_out)) , ... )
+    if ( missing(xlim) ) {
+        xlim <- c(min(dev_in),max(dev_out))
+        if ( SE==TRUE & !is.null(x@output[['SE']]) ) {
+            xlim <- c(min(dev_in),max(dev_out_upper))
+        }
+    }
+    main <- colnames(x@output)[1]
+    set_nice_margins()
+    dotchart( dev_in[n:1] , labels=rownames(x@output)[n:1] , xlab="deviance" , pch=16 , xlim=xlim , ... )
     points( dev_out[n:1] , 1:n )
+    mtext(main)
+    # standard errors
+    if ( !is.null(x@output[['SE']]) & SE==TRUE ) {
+        for ( i in 1:n ) {
+            lines( c(dev_out_lower[i],dev_out_upper[i]) , rep(n+1-i,2) , lwd=0.75 )
+        }
+    }
+    if ( !all(is.na(x@dSE)) & dSE==TRUE ) {
+        # plot differences and stderr of differences
+        dcol <- col.alpha("black",0.5)
+        abline( v=dev_out[1] , lwd=0.5 , col=dcol )
+        diff_dev_lower <- dev_out - x@output$dSE
+        diff_dev_upper <- dev_out + x@output$dSE
+        if ( weights==TRUE ) {
+            diff_dev_lower <- ICweights(diff_dev_lower)
+            diff_dev_upper <- ICweights(diff_dev_upper)
+        }
+        for ( i in 2:n ) {
+            points( dev_out[i] , n+2-i-0.5 , cex=0.5 , pch=2 , col=dcol )
+            lines( c(diff_dev_lower[i],diff_dev_upper[i]) , rep(n+2-i-0.5,2) , lwd=0.5 , col=dcol )
+        }
+    }
 })
 
 # AICc/BIC model comparison table
@@ -154,8 +215,53 @@ ICweights <- function( dev ) {
 }
 
 # build ensemble of samples using DIC/WAIC weights
-ensemble <- function( ... ) {
+ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 ) {
+    # retrieve list of models
     L <- list(...)
+    if ( is.list(L[[1]]) && length(L)==1 )
+        L <- L[[1]]
+    # retrieve model names from function call
+    mnames <- match.call()
+    mnames <- as.character(mnames)[2:(length(L)+1)]
+    ictab <- compare( ... , WAIC=WAIC , refresh=refresh , n=n , sort=FALSE )
+    rownames(ictab@output) <- mnames
+    weights <- ictab@output$weight
+    # generate simulated predictions for each model
+    # then compose ensemble using weights
+    if ( missing(data) ) {
+        link.list <- lapply( L , function(m) link(m , n=n , refresh=refresh ) )
+        sim.list <- lapply( L , function(m) sim(m , n=n , refresh=refresh ) )
+    } else {
+        link.list <- lapply( L , function(m) link(m , data=data , n=n , refresh=refresh ) )
+        sim.list <- lapply( L , function(m) sim(m , data=data , n=n , refresh=refresh ) )
+    }
+    #print(str(sim.list))
+    # compose weighted predictions
+    # calculate indices corresponding to each model
+    idx <- round( weights * n )
+    idx_start <- rep(1,length(idx))
+    idx_end <- idx
+    for ( i in 2:length(idx) ) {
+        idx_start[i] <- idx_start[i-1] + idx[i-1]
+        idx_end[i] <- min( idx_end[i-1] + idx[i] , n )
+    }
+    #print(idx_start)
+    #print(idx_end)
+    link_out <- link.list[[1]]
+    sim_out <- sim.list[[1]]
+    for ( i in 1:length(idx) ) {
+        idxrange <- idx_start[i]:idx_end[i]
+        link_out[idxrange,] <- link.list[[i]][idxrange,]
+        sim_out[idxrange,] <- sim.list[[i]][idxrange,]
+    }
+    result <- list( link=link_out , sim=sim_out )
+    names(weights) <- mnames
+    idxtab <- cbind( idx_start , idx_end )
+    rownames(idxtab) <- mnames
+    attr(result,"weights") <- weights
+    attr(result,"indices") <- idxtab
+    attr(result,"ictab") <- ictab
+    result
 }
 
 # tests

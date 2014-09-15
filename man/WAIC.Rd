@@ -6,13 +6,14 @@
   Computes WAIC for a \code{map2stan} model fit.
 }
 \usage{
-WAIC( object , n=1000 , refresh=0.1 , ... )
+WAIC( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
   \item{object}{Object of class \code{map2stan}}
   \item{n}{Number of samples to use in computing WAIC. Set to \code{n=0} to use all samples in \code{map2stan} fit}
   \item{refresh}{Refresh interval for progress display. Set to \code{refresh=0} to suppress display.}
+  \item{pointwise}{If \code{TRUE}, return a vector of WAIC values for each observation. Useful for computing standard errors.}
   \item{...}{Other parameters to pass to someone}
 }
 \details{

@@ -2,13 +2,28 @@
 # compute WAIC from map2stan fit
 # (*) needs to work with models without linear models in them
 
-WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
+setGeneric("WAIC",
+function( object , n=1000 , refresh=0.1 , ... ) {
+    message( concat("No WAIC method for object of class '",class(object),"'. Returning AIC instead.") )
+    AIC(object)
+}
+)
+
+setMethod("WAIC", "map2stan",
+function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     
     if ( !(class(object)%in%c("map2stan")) ) stop("Requires map2stan fit")
     
     if ( !is.null(attr(object,"WAIC")) ) {
         # already have it stored in object, so just return it
-        return( attr(object,"WAIC") )
+        old_waic <- attr(object,"WAIC")
+        if ( length(old_waic) > 1 & pointwise==FALSE ) {
+            old_waic <- (-2)*sum(old_waic)
+            return( old_waic )
+        }
+        if ( length(old_waic) > 1 & pointwise==TRUE ) {
+            return( old_waic )
+        } # else continue onward to recompute
     }
     
     # compute linear model values at each sample
@@ -28,6 +43,7 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
     n_lm <- length(lm_vals)
     pD <- 0
     lppd <- 0
+    waic_vec <- list()
     flag_aggregated_binomial <- FALSE
     for ( k in 1:n_lik ) {
         outcome <- liks[[k]]$outcome
@@ -63,6 +79,7 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
         
         #ignition
         n_obs <- liks[[k]]$N_cases
+        waic_vec[[k]] <- rep(NA,n_obs) # vector of components so can compute std err later
         lm_now <- list()
         
         for ( i in 1:n_obs ) {
@@ -113,13 +130,17 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
                 args_list <- list( as.symbol(outcome) , pars , log=TRUE )
                 args_list <- unlist( args_list , recursive=FALSE )
                 ll <- do.call( dname , args=args_list , envir=e1 )
-                pD <- pD + var(ll)
+                vll <- var(ll)
+                pD <- pD + vll
                 # lppd increments with log( average( likelihood ) )
                 # where average is over posterior
-                # but that would round to zero for sure
+                # but that would round to zero possibly
                 # so compute on log scale with log_sum_exp
                 # minus log(n) takes average over the n samples
-                lppd <- lppd + log_sum_exp(ll) - log(n)
+                lpd <- log_sum_exp(ll) - log(n)
+                lppd <- lppd + lpd
+                # store waic for point i, so can compute stderr later
+                waic_vec[[k]][i] <- lpd - vll
             } else {
                 # aggregated binomial
                 # split into 'size' 0/1 observations
@@ -136,19 +157,82 @@ WAIC <- function( object , n=1000 , refresh=0.1 , ... ) {
                     args_list <- list( out01 , newpars , log=TRUE )
                     args_list <- unlist( args_list , recursive=FALSE )
                     ll <- do.call( dname , args=args_list , envir=e1 )
-                    pD <- pD + var(ll)
-                    lppd <- lppd + log_sum_exp(ll) - log(n)
+                    vll <- var(ll)
+                    pD <- pD + vll
+                    lpd <- log_sum_exp(ll) - log(n)
+                    lppd <- lppd + lpd
+                    waic_vec[[k]][i] <- lpd - vll
                 }#ii
             }#flag_aggregated_binomial
             
         }#i - cases
     }#k - linear models
     
-    waic <- (-2)*( lppd - pD )
+    if ( pointwise==TRUE ) {
+        waic <- unlist(waic_vec)
+    } else {
+        waic <- (-2)*( lppd - pD )
+    }
     attr(waic,"lppd") = lppd
     attr(waic,"pWAIC") = pD
+    
+    waic_vec <- unlist(waic_vec)
+    n_tot <- length(waic_vec)
+    attr(waic,"se") = try(sqrt( n_tot*var(waic_vec) ))
     
     return(waic)
     
 }
+)
 
+setMethod("WAIC", "map",
+function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
+    
+    if ( !(class(object)%in%c("map")) ) stop("Requires map fit")
+    
+    if ( !is.null(attr(object,"WAIC")) ) {
+        # already have it stored in object, so just return it
+        return( attr(object,"WAIC") )
+    }
+    
+    # compute linear model values at each sample
+    if ( refresh > 0 ) message("Constructing posterior predictions")
+    #lm_vals <- link( object , n=n , refresh=refresh , flatten=FALSE )
+    
+    # extract samples --- will need for inline parameters e.g. sigma in likelihood
+    post <- extract.samples( object , n=n )
+    
+    # compute log-lik at each sample
+    #lik <- flist_untag(object@formula)[[1]]
+    s <- sim(object,post=post,ll=TRUE,refresh=refresh)
+    pD <- 0
+    lppd <- 0
+    flag_aggregated_binomial <- FALSE
+    n_cases <- dim(s)[2]
+    n_samples <- dim(s)[1]
+    waic_vec <- rep(NA,n_cases)
+    for ( i in 1:n_cases ) {# for each case
+        
+        vll <- var(s[,i])
+        pD <- pD + vll
+        lpd <- log_sum_exp(s[,i]) - log(n_samples)
+        lppd <- lppd + lpd
+        waic_vec[i] <- lpd - vll
+        
+    }#i - cases
+    
+    if ( pointwise==TRUE ) {
+        # return decomposed as WAIC for each observation i --- can sum to get total WAIC
+        # this is useful for computing standard errors of differences with compare()
+        waic <- waic_vec
+    } else {
+        waic <- (-2)*( lppd - pD )
+    }
+    attr(waic,"lppd") = lppd
+    attr(waic,"pWAIC") = pD
+    attr(waic,"se") = try(sqrt( n_cases*var(waic_vec) ))
+    
+    return(waic)
+    
+}
+)

@@ -1,8 +1,8 @@
 \name{sim}
 \alias{sim}
-\title{Simluate posterior observations}
+\title{Simulate posterior observations}
 \description{
-  Simluates posterior observations for \code{map} and \code{map2stan} model fits.
+  Simulates posterior observations for \code{map} and \code{map2stan} model fits.
 }
 \usage{
 sim( fit , data , n=1000 , post , ... )

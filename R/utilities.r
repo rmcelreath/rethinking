@@ -174,6 +174,24 @@ replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
     result
 }
 
+# multi-core replicate
+mcreplicate <- function (n, expr, refresh = 0.1, mc.cores=2 ) {
+    require(parallel)
+    show_progress <- function(i) {
+        intervaln <- floor(n * refresh)
+        if (floor(i/intervaln) == i/intervaln) {
+            cat(paste("[", i, "/", n, "]\r"))
+        }
+    }
+    result <- simplify2array(mclapply(1:n, eval.parent(substitute(function(i, 
+        ...) {
+        show_progress(i)
+        expr
+    })),mc.cores=mc.cores))
+    cat("\n")
+    result
+}
+
 # check index vector
 check_index <- function( x ) {
     y <- sort(unique(x))
