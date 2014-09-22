@@ -4,7 +4,8 @@
 setClass( "compareIC" , representation( output="data.frame" , dSE="matrix" ) )
 
 compare.show <- function( object ) {
-    print( round( object@output , 2 ) )
+    r <- format_show( object@output , digits=c('default__'=1,'weight'=2,'SE'=2,'dSE'=2) )
+    print( r )
 }
 setMethod( "show" , "compareIC" , function(object) compare.show(object) )
 
@@ -27,9 +28,9 @@ compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
         # use WAIC instead of DIC
         # WAIC is processed pointwise, so can compute SE of differences, and summed later
         WAIC.list <- lapply( L , function(z) WAIC( z , n=n , refresh=refresh , pointwise=TRUE ) )
-        pD.list <- sapply( WAIC.list , function(x) attr(x,"pWAIC") )
+        pD.list <- sapply( WAIC.list , function(x) sum(attr(x,"pWAIC")) )
         se.list <- sapply( WAIC.list , function(x) attr(x,"se") )
-        DIC.list <- (-2)*sapply( WAIC.list , sum )
+        DIC.list <- sapply( WAIC.list , sum )
         # compute SE of differences between adjacent models from top to bottom in ranking
         colnames(dSE.matrix) <- mnames
         rownames(dSE.matrix) <- mnames
@@ -72,7 +73,7 @@ compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
 
 # plot method for compareIC results shows deviance in and expected deviance out of sample, for each model, ordered top-to-bottom by rank
 setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALSE,...) {
-    dev_in <- x@output[[1]] - x@output[[2]]
+    dev_in <- x@output[[1]] - x@output[[2]]*2
     dev_out <- x@output[[1]]
     if ( !is.null(x@output[['SE']]) ) devSE <- x@output[['SE']]
     dev_out_lower <- dev_out - devSE

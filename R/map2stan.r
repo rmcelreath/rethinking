@@ -45,6 +45,13 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     ########################################
     # check arguments
     if ( missing(flist) ) stop( "Formula required." )
+    if ( class(flist) == "map" ) {
+        # previous map fit, so pull out components
+        if ( verbose==TRUE ) message( "Using formula from map fit" )
+        ftemp <- flist@formula
+        if ( missing(data) ) data <- flist@data
+        flist <- ftemp
+    }
     if ( class(flist) != "list" ) {
         if ( class(flist)=="formula" ) {
             flist <- list(flist)
@@ -449,8 +456,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
                 
                 # build info needed to perform imputation
-                var_missingness <- which(is.na(d[[lik$outcome]]))
-                var_temp <- ifelse( is.na(d[[lik$outcome]]) , -999 , d[[lik$outcome]] )
+                var_missingness <- which(is.na(d[[undot(lik$outcome)]]))
+                var_temp <- ifelse( is.na(d[[undot(lik$outcome)]]) , -999 , d[[undot(lik$outcome)]] )
                 # add to impute bank
                 impute_bank[[ undot(lik$outcome) ]] <- list(
                     N_miss = length(var_missingness),

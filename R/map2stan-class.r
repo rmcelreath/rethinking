@@ -121,13 +121,13 @@ setMethod("show", "map2stan", function(object){
     
     if ( !is.null(attr(object,"WAIC")) ) {
         waic <- attr(object,"WAIC")
-        use_waic <- waic
-        if ( length(waic)>1 ) use_waic <- (-2)*sum(waic)
+        use_waic <- sum(waic)
         cat("\nWAIC (SE): ")
         cat( concat(round(as.numeric(use_waic),2) , " (" , round(as.numeric(attr(waic,"se")),1) , ")" , "\n" ) )
         
         cat("pWAIC: ")
-        cat( round(as.numeric(attr(waic,"pWAIC")),2) , "\n" )
+        use_pWAIC <- sum( unlist(attr(waic,"pWAIC")) )
+        cat( round(as.numeric(use_pWAIC),2) , "\n" )
     }
     
   })

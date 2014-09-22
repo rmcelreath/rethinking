@@ -7,7 +7,7 @@
 }
 \usage{
 map2stan( flist , data , start , pars , constraints=list() , types=list() , 
-    sample=TRUE , iter=2000 , chains=1 , debug=FALSE , WAIC=FALSE , ... )
+    sample=TRUE , iter=2000 , chains=1 , debug=FALSE , WAIC=TRUE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -48,19 +48,21 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   Methods are defined for \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, \code{plot}, \code{pairs}, and \code{show}.
 }
 \value{
-    Returns an object of class \code{map} with the following slots.
+    Returns an object of class \code{map2stan} with the following slots.
     \item{call}{The function call}
+    \item{model}{Stan model code}
     \item{stanfit}{\code{stanfit} object returned by \code{\link{stan}}}
     \item{coef}{The posterior means}
     \item{vcov}{Minimal variance-covariance matrix, just holding diagonal variances}
     \item{data}{The data}
-    \item{start}{List of starting values that was used in sampling}
+    \item{start}{List of starting values that were used in sampling}
+    \item{pars}{Parameter names monitored in samples}
     \item{formula}{Formula list from call}
     \item{formula_parsed}{List of parsed formula information. Useful mainly for debugging.}
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
-\seealso{\code{\link{resample}},\code{\link{map}},\code{\link{stan}},\code{\link{link}},\code{\link{sim}},\code{\link{postcheck}}}
+\seealso{\code{\link{resample}}, \code{\link{map}}, \code{\link{stan}}, \code{\link{link}}, \code{\link{sim}}, \code{\link{glimmer}}}
 \examples{
 library(rethinking)
 data(chimpanzees)
@@ -99,7 +101,7 @@ pairs(m2)
 m3 <- map2stan(
     alist(
         pulled_left ~ dbinom(1,theta),
-        logit(theta) <- a + aj + bp*prosoc_left + bpc*condition*prosoc_left,
+        logit(theta) <- a + aj[actor] + bp*prosoc_left + bpc*condition*prosoc_left,
         aj[actor] ~ dnorm( 0 , sigma_actor ),
         a ~ dnorm(0,10),
         bp ~ dnorm(0,10),

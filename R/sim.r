@@ -24,8 +24,10 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , ... ) {
     
     if ( missing(post) ) 
         post <- extract.samples(fit,n=n)
-    else
-        n <- length(post[[1]])
+    else {
+        n <- dim(post[[1]])[1]
+        if ( is.null(n) ) n <- length(post[[1]])
+    }
     
     # get linear model values from link
     # use our posterior samples, so later parameters have right correlation structure
@@ -44,10 +46,16 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , ... ) {
     
     # check for aggreagted binomial, but only when ll==TRUE
     aggregated_binomial <- FALSE
+    size_var_is_data <- FALSE
     if ( flik=="dbinom" & ll==TRUE ) {
         ftemp <- flist_untag(fit@formula)[[1]]
-        if ( class(ftemp[[3]][[2]])=="name" ) {
+        size_sym <- ftemp[[3]][[2]]
+        if ( class(size_sym)=="name" ) {
             aggregated_binomial <- TRUE
+            size_var_is_data <- TRUE
+        }
+        if ( class(size_sym)=="numeric" ) {
+            if ( size_sym > 1 ) aggregated_binomial <- TRUE
         }
     }
     
@@ -87,7 +95,7 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , ... ) {
             par_name <- names(post)[ j ]
             dims <- dim( post[[par_name]] )
             # scalar
-            if ( length(dims)<2 ) init[[par_name]] <- post[[par_name]][s]
+            if ( is.null(dims) ) init[[par_name]] <- post[[par_name]][s]
             # vector
             if ( length(dims)==2 ) init[[par_name]] <- post[[par_name]][s,]
             # matrix
@@ -104,7 +112,12 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , ... ) {
         # aggregated binomial with data for 'size'
         # need to split binomial counts in outcome into series of 0/1 outcomes
         # (1) sum 'size' variable in order to get number of new cases
-        size_var <- data[[ as.character(ftemp[[3]][[2]]) ]]
+        if ( size_var_is_data==TRUE ) {
+            size_var <- data[[ as.character(ftemp[[3]][[2]]) ]]
+        } else {
+            # size is constant numeric, but > 1
+            size_var <- rep( as.numeric(ftemp[[3]][[2]]) , n_cases )
+        }
         n_newcases <- sum(size_var)
         # (2) make new sim_out with expanded dimension
         sim_out_new <- matrix(NA,nrow=n,ncol=n_newcases)
@@ -116,13 +129,17 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , ... ) {
             num_zeros <- size_var[i] - num_ones
             ll1 <- sim_out[,i]
             ll0 <- log( 1 - exp(ll1) )
-            for ( j in 1:num_ones ) {
-                sim_out_new[,current_newcase] <- ll1
-                current_newcase <- current_newcase + 1
+            if ( num_ones > 0 ) {
+                for ( j in 1:num_ones ) {
+                    sim_out_new[,current_newcase] <- ll1
+                    current_newcase <- current_newcase + 1
+                }
             }
-            for ( j in 1:num_zeros ) {
-                sim_out_new[,current_newcase] <- ll0
-                current_newcase <- current_newcase + 1
+            if ( num_zeros > 0 ) {
+                for ( j in 1:num_zeros ) {
+                    sim_out_new[,current_newcase] <- ll0
+                    current_newcase <- current_newcase + 1
+                }
             }
         }#i
         sim_out <- sim_out_new
@@ -195,15 +212,15 @@ function( fit , data , n=0 , post , ... ) {
 }
 )
 
-postcheck <- function( fit , prob=0.9 , window=20 , ... ) {
+postcheck <- function( fit , prob=0.9 , window=20 , n=1000 , col=rangi2 , ... ) {
     
     undot <- function( astring ) {
         astring <- gsub( "." , "_" , astring , fixed=TRUE )
         astring
     }
     
-    pred <- link(fit)
-    sims <- sim(fit)
+    pred <- link(fit,n=n)
+    sims <- sim(fit,n=n)
     
     if ( class(pred)=="list" )
         if ( length(pred)>1 ) pred <- pred[[1]]
@@ -232,6 +249,20 @@ postcheck <- function( fit , prob=0.9 , window=20 , ... ) {
     ymin <- min(c(as.numeric(y.PI),mu,y))
     ymax <- max(c(as.numeric(y.PI),mu,y))
     
+    # check for aggregated binomial context
+    mumax <- max(c(as.numeric(mu.PI)))
+    if ( ymax > 1 & mumax <= 1 ) {
+        # probably aggregated binomial
+        size_var <- as.character(lik[[3]][[2]])
+        size_var <- fit@data[[ size_var ]]
+        for ( i in 1:ny ) {
+            y.PI[,i] <- y.PI[,i]/size_var[i]
+            y[i] <- y[i]/size_var[i]
+        }
+        ymin <- 0
+        ymax <- 1
+    }
+    
     start <- 1
     end <- cases_per_page
     
@@ -241,7 +272,7 @@ postcheck <- function( fit , prob=0.9 , window=20 , ... ) {
         window <- start:end
         
         set_nice_margins()
-        plot( y[window] , xlab="case" , ylab=outcome , col=rangi2 , pch=16 , ylim=c( ymin , ymax ) , xaxt="n" )
+        plot( y[window] , xlab="case" , ylab=outcome , col=col , pch=16 , ylim=c( ymin , ymax ) , xaxt="n" , ... )
         axis( 1 , at=1:length(window) , labels=window )
         
         points( 1:length(window) , mu[window] )

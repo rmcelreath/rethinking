@@ -8,20 +8,22 @@ function( fit , data , n=1000 , ... ) {
 
 setMethod("link", "map",
 function( fit , data , n=1000 , post , probs=NULL , refresh=0.1 , flatten=TRUE , ... ) {
-
+    
     if ( class(fit)!="map" ) stop("Requires map fit")
     if ( missing(data) ) {
         data <- fit@data
     } else {
         # make sure all variables same length
         # weird vectorization errors otherwise
-        data <- as.data.frame(data)
+        #data <- as.data.frame(data)
     }
     
     if ( missing(post) ) 
         post <- extract.samples(fit,n=n)
-    else
-        n <- length(post[[1]])
+    else {
+        n <- dim(post[[1]])[1]
+        if ( is.null(n) ) n <- length(post[[1]])
+    }
     
     nlm <- length(fit@links)
     f_do_lm <- TRUE
@@ -74,7 +76,7 @@ function( fit , data , n=1000 , post , probs=NULL , refresh=0.1 , flatten=TRUE ,
                 par_name <- names(post)[ j ]
                 dims <- dim( post[[par_name]] )
                 # scalar
-                if ( length(dims)<2 ) init[[par_name]] <- post[[par_name]][s]
+                if ( is.null(dims) ) init[[par_name]] <- post[[par_name]][s]
                 # vector
                 if ( length(dims)==2 ) init[[par_name]] <- post[[par_name]][s,]
                 # matrix

@@ -12,11 +12,26 @@ function( object , ... ) {
 
 setMethod("DIC", "map",
 function( object , n=1000 , ... ) {
+    idx_marker_string <- "_._"
     post <- extract.samples( object , n=n )
-    dev <- sapply( 1:nrow(post) , 
+    dev <- sapply( 1:n , 
         function(i) {
-            p <- post[i,]
-            names(p) <- names(post)
+            p <- list()
+            for ( k in 1:length(post) ) {
+                dims <- dim( post[[k]] )
+                ldims <- length( dims )
+                name <- names(post)[k]
+                if ( ldims==0 ) {
+                    p[[ name ]] <- post[[k]][i]
+                } else {
+                    # vector of parameters, 
+                    # so need to explode to scalars and rename
+                    for ( j in 1:dims[2] ) {
+                        new_name <- concat( name , idx_marker_string , j )
+                        p[[ new_name ]] <- post[[k]][i,j]
+                    }#j
+                }
+            }#i
             2*object@fminuslogl( p ) 
         }
     )

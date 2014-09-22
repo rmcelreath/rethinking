@@ -2,33 +2,6 @@
 # translate glmer style model formulas into equivalent formula alist suitable for map2stan
 # just a stub for now
 
-glimmer <- function( formula , family="Gaussian" , ... ) {
-
-    # templates
-    family_liks <- list(
-        Gaussian = "dnorm( mu , sigma )",
-        Binomial = "dbinom( size , p )",
-        Poisson = "dpois( lambda )"
-    )
-    
-    # check input
-    if ( class(formula)!="formula" ) stop( "Input must be a glmer-style formula." )
-    
-    f <- formula
-    flist <- alist()
-    
-    # get outcome
-    outcome <- f[[2]]
-    
-    # build likelihood
-    flist[[1]] <- as.formula( concat( as.character(outcome) , " ~ " , family_liks[[family]] ) )
-    
-    # build linear model
-    
-    
-}
-
-
 parse_glimmer_formula <- function( formula , data ) {
     ## take a formula and parse into fixed effect and varying effect lists
     nobars <- function(term) {
@@ -142,5 +115,212 @@ parse_glimmer_formula <- function( formula , data ) {
     
     # result sufficient information to build Stan model code
     list( y=outcome , yname=outcome_name , fixef=fixef , ranef=ranef , dat=as.data.frame(mdat) )
+}
+
+
+glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , default_prior="dnorm(0,10)" , ... ) {
+    
+    undot <- function( astring ) {
+        astring <- gsub( "." , "_" , astring , fixed=TRUE )
+        astring <- gsub( ":" , "_X_" , astring , fixed=TRUE )
+        astring <- gsub( "(" , "" , astring , fixed=TRUE )
+        astring <- gsub( ")" , "" , astring , fixed=TRUE )
+        astring
+    }
+    
+    # convert family to text
+    family.orig <- family
+    if ( class(family)=="function" ) {
+        family <- do.call(family,args=list())
+    }
+    link <- family$link
+    family <- family$family
+    
+    # templates
+    family_liks <- list(
+        gaussian = "dnorm( mu , sigma )",
+        binomial = "dbinom( size , p )",
+        poisson = "dpois( lambda )"
+    )
+    lm_names <- list(
+        gaussian = "mu",
+        binomial = "p",
+        poisson = "lambda"
+    )
+    link_names <- list(
+        gaussian = "identity",
+        binomial = "logit",
+        poisson = "log"
+    )
+    
+    # check input
+    if ( class(formula)!="formula" ) stop( "Input must be a glmer-style formula." )
+    if ( missing(data) ) stop( "Need data" )
+    
+    f <- formula
+    flist <- alist()
+    prior_list <- alist()
+    
+    # parse
+    pf <- parse_glimmer_formula( formula , data )
+    pf$yname <- undot(pf$yname)
+    
+    # build likelihood
+    # check for size variable in Binomial
+    dtext <- family_liks[[family]]
+    if ( family=="binomial" ) {
+        if ( class(pf$y)=="matrix" ) {
+            # cbind input
+            pf$dat[[pf$yname]] <- pf$y[,1]
+            pf$dat[[concat(pf$yname,"_size")]] <- apply(pf$y,1,sum)
+            dtext <- concat("dbinom( ",concat(pf$yname,"_size")," , p )")
+        } else {
+            # bernoulli
+            pf$dat[[pf$yname]] <- pf$y
+            dtext <- concat("dbinom( 1 , p )")
+        }
+    } else {
+        pf$dat[[pf$yname]] <- pf$y
+    }
+    flist[[1]] <- concat( as.character(pf$yname) , " ~ " , dtext )
+    
+    # build fixed linear model
+    flm <- ""
+    for ( i in 1:length(pf$fixef) ) {
+        # for each term, add corresponding term to linear model text
+        aterm <- undot(pf$fixef[i])
+        newterm <- ""
+        if ( aterm=="Intercept" ) {
+            newterm <- aterm
+            prior_list[[newterm]] <- default_prior
+        } else {
+            par_name <- concat( prefix[1] , aterm )
+            newterm <- concat( par_name , "*" , aterm )
+            prior_list[[par_name]] <- default_prior
+        }
+        if ( i > 1 ) flm <- concat( flm , " +\n        " )
+        flm <- concat( flm , newterm )
+    }
+    
+    vlm <- ""
+    num_group_vars <- length(pf$ranef)
+    if ( num_group_vars > 0 ) {
+    for ( i in 1:num_group_vars ) {
+        group_var <- undot(names(pf$ranef)[i])
+        members <- list()
+        for ( j in 1:length(pf$ranef[[i]]) ) {
+            aterm <- undot(pf$ranef[[i]][j])
+            newterm <- ""
+            var_prefix <- prefix[2]
+            if ( num_group_vars>1 ) var_prefix <- concat( var_prefix , group_var , "_" )
+            if ( aterm=="Intercept" ) {
+                par_name <- concat( var_prefix , aterm )
+                newterm <- concat( par_name , "[" , group_var , "]" )
+            } else {
+                par_name <- concat( var_prefix , aterm )
+                newterm <- concat( par_name , "[" , group_var , "]" , "*" , aterm )
+            }
+            members[[par_name]] <- par_name
+            if ( i > 1 | j > 1 ) vlm <- concat( vlm , " +\n        " )
+            vlm <- concat( vlm , newterm )
+        }#j
+        # add group prior
+        if ( length(members)>1 ) {
+            # multi_normal
+            gvar_name <- concat( "c(" , paste(members,collapse=",") , ")" , "[" , group_var , "]" )
+            prior_list[[gvar_name]] <- concat( "dmvnorm2(0,sigma_" , group_var , ",Rho_" , group_var , ")" )
+            prior_list[[concat("sigma_",group_var)]] <- concat( "dcauchy(0,2)" )
+            prior_list[[concat("Rho_",group_var)]] <- concat( "dlkjcorr(2)" )
+        } else {
+            # normal
+            gvar_name <- concat( members[[1]] , "[" , group_var , "]" )
+            prior_list[[gvar_name]] <- concat( "dnorm(0,sigma_" , group_var , ")" )
+            prior_list[[concat("sigma_",group_var)]] <- concat( "dcauchy(0,2)" )
+        }
+        # make sure grouping variables in dat
+        # also ensure is an integer index
+        pf$dat[[group_var]] <- coerce_index( data[[group_var]] )
+    }#i
+    }# ranef processing
+    
+    # any special priors for likelihood function
+    if ( family=="gaussian" ) {
+        prior_list[["sigma"]] <- "dcauchy(0,2)"
+    }
+    
+    # insert linear model
+    lm_name <- lm_names[[family]]
+    #link_func <- link_names[[family]]
+    if ( vlm=="" )
+        lm_txt <- concat( flm )
+    else
+        lm_txt <- concat( flm , " +\n        " , vlm )
+    lm_left <- concat( link , "(" , lm_name , ")" )
+    if ( link=="identity" ) lm_left <- lm_name
+    flist[[2]] <- concat( lm_left , " <- " , lm_txt )
+    
+    # build priors
+    for ( i in 1:length(prior_list) ) {
+        pname <- names(prior_list)[i]
+        p_txt <- prior_list[[i]]
+        flist[[i+2]] <- concat( pname , " ~ " , p_txt )
+    }
+    
+    # build formula text and parse into alist object
+    flist_txt <- "alist(\n"
+    for ( i in 1:length(flist) ) {
+        flist_txt <- concat( flist_txt , "    " , flist[[i]] )
+        if ( i < length(flist) ) flist_txt <- concat( flist_txt , ",\n" )
+    }
+    flist_txt <- concat( flist_txt , "\n)" )
+    flist2 <- eval(parse(text=flist_txt))
+    
+    # clean variable names
+    names(pf$dat) <- sapply( names(pf$dat) , undot )
+    # remove Intercept from dat
+    pf$dat[['Intercept']] <- NULL
+    
+    # result
+    cat(flist_txt)
+    cat("\n")
+    invisible(list(f=flist2,d=pf$dat))
+    
+}
+
+
+####### TEST CODE ########
+if ( FALSE ) {
+
+library(rethinking)
+
+data(chimpanzees)
+f0 <- pulled.left ~ prosoc.left*condition - condition
+m0 <- glimmer( f0 , chimpanzees , family=binomial )
+
+f1 <- pulled.left ~ (1|actor) + prosoc.left*condition - condition
+m1 <- glimmer( f1 , chimpanzees , family=binomial )
+# m1s <- map2stan( m1$f , data=m1$d , sample=TRUE )
+
+f2 <- pulled.left ~ (1+prosoc.left|actor) + prosoc.left*condition - condition
+m2 <- glimmer( f2 , chimpanzees , family=binomial )
+
+data(UCBadmit)
+f3 <- cbind(admit,reject) ~ (1|dept) + applicant.gender
+m3 <- glimmer( f3 , UCBadmit , binomial )
+m3s <- map2stan( m3$f , data=m3$d )
+
+f4 <- cbind(admit,reject) ~ (1+applicant.gender|dept) + applicant.gender
+m4 <- glimmer( f4 , UCBadmit , binomial )
+m4s <- map2stan( m4$f , data=m4$d )
+
+data(Trolley)
+f5 <- response ~ (1|id) + (1|story) + action + intention + contact
+m5 <- glimmer( f5 , Trolley )
+m5s <- map2stan( m5$f , m5$d , sample=FALSE )
+
+f6 <- response ~ (1+action+intention|id) + (1+action+intention|story) + action + intention + contact
+m6 <- glimmer( f6 , Trolley )
+m6s <- map2stan( m6$f , m6$d , sample=TRUE )
+
 }
 

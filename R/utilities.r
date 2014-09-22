@@ -9,14 +9,9 @@ htmlhelp <- function() options(help_type="html")
 setcran <- function(themirror="http://cran.stat.ucla.edu/") options(repos=structure(c(CRAN=themirror)))
 
 # default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
-blank <- function(ex=1) {
-    quartz("myquartz",width=3.5*ex,height=3.5*ex)
+blank <- function(ex=1,w=1,h=1) {
+    quartz("myquartz",width=3.5*ex*w,height=3.5*ex*h)
     par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
-}
-blank2 <- function() {
-    blank(ex=0.9)
-    quartzFonts(serif = quartzFont(rep("MinionPro-Regular", 4)))
-    par(family="serif")
 }
 
 # convenience function for choosing a csv file
@@ -204,3 +199,31 @@ check_index <- function( x ) {
 }
 
 coerce_index <- function( x ) as.integer(as.factor(as.character(x)))
+
+# sd and var functions that don't use n-1 denominator
+sd2 <- function( x , na.rm=TRUE ) {
+    sqrt( var2(x,na.rm=na.rm) )
+}
+
+var2 <- function( x , na.rm=TRUE ) {
+    # use E(x^2) - E(x)^2 form
+    mean(x^2) - mean(x)^2
+}
+
+# function for formatting summary table output in various show methods
+# x should be a list or data frame
+# digits should be a named vector with digits to display for each column
+# name 'default__' is default digits
+# so can pass e.g. digits=c( 'default__'=2 , n_eff=0 )
+format_show <- function( x , digits ) {
+    r <- as.data.frame(lapply( 1:length(x) , 
+        function(i) { 
+            if ( names(x)[i] %in% names(digits) ) 
+                round( x[[i]] , digits[names(x)[i]] ) 
+            else 
+                round(x[[i]], digits['default__'] );
+        } ) )
+    names(r) <- names(x)
+    rownames(r) <- rownames(x)
+    return(r)
+}

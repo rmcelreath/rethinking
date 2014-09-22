@@ -17,13 +17,18 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     if ( !is.null(attr(object,"WAIC")) ) {
         # already have it stored in object, so just return it
         old_waic <- attr(object,"WAIC")
-        if ( length(old_waic) > 1 & pointwise==FALSE ) {
-            old_waic <- (-2)*sum(old_waic)
-            return( old_waic )
+        if ( length(old_waic) > 1 ) {
+            if ( pointwise==FALSE ) {
+                new_waic <- sum(old_waic)
+                attr(new_waic,"lppd") <- sum(unlist(attr(old_waic,"lppd")))
+                attr(new_waic,"pWAIC") <- sum(unlist(attr(old_waic,"pWAIC")))
+                attr(new_waic,"se") <- attr(old_waic,"se")
+                return( new_waic )
+            }
+        } else {
+            # old waic not pointwise
+            if ( pointwise==FALSE ) return( old_waic )
         }
-        if ( length(old_waic) > 1 & pointwise==TRUE ) {
-            return( old_waic )
-        } # else continue onward to recompute
     }
     
     # compute linear model values at each sample
@@ -43,7 +48,8 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     n_lm <- length(lm_vals)
     pD <- 0
     lppd <- 0
-    waic_vec <- list()
+    lppd_vec <- list()
+    pD_vec <- list()
     flag_aggregated_binomial <- FALSE
     for ( k in 1:n_lik ) {
         outcome <- liks[[k]]$outcome
@@ -74,14 +80,28 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
                 if ( pars[[1]]>1 ) flag_aggregated_binomial <- TRUE
         }
         if ( flag_aggregated_binomial==TRUE) {
-            message("Aggregated binomial counts detected. Splitting to 0/1 outcome for WAIC calculation.")
+            if ( refresh > 0 )
+                message("Aggregated binomial counts detected. Splitting to 0/1 outcome for WAIC calculation.")
         }
         
         #ignition
         n_obs <- liks[[k]]$N_cases
-        waic_vec[[k]] <- rep(NA,n_obs) # vector of components so can compute std err later
+        # vector of components so can compute std err later
+        if ( flag_aggregated_binomial==FALSE ) {
+            lppd_vec[[k]] <- rep(NA,n_obs)
+            pD_vec[[k]] <- rep(NA,n_obs)
+        } else {
+            # need longer vector to hold expanded binomial
+            if ( is.numeric(pars[[1]]) ) 
+                size <- rep( pars[[1]] , n_obs )
+            if ( pars_type[[1]]=="data" ) 
+                size <- as.numeric(object@data[[as.character(pars[[1]])]])
+            lppd_vec[[k]] <- rep( NA, sum(size) )
+            pD_vec[[k]] <- rep( NA, sum(size) )
+        }
         lm_now <- list()
         
+        i_pointwise <- 1
         for ( i in 1:n_obs ) {
             for ( j in 1:n_lm ) {
                 # pull out samples for case i only
@@ -130,7 +150,7 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
                 args_list <- list( as.symbol(outcome) , pars , log=TRUE )
                 args_list <- unlist( args_list , recursive=FALSE )
                 ll <- do.call( dname , args=args_list , envir=e1 )
-                vll <- var(ll)
+                vll <- var2(ll)
                 pD <- pD + vll
                 # lppd increments with log( average( likelihood ) )
                 # where average is over posterior
@@ -140,7 +160,8 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
                 lpd <- log_sum_exp(ll) - log(n)
                 lppd <- lppd + lpd
                 # store waic for point i, so can compute stderr later
-                waic_vec[[k]][i] <- lpd - vll
+                lppd_vec[[k]][i] <- lpd
+                pD_vec[[k]][i] <- vll
             } else {
                 # aggregated binomial
                 # split into 'size' 0/1 observations
@@ -157,28 +178,32 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
                     args_list <- list( out01 , newpars , log=TRUE )
                     args_list <- unlist( args_list , recursive=FALSE )
                     ll <- do.call( dname , args=args_list , envir=e1 )
-                    vll <- var(ll)
+                    vll <- var2(ll)
                     pD <- pD + vll
                     lpd <- log_sum_exp(ll) - log(n)
                     lppd <- lppd + lpd
-                    waic_vec[[k]][i] <- lpd - vll
+                    lppd_vec[[k]][i_pointwise] <- lpd
+                    pD_vec[[k]][i_pointwise] <- vll
+                    i_pointwise <- i_pointwise + 1
                 }#ii
             }#flag_aggregated_binomial
             
         }#i - cases
     }#k - linear models
     
+    waic_vec <- (-2)*( unlist(lppd_vec) - unlist(pD_vec) )
     if ( pointwise==TRUE ) {
-        waic <- unlist(waic_vec)
+        waic <- waic_vec
+        lppd <- lppd_vec
+        pD <- pD_vec
     } else {
         waic <- (-2)*( lppd - pD )
     }
     attr(waic,"lppd") = lppd
     attr(waic,"pWAIC") = pD
     
-    waic_vec <- unlist(waic_vec)
     n_tot <- length(waic_vec)
-    attr(waic,"se") = try(sqrt( n_tot*var(waic_vec) ))
+    attr(waic,"se") = try(sqrt( n_tot*var2(waic_vec) ))
     
     return(waic)
     
@@ -192,7 +217,24 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     
     if ( !is.null(attr(object,"WAIC")) ) {
         # already have it stored in object, so just return it
-        return( attr(object,"WAIC") )
+        old_waic <- attr(object,"WAIC")
+        if ( pointwise==TRUE ) {
+            if ( length(old_waic)>1 ) {
+                # already have pointwise version, so return it
+                return( old_waic )
+            } else {
+                # old one is not pointwise, so need to recalcuate
+                ### DO NOTHING HERE
+            }
+        } else {
+            if ( length(old_waic)>1 ) {
+                # old one was pointwise, so total it up
+                new_waic <- sum(old_waic)
+                attr(new_waic,"lppd") <- sum(attr(old_waic,"lppd"))
+                attr(new_waic,"pWAIC") <- sum(attr(old_waic,"pWAIC"))
+                attr(new_waic,"se") <- attr(old_waic,"se")
+            }
+        }
     }
     
     # compute linear model values at each sample
@@ -210,27 +252,31 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     flag_aggregated_binomial <- FALSE
     n_cases <- dim(s)[2]
     n_samples <- dim(s)[1]
-    waic_vec <- rep(NA,n_cases)
+    lppd_vec <- rep(NA,n_cases)
+    pD_vec <- rep(NA,n_cases)
     for ( i in 1:n_cases ) {# for each case
         
-        vll <- var(s[,i])
+        vll <- var2(s[,i])
         pD <- pD + vll
         lpd <- log_sum_exp(s[,i]) - log(n_samples)
         lppd <- lppd + lpd
-        waic_vec[i] <- lpd - vll
-        
+        lppd_vec[i] <- lpd
+        pD_vec[i] <- vll
     }#i - cases
     
+    waic_vec <- (-2)*( lppd_vec - pD_vec )
     if ( pointwise==TRUE ) {
         # return decomposed as WAIC for each observation i --- can sum to get total WAIC
         # this is useful for computing standard errors of differences with compare()
-        waic <- waic_vec
+        waic <- (-2)*( lppd_vec - pD_vec )
+        lppd <- lppd_vec
+        pD <- pD_vec
     } else {
         waic <- (-2)*( lppd - pD )
     }
     attr(waic,"lppd") = lppd
     attr(waic,"pWAIC") = pD
-    attr(waic,"se") = try(sqrt( n_cases*var(waic_vec) ))
+    attr(waic,"se") = try(sqrt( n_cases*var2(waic_vec) ))
     
     return(waic)
     

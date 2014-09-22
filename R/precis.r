@@ -10,7 +10,9 @@ precis.whitelist <- data.frame(
 # precis class definition and show method
 setClass( "precis" , representation( output="data.frame" , digits="numeric" ) )
 precis.show <- function( object ) {
-    print( round( object@output , object@digits ) )
+    #print( round( object@output , object@digits ) )
+    r <- format_show( object@output , digits=c('default__'=object@digits,'n_eff'=0) )
+    print(r)
 }
 setMethod( "show" , "precis" , function(object) precis.show(object) )
 
@@ -112,6 +114,18 @@ precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE ,
             post <- extract.samples(model)
             result <- postlistprecis( post , prob=level )
         }
+    }
+    if ( the.class=="map2stan" | the.class=="stanfit" ) {
+        # add n_eff to result
+        require(rstan)
+        if ( the.class=="map2stan" )
+            n_eff <- summary( model@stanfit )$summary[,'n_eff']
+        else
+            n_eff <- summary( model )$summary[,'n_eff']
+        n_eff <- n_eff[ -which(names(n_eff)=="lp__") ]
+        if ( the.class=="map2stan" )
+            n_eff <- n_eff[ -which(names(n_eff)=="dev") ]
+        result <- cbind( result , n_eff )
     }
     if ( corr==TRUE ) {
         result <- cbind( result , Rho )
