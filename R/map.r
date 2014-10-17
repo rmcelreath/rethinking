@@ -178,8 +178,9 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     # x : where to search, usually a formula as character
     # add.par : whether to enclose replacement in parentheses
     
+    # needed , in case of vector or list construction in likelihood
     mygrep <- function( target , replacement , x , add.par=TRUE ) {
-        wild <- "[()=*+ ]"
+        wild <- "[()=*+, ]"
         pattern <- paste( wild , target , wild , sep="" , collapse="" )
         m <- regexpr( pattern , x )
         if ( m==-1 ) return( x )

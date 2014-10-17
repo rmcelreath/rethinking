@@ -379,6 +379,24 @@ map2stan.templates <- list(
         },
         vectorized = TRUE
     ),
+    Geometric1 = list(
+        name = "Geometric1",
+        R_name = "dgeom",
+        stan_name = "increment_log_prob",
+        stan_code = 
+"increment_log_prob(bernoulli_log(1,PAR1) + OUTCOME*bernoulli_log(0,PAR1));",
+        stan_dev = 
+"dev <- dev + (-2)*(bernoulli_log(1,PAR1) + OUTCOME*bernoulli_log(0,PAR1));",
+        num_pars = 3,
+        par_names = c("prob"),
+        par_bounds = c("<lower=0,upper=1>"),
+        par_types = c("real"),
+        out_type = "int",
+        par_map = function(k,...) {
+            return(k);
+        },
+        vectorized = FALSE
+    ),
     Beta = list(
         name = "Beta",
         R_name = "dbeta",
@@ -600,6 +618,46 @@ dev <- dev + (-2)*(bernoulli_log(0,PAR1) + binomial_log(OUTCOME,PAR2,PAR3));",
         out_type = "int",
         par_map = function(k,...) {
             return(k);
+        },
+        vectorized = FALSE
+    ),
+    Categorical1 = list(
+        name = "Categorical1",
+        R_name = "dcategorical",
+        stan_name = "increment_log_prob",
+        stan_code = 
+"{
+        vector[PAR1] theta;
+        PAR2 
+        OUTCOME ~ categorical( softmax(theta) );
+    }",
+        stan_dev = 
+"{
+        vector[PAR1] theta;
+        PAR2 
+        dev <- dev + (-2)*categorical_log( OUTCOME , softmax(theta) );
+    }",
+        num_pars = 1,
+        par_names = c("prob"),
+        par_bounds = c("<lower=0,upper=1>"),
+        par_types = c("real"),
+        out_type = "int",
+        par_map = function(k,...) {
+            # k should be softmax call
+            # convert to list of names with indices
+            new_k <- as.character(k[[1]])
+            # add length to front, overwriting 'softmax' function name
+            num_scores <- length(new_k)-1
+            new_k[1] <- num_scores
+            # now need to build the code that populates the theta vector of inputs to softmax
+            theta_txt <- ""
+            for ( i in 1:num_scores ) {
+                PAR <- new_k[i+1]
+                if ( is.na(as.numeric(PAR)) ) PAR <- concat(PAR,"[i]")
+                theta_txt <- concat( theta_txt , "theta[" , i , "] <- " , PAR , ";" )
+                if ( i < num_scores ) theta_txt <- concat( theta_txt , "\n        " )
+            }
+            return(c(new_k[1],theta_txt));
         },
         vectorized = FALSE
     )

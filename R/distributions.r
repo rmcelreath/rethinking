@@ -219,9 +219,9 @@ rzibinom <- function(n,p_zero,size,prob) {
 
 # Student's t, with scale and location parameters
 
-dstudent <- function( x , nu , mu , sigma , log=TRUE ) {
-    
-}
+#dstudent <- function( x , nu , mu , sigma , log=TRUE ) {
+#    
+#}
 
 # generalized normal
 dgnorm <- function( x , mu , alpha , beta , log=FALSE ) {
@@ -230,3 +230,47 @@ dgnorm <- function( x , mu , alpha , beta , log=FALSE ) {
     return(ll)
 }
 
+# categorical distribution for multinomial models
+
+dcategorical <- function( x , prob , log=TRUE ) {
+    if ( class(prob)=="matrix" ) {
+        # vectorized probability matrix
+        # length of x needs to match nrow(prob)
+        logp <- sapply( 1:nrow(prob) , function(i) log(prob[i,x[i]]) )
+        if ( log==FALSE ) logp <- exp(logp)
+        return( logp )
+    } else {
+        logp <- log(prob[x])
+        if ( log==FALSE ) logp <- exp(logp)
+        return(logp)
+    }
+}
+
+rcategorical <- function( n , prob ) {
+    k <- length(prob)
+    y <- sample( 1:k , size=n , prob=p , replace=TRUE )
+    return(y)
+}
+
+# multinomial logit link
+# needs to recognize vectors, as well
+softmax <- function( ... ) {
+    X <- list(...)
+    K <- length(X)
+    X <- as.data.frame(X)
+    N <- nrow(X)
+    if ( N==1 ) {
+        # just a vector of probabilities
+        f <- exp( X[1,] )
+        denom <- sum(f)
+        p <- as.numeric(f/denom)
+        return(p)
+    } else {
+        f <- lapply( 1:N , function(i) exp(X[i,]) )
+        denom <- sapply( 1:N , function(i) sum(f[[i]]) )
+        p <- sapply( 1:N , function(i) unlist(f[[i]])/denom[i] )
+        p <- t(as.matrix(p))
+        colnames(p) <- NULL
+        return(p)
+    }
+}

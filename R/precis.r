@@ -119,13 +119,18 @@ precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE ,
         # add n_eff to result
         require(rstan)
         if ( the.class=="map2stan" )
-            n_eff <- summary( model@stanfit )$summary[,'n_eff']
+            the_summary <- summary( model@stanfit )$summary
         else
-            n_eff <- summary( model )$summary[,'n_eff']
+            the_summary <- summary( model )$summary
+        n_eff <- the_summary[,'n_eff']
         n_eff <- n_eff[ -which(names(n_eff)=="lp__") ]
-        if ( the.class=="map2stan" )
+        Rhat <- the_summary[,'Rhat']
+        Rhat <- Rhat[ -which(names(Rhat)=="lp__") ]
+        if ( the.class=="map2stan" ) {
             n_eff <- n_eff[ -which(names(n_eff)=="dev") ]
-        result <- cbind( result , n_eff )
+            Rhat <- Rhat[ -which(names(Rhat)=="dev") ]
+        }
+        result <- cbind( result , n_eff , Rhat )
     }
     if ( corr==TRUE ) {
         result <- cbind( result , Rho )

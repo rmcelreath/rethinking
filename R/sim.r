@@ -87,9 +87,12 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , ... ) {
     sim_out <- matrix(NA,nrow=n,ncol=n_cases)
     for ( s in 1:n ) {
         # build environment
-        elm <- pred[[1]][s,] # extract s-th sample case calculations
-        elm <- list(elm)
-        names(elm)[1] <- names(pred)[1]
+        # extract s-th sample case calculations
+        elm <- list()
+        for ( j in 1:length(pred) ) {
+            elm[[j]] <- pred[[j]][s,]
+        }
+        names(elm) <- names(pred)
         init <- list() # holds one row of samples across all params
         for ( j in 1:length(post) ) {
             par_name <- names(post)[ j ]

@@ -140,7 +140,7 @@ setMethod("summary", "map2stan", function(object){
 
 # resample from compiled map2stan fit
 # can also run on multiple cores
-resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC=TRUE , ... ) {
+resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC=TRUE , WAIC=TRUE , rng_seed , ... ) {
     if ( !(class(object)%in%(c("map2stan"))) )
         stop( "Requires map2stan fit" )
     
@@ -151,11 +151,31 @@ resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC
     } else {
         init[[1]] <- object@start
         require(parallel)
-        # hand off to mclapply
-        sflist <- mclapply( 1:chains , mc.cores=cores ,
-            function(chainid)
-                stan( fit=object@stanfit , data=object@data , init=init , pars=object@pars , iter=iter , warmup=warmup , chains=1 , chain_id=chainid , ... )
-        )
+        sys <- .Platform$OS.type
+        if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
+        if ( sys=='unix' ) {
+            # Mac or Linux
+            # hand off to mclapply
+            sflist <- mclapply( 1:chains , mc.cores=cores ,
+                function(chainid)
+                    stan( fit=object@stanfit , data=object@data , init=init , pars=object@pars , iter=iter , warmup=warmup , chains=1 , seed=rng_seed, chain_id=chainid , ... )
+            )
+        } else {
+            # Windows
+            # so use parLapply instead
+            CL = makeCluster(cores)
+            fit <- object@stanfit
+            data <- object@data
+            pars <- object@pars
+            env0 <- list( fit=fit, data=data, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup )
+            clusterExport(cl = CL, c("iter","warmup","data", "fit", "pars", "rng_seed"), as.environment(env0))
+            sflist <- parLapply(CL, 1:chains, fun = function(cid) {
+                require(rstan)
+                stan(fit = fit, data = data, pars = pars, chains = 1, 
+                  iter = iter, warmup = warmup, seed = rng_seed, 
+                  chain_id = cid)
+            })
+        }
         # merge result
         fit <- sflist2stanfit(sflist)
     }
@@ -193,6 +213,16 @@ resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC
         attr(result,"DIC") <- NULL
         attr(result,"pD") <- NULL
         attr(result,"deviance") <- NULL
+    }
+    
+    #WAIC
+    if ( WAIC==TRUE ) {
+        attr(result,"WAIC") <- NULL
+        waic_calc <- try(WAIC(result))
+        attr(result,"WAIC") <- waic_calc
+    } else {
+        # clear out any old WAIC calculation
+        attr(result,"WAIC") <- NULL
     }
     
     return(result)

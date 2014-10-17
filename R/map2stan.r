@@ -918,7 +918,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             parstxt <- paste( parstxt_L , collapse=" , " )
             
             if ( lik$likelihood=="increment_log_prob" ) {
-            
+                
                 # custom distribution using increment_log_prob
                 code_model <- tmplt$stan_code
                 code_gq <- tmplt$stan_dev

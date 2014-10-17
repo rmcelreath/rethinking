@@ -6,7 +6,8 @@
   Sample from a new chain or chains, using a previous \code{map2stan} fit object.
 }
 \usage{
-resample( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , ... )
+resample( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , 
+    DIC=TRUE , WAIC=TRUE , rng_seed , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -15,17 +16,20 @@ resample( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , ... )
   \item{warmup}{Number of adaptation steps}
   \item{chains}{Number of independent chains}
   \item{cores}{Number of cores to distribute chains across}
+  \item{DIC}{If \code{TRUE}, computes DIC after sampling}
+  \item{WAIC}{If \code{TRUE}, computes WAIC after sampling}
+  \item{rng_seed}{Optional seed to use for all chains. When missing, a random seed is chosen and used for all chains.}
   \item{...}{Other parameters to pass to \code{stan}}
 }
 \details{
   This function is a convenience for drawing more samples from an initial \code{map2stan} fit.
   
-  When \code{cores} is set greater than 1, \code{\link{mclapply}} is used to run the chains, distributing them across the cores. The results are automatically combined with \code{\link{sflist2stanfit}}. 
+  When \code{cores} is set greater than 1, either \code{\link{mclapply}} (on a unix system) or \code{\link{parLapply}} (on a Windows system) is used to run the chains, distributing them across processor cores. The results are automatically recombined with \code{\link{sflist2stanfit}}. 
 }
 \value{
   An object of class \code{map2stan}, holding the new samples, as well as all of the original formulas and data for the model.
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{map2stan}}, \code{\link{mclapply}}, \code{\link{sflist2stanfit}}}
 \examples{
