@@ -178,7 +178,8 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
                     # need vector of probabilities as result
                     cuts <- init[['cutpoints']]
                     v <- predict.ordlogit( r , cuts )
-                    r <- t(v)
+                    #r <- t(v)
+                    r <- v
                 }
             }
             

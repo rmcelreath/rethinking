@@ -199,16 +199,30 @@ function( fit , data , n=0 , post , ... ) {
     sim_out <- matrix( NA , nrow=n , ncol=n_cases )
     # need to select out s-th sample for each parameter in post
     # only need top-level parameters, so can coerce to data.frame?
-    post <- as.data.frame(post)
+    post2 <- as.data.frame(post)
     for ( s in 1:n ) {
         # build environment
-        elm <- pred[[1]][s,] # extract s-th sample case calculations
+        ndims <- length(dim(pred[[1]]))
+        if ( ndims==2 )
+            elm <- pred[[1]][s,] # extract s-th sample case calculations
+        if ( ndims==3 )
+            elm <- pred[[1]][s,,]
         elm <- list(elm)
         names(elm)[1] <- names(pred)[1]
-        e <- list( as.list(data) , as.list(post[s,]) , as.list(elm) )
+        e <- list( as.list(data) , as.list(post2[s,]) , as.list(elm) )
         e <- unlist( e , recursive=FALSE )
         # evaluate
-        sim_out[s,] <- eval(parse(text=xeval),envir=e)
+        if ( flik=="dordlogit" ) {
+            n_outcome_vals <- dim( pred[[1]] )[3]
+            probs <- pred[[1]][s,,]
+            sim_out[s,] <- sapply( 
+                1:n_cases ,
+                function(i)
+                    sample( 1:n_outcome_vals , size=1 , replace=TRUE , prob=probs[i,] )
+            )
+        } else {
+            sim_out[s,] <- eval(parse(text=xeval),envir=e)
+        }
     }
     
     return(sim_out)
@@ -230,6 +244,7 @@ postcheck <- function( fit , prob=0.9 , window=20 , n=1000 , col=rangi2 , ... ) 
     
     # get outcome variable
     lik <- flist_untag(fit@formula)[[1]]
+    dname <- as.character(lik[[3]][[1]])
     outcome <- as.character(lik[[2]])
     if ( class(fit)=="map2stan" ) outcome <- undot(outcome)
     y <- fit@data[[ outcome ]]
@@ -254,7 +269,7 @@ postcheck <- function( fit , prob=0.9 , window=20 , n=1000 , col=rangi2 , ... ) 
     
     # check for aggregated binomial context
     mumax <- max(c(as.numeric(mu.PI)))
-    if ( ymax > 1 & mumax <= 1 ) {
+    if ( ymax > 1 & mumax <= 1 & dname=="dbinom" ) {
         # probably aggregated binomial
         size_var <- as.character(lik[[3]][[2]])
         size_var <- fit@data[[ size_var ]]
@@ -264,6 +279,21 @@ postcheck <- function( fit , prob=0.9 , window=20 , n=1000 , col=rangi2 , ... ) 
         }
         ymin <- 0
         ymax <- 1
+    }
+    if ( dname=="dordlogit" ) {
+        # put mu and mu.PI on outcome scale
+        ymin <- 1
+        nlevels <- dim(pred)[3]
+        mu <- sapply( 1:dim(pred)[2] , 
+            function(i) { 
+                temp <- t(pred[,i,])*1:7
+                mean(apply(temp,2,sum))
+            } )
+        mu.PI <- sapply( 1:dim(pred)[2] , 
+            function(i) { 
+                temp <- t(pred[,i,])*1:7
+                PI(apply(temp,2,sum),prob)
+            } )
     }
     
     start <- 1

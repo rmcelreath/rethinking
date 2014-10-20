@@ -68,10 +68,15 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
         pars_type <- list()
         for ( j in 1:length(pars) ) {
             pars_type[[j]] <- "UFO"
-            partxt <- as.character(pars[[j]])
-            if ( partxt %in% names(object@data) ) pars_type[[j]] <- "data"
-            if ( partxt %in% names(post) ) pars_type[[j]] <- "parameter"
-            if ( partxt %in% names(lm_vals) ) pars_type[[j]] <- "lm"
+            if ( class(pars[[j]])=="call" ) {
+                # language object, possible a vector of parameters in form c(...)
+                if ( as.character(pars[[j]][[1]])=="c" ) pars_type[[j]] <- "parvec"
+            } else {
+                partxt <- as.character(pars[[j]])
+                if ( partxt %in% names(object@data) ) pars_type[[j]] <- "data"
+                if ( partxt %in% names(post) ) pars_type[[j]] <- "parameter"
+                if ( partxt %in% names(lm_vals) ) pars_type[[j]] <- "lm"
+            }
         }
         
         if ( liks[[k]]$template %in% c("Binomial") ) {
@@ -123,13 +128,30 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
             for ( j in 1:length(pars) ) {
                 partxt <- as.character( pars[[j]] )
                 val <- NA
+                if ( pars_type[[j]]=="parvec" ) {
+                    # vector of parameters
+                    # for each parameter in vector, insert into environment e
+                    npars <- partxt[2:length(partxt)]
+                    for ( apar in 1:length(npars) ) {
+                        if ( dname=="dordlogit" & !is.null(post$cutpoints) ) {
+                            # get values from cutpoints
+                            val <- post[[ 'cutpoints' ]][1:n,apar]
+                            e[[ npars[apar] ]] <- val
+                        } else {
+                            val <- post[[ npars[apar] ]][1:n]
+                            e[[ naprs[apar] ]] <- val
+                        }
+                    }
+                }
                 if ( pars_type[[j]]=="data" ) {
                     # fetch value for case i
                     val <- object@data[[ partxt ]][i]
+                    e[[ partxt ]] <- val
                 }
                 if ( pars_type[[j]]=="parameter" ) {
                     # fetch n samples
                     val <- post[[ partxt ]][1:n]
+                    e[[ partxt ]] <- val
                 }
                 if ( pars_type[[j]]=="lm" ) {
                     # fetch n values
@@ -138,8 +160,8 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
                         val <- lm_vals[[ partxt ]][ , i ]
                     if ( ndims==3 )
                         val <- lm_vals[[ partxt ]][ , i , ]
+                    e[[ partxt ]] <- val
                 }
-                e[[ partxt ]] <- val
             }
             e1 <- new.env()
             for ( j in 1:length(e) ) {
@@ -149,7 +171,15 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
             if ( flag_aggregated_binomial==FALSE ) {
                 args_list <- list( as.symbol(outcome) , pars , log=TRUE )
                 args_list <- unlist( args_list , recursive=FALSE )
-                ll <- do.call( dname , args=args_list , envir=e1 )
+                if ( dname=="dordlogit" ) {
+                    # special handling for dordlogit
+                    # link() already provided probabilities for each outcome
+                    # just need to extract them by indexing on outcome value
+                    # 'phi' should hold matrix like phi[1:1000,1:7]
+                    ll <- log( e[['phi']][ , e[[outcome]] ] )
+                } else {
+                    ll <- do.call( dname , args=args_list , envir=e1 )
+                }
                 vll <- var2(ll)
                 pD <- pD + vll
                 # lppd increments with log( average( likelihood ) )
@@ -193,9 +223,9 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     
     waic_vec <- (-2)*( unlist(lppd_vec) - unlist(pD_vec) )
     if ( pointwise==TRUE ) {
-        waic <- waic_vec
-        lppd <- lppd_vec
-        pD <- pD_vec
+        waic <- unlist(waic_vec)
+        lppd <- unlist(lppd_vec)
+        pD <- unlist(pD_vec)
     } else {
         waic <- (-2)*( lppd - pD )
     }

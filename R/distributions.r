@@ -40,8 +40,21 @@ dordlogit <- function( x , phi , a , log=FALSE ) {
 rordlogit <- function( n , phi=0 , a ) {
     a <- c( as.numeric(a) , Inf )
     k <- 1:length(a)
-    p <- dordlogit( k , a=a , phi=phi , log=FALSE )
-    y <- sample( k , size=n , replace=TRUE , prob=p )
+    if ( length(phi)==1 ) {
+        p <- dordlogit( k , a=a , phi=phi , log=FALSE )
+        y <- sample( k , size=n , replace=TRUE , prob=p )
+    } else {
+        # vectorized input
+        y <- rep(NA,n)
+        if ( n > length(phi) ) {
+            # need to repeat some phi values
+            phi <- rep(phi, ceiling(n/length(phi)) )
+        }
+        for ( i in 1:n ) {
+            p <- dordlogit( k , a=a , phi=phi[i] , log=FALSE )
+            y[i] <- sample( k , size=1 , replace=TRUE , prob=p )
+        }
+    }
     y
 }
 
