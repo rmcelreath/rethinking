@@ -495,7 +495,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         is_linearmodel <- FALSE
         if ( length(flist[[i]][[3]]) > 1 ) {
             fname <- as.character( flist[[i]][[3]][[1]] )
-            if ( fname=="+" | fname=="(" | fname=="*" | fname=="-" | fname=="/" | fname=="%*%" | fname %in% c('exp','inv_logit') ) {
+            if ( fname=="[" | fname=="+" | fname=="(" | fname=="*" | fname=="-" | fname=="/" | fname=="%*%" | fname %in% c('exp','inv_logit') ) {
                 is_linearmodel <- TRUE
             }
         } else {

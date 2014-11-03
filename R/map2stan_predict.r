@@ -159,7 +159,8 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
         }#j
         
         # loop over linear models and compute by pushing samples through stanfit
-        for ( k in 1:n_lm ) {
+        # pass through linear models in reverse order, so lower models can be available for higher ones
+        for ( k in n_lm:1 ) {
         
             # ready environment
             e <- list( as.list(data) , as.list(init) )
@@ -189,6 +190,10 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
             } else {
                 lm_out[[ lm_names[k] ]][i,] <- r
             }
+            
+            # make linear models values available for next linear models
+            init[[ lm_names[k] ]] <- r
+            
         }#k
         
     }#i

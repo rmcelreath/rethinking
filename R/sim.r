@@ -75,6 +75,11 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , ... ) {
     pars <- paste( pars , collapse=" , " )
     # build expression to evaluate
     n_cases <- length(data[[outcome]])
+    if ( n_cases==0 ) {
+        # no outcome in custom data?
+        # get number of cases from first variable in data
+        n_cases <- length(data[[1]])
+    }
     if ( ll==FALSE ) {
         xeval <- paste( rlik , "(" , n_cases , "," , pars , ")" , collapse="" )
     } else {

@@ -112,6 +112,7 @@ precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE ,
         if ( the.class=="stanfit" ) {
             # HPDI from samples
             post <- extract.samples(model)
+            post[['lp__']] <- NULL
             result <- postlistprecis( post , prob=level )
         }
     }
@@ -158,7 +159,7 @@ precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE ,
         # have to handle vector/matrix parameters,
         # so split off any [.] and then prune with names only
         clean_names <- as.character( sapply( rownames(result) , function(s) strsplit( s , "[" , fixed=TRUE )[[1]][1] ) )
-        result <- result[ clean_names %in% pars ,]
+        result <- result[ clean_names %in% pars , ]
     }
     
     # result
