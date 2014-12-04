@@ -516,7 +516,7 @@ map2stan.templates <- list(
     GammaPoisson = list(
         name = "GammaPoisson",
         R_name = "dgampois",
-        stan_name = "neg_binomial",
+        stan_name = "neg_binomial_2",
         num_pars = 2,
         par_names = c("alpha","beta"),
         par_bounds = c("<lower=0>","<lower=0>"),
@@ -525,8 +525,8 @@ map2stan.templates <- list(
         par_map = function(k,...) {
             mu_name <- k[[1]];
             scale_name <- k[[2]];
-            k[[1]] <- concat(mu_name,"/",scale_name);
-            k[[2]] <- concat("1/",scale_name);
+            k[[1]] <- concat(mu_name);
+            k[[2]] <- concat(scale_name);
             return(k);
         },
         vectorized = TRUE

@@ -127,7 +127,10 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         RHS <- f[[3]]
         LHS <- f[[2]]
         fname <- as.character( RHS[[1]] )
-        if ( fname=="+" | fname=="*" | fname=="-" | fname=="/" | fname=="%*%" | fname %in% invlink.names ) {
+        flag_monad_linear_model <- FALSE
+        if ( length(RHS)==1 & class(RHS[[1]])=="numeric" )
+            flag_monad_linear_model <- TRUE
+        if ( fname=="+" | fname=="*" | fname=="-" | fname=="/" | fname=="%*%" | fname %in% invlink.names | flag_monad_linear_model==TRUE ) {
             # linear model formula with no density (but maybe invlink) function
             # return a list with parameter name in [[1]] and text of RHS in [[2]]
             thetext <- list( as.character(LHS) , paste( deparse(RHS) , collapse=" " ) )

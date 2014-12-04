@@ -274,7 +274,7 @@ postcheck <- function( fit , prob=0.9 , window=20 , n=1000 , col=rangi2 , ... ) 
     
     # check for aggregated binomial context
     mumax <- max(c(as.numeric(mu.PI)))
-    if ( ymax > 1 & mumax <= 1 & dname=="dbinom" ) {
+    if ( ymax > 1 & mumax <= 1 & dname %in% c("dbinom","dbetabinom") ) {
         # probably aggregated binomial
         size_var <- as.character(lik[[3]][[2]])
         size_var <- fit@data[[ size_var ]]

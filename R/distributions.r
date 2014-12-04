@@ -92,6 +92,18 @@ dbetabinom <- function (x, size, prob, theta, shape1, shape2, log = FALSE)
     else exp(v)
 }
 
+rbetabinom <- function( n , size, prob, theta, shape1, shape2 ) {
+    if (missing(prob) && !missing(shape1) && !missing(shape2)) {
+        prob <- shape1/(shape1 + shape2)
+        theta <- shape1 + shape2
+    }
+    # first generate beta probs
+    p <- rbeta2( n , prob , theta )
+    # then generate binomial counts
+    y <- rbinom( n , size , p )
+    return(y)
+}
+
 # gamma-poisson functions
 
 dgamma2 <- function( x , mu , scale , log=FALSE ) {
