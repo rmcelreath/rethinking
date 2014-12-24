@@ -1,3 +1,4 @@
-exportPattern(".")
+exportPattern("^[^x]")
 importFrom(coda, HPDinterval)
 importFrom(coda, as.mcmc)
+importFrom(MASS, mvrnorm)

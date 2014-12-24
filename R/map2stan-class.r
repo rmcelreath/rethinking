@@ -140,14 +140,14 @@ setMethod("summary", "map2stan", function(object){
 
 # resample from compiled map2stan fit
 # can also run on multiple cores
-resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC=TRUE , WAIC=TRUE , rng_seed , ... ) {
+resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC=TRUE , WAIC=TRUE , rng_seed , data , ... ) {
     if ( !(class(object)%in%(c("map2stan"))) )
         stop( "Requires map2stan fit" )
-    
+    if ( missing(data) ) data <- object@data
     init <- list()
     if ( cores==1 | chains==1 ) {
         for ( i in 1:chains ) init[[i]] <- object@start
-        fit <- stan( fit=object@stanfit , data=object@data , init=init , pars=object@pars , iter=iter , warmup=warmup , chains=chains , ... )
+        fit <- stan( fit=object@stanfit , data=data , init=init , pars=object@pars , iter=iter , warmup=warmup , chains=chains , ... )
     } else {
         init[[1]] <- object@start
         require(parallel)
@@ -158,14 +158,14 @@ resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC
             # hand off to mclapply
             sflist <- mclapply( 1:chains , mc.cores=cores ,
                 function(chainid)
-                    stan( fit=object@stanfit , data=object@data , init=init , pars=object@pars , iter=iter , warmup=warmup , chains=1 , seed=rng_seed, chain_id=chainid , ... )
+                    stan( fit=object@stanfit , data=data , init=init , pars=object@pars , iter=iter , warmup=warmup , chains=1 , seed=rng_seed, chain_id=chainid , ... )
             )
         } else {
             # Windows
             # so use parLapply instead
             CL = makeCluster(cores)
             fit <- object@stanfit
-            data <- object@data
+            #data <- object@data
             pars <- object@pars
             env0 <- list( fit=fit, data=data, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup )
             clusterExport(cl = CL, c("iter","warmup","data", "fit", "pars", "rng_seed"), as.environment(env0))

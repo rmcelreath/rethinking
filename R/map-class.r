@@ -106,7 +106,7 @@ function( object , n=10000 , clean.names=TRUE , ... ) {
 
 setMethod("extract.samples", "map",
 function(object,n=1e4,...){
-    require(MASS)
+    # require(MASS) # import now, so no need to require?
     mu <- object@coef
     result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
     # convert vector parameters to vectors in list

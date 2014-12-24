@@ -193,10 +193,15 @@ map2stan.templates <- list(
             
             # get constraints and add <lower=0> for sigma vector
             constr_list <- get( "constraints" , envir=e )
-            if ( is.null(constr_list[[Sigma_name]]) ) {
-                constr_list[[Sigma_name]] <- "lower=0"
-                assign( "constraints" , constr_list , envir=e )
+            isnum <- function(x) {
+                xn <- suppressWarnings(as.numeric(x))
+                return( ifelse(is.na(xn),FALSE,TRUE) ) 
             }
+            if ( !isnum(Sigma_name) )
+                if ( is.null(constr_list[[Sigma_name]]) ) {
+                    constr_list[[Sigma_name]] <- "lower=0"
+                    assign( "constraints" , constr_list , envir=e )
+                }
             
             # result
             return(kout);
@@ -205,15 +210,75 @@ map2stan.templates <- list(
     ),
     GaussianProcess = list(
         name = "GaussianProcess",
-        R_name = "dGP",
+        R_name = "GPL2",
         stan_name = "multi_normal",
-        num_pars = 3,
-        par_names = c("Dmat","scale","rate"),
-        par_bounds = c("","<lower=0,upper=1>","<lower=0>"),
-        par_types = c("matrix","real","real"),
+        num_pars = 4,
+        par_names = c("d","eta_sq","rho_sq","sig_sq"),
+        par_bounds = c("","<lower=0>","<lower=0>","<lower=0>"),
+        par_types = c("matrix","real","real","real"),
         out_type = "vector",
-        par_map = function(k,...) {
-            return(k);
+        par_map = function(k,e,n,N_txt,...) {
+            indent <- "    "
+            kout <- list()
+            # need to fill Mu with zeros
+            # make sure Mu matches length
+            kout[[1]] <- concat( "rep_vector(0," , N_txt , ")" )
+            
+            # need to construct Sigma
+            Cov_name <- concat( "SIGMA_" , k[[1]] )
+            kout[[2]] <- Cov_name
+            
+            ## handle temp cov matrix declaration
+            # get model declarations from parent
+            m_tmp <- get( "m_model_declare" , envir=e )
+            # add local covariance matrix variable
+            # will then build it from 'd' matrix in model block
+            m_tmp <- concat( m_tmp , indent , "matrix[",N_txt,",",N_txt,"] " , Cov_name , ";\n" )
+            # assign declarations text to parent environment
+            assign( "m_model_declare" , m_tmp , envir=e )
+            
+            ## handle loop to construct cov matrix in model block
+            # do this in 'm_model_txt' so is just before the ~ statement
+            m_tmp <- get( "m_model_txt" , envir=e )
+            m_tmp <- concat( m_tmp , indent , "for ( i in 1:(" , N_txt , "-1) )\n" )
+            m_tmp <- concat( m_tmp , indent , indent , "for ( j in (i+1):" , N_txt , " ) {\n" )
+            m_tmp <- concat( m_tmp , indent , indent , indent , Cov_name , "[i,j] <- " , k[[2]] , "*exp(-" , k[[3]] , "*pow(" , k[[1]] , "[i,j],2));\n" )
+            m_tmp <- concat( m_tmp , indent , indent , indent , Cov_name , "[j,i] <- " , Cov_name , "[i,j];\n" )
+            m_tmp <- concat( m_tmp , indent , indent , "}\n" )
+            m_tmp <- concat( m_tmp , indent , "for ( k in 1:" , N_txt , " )\n" )
+            m_tmp <- concat( m_tmp , indent , indent , Cov_name ,"[k,k] <- " , k[[2]] , " + " , k[[4]] , ";\n" )
+            assign( "m_model_txt" , m_tmp , envir=e )
+            
+            # have to make sure the distance matrix is declared in the data block
+            # so add it to used_predictors master list
+            # this also let's us keep text dimension declaration
+            fp_tmp <- get( "fp" , envir=e )
+            var_name <- as.character(k[[1]])
+            fp_tmp[['used_predictors']][[ var_name ]] <- list( var=var_name , N=c(N_txt,N_txt) , type="matrix" )
+            assign( "fp" , fp_tmp , envir=e )
+            
+            # make sure parameters have positive contraint
+            constr_list <- get( "constraints" , envir=e )
+            isnum <- function(x) {
+                xn <- suppressWarnings(as.numeric(x))
+                return( ifelse(is.na(xn),FALSE,TRUE) ) 
+            }
+            eta_name <- as.character( k[[2]] )
+            rho_name <- as.character( k[[3]] )
+            sig_name <- as.character( k[[4]] )
+            if ( !isnum(eta_name) )
+                if ( is.null(constr_list[[ eta_name ]]) ) 
+                    constr_list[[eta_name]] <- "lower=0"
+            if ( !isnum(rho_name) )
+                if ( is.null(constr_list[[ rho_name ]]) ) 
+                    constr_list[[rho_name]] <- "lower=0"
+            if ( !isnum(sig_name) )
+                if ( is.null(constr_list[[ sig_name ]]) ) 
+                    constr_list[[sig_name]] <- "lower=0"
+            assign( "constraints" , constr_list , envir=e )
+            
+            # return 2 element parameter vector for multi_normal
+            return(kout);
         },
         vectorized = FALSE
     ),
@@ -369,6 +434,7 @@ map2stan.templates <- list(
         name = "Binomial",
         R_name = "dbinom",
         stan_name = "binomial",
+        nat_link = "logit",
         num_pars = 2,
         par_names = c("size","prob"),
         par_bounds = c("<lower=1>","<lower=0,upper=1>"),
@@ -451,6 +517,7 @@ map2stan.templates <- list(
         name = "Poisson",
         R_name = "dpois",
         stan_name = "poisson",
+        nat_link = "log",
         num_pars = 1,
         par_names = c("lambda"),
         par_bounds = c("<lower=0>"),

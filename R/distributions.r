@@ -142,16 +142,8 @@ rlaplace <- function(n,location=0,lambda=1) {
     y
 }
 
-### softmax rule for multinomial
-multilogistic <- function( x , lambda=1 , diff=TRUE , log=FALSE ) {
-    if ( diff==TRUE ) x <- x - min(x)
-    f <- exp( lambda * x )
-    if ( log==FALSE ) result <- f / sum(f)
-    if ( log==TRUE ) result <- log(f) - log(sum(f))
-    result
-}
 
-
+# onion method correlation matrix
 dlkjcorr <- function( x , eta=1 , log=TRUE ) {
     det(x)^(eta-1)
 }
@@ -275,6 +267,15 @@ rcategorical <- function( n , prob ) {
     k <- length(prob)
     y <- sample( 1:k , size=n , prob=p , replace=TRUE )
     return(y)
+}
+
+### softmax rule for multinomial
+multilogistic <- function( x , lambda=1 , diff=TRUE , log=FALSE ) {
+    if ( diff==TRUE ) x <- x - min(x)
+    f <- exp( lambda * x )
+    if ( log==FALSE ) result <- f / sum(f)
+    if ( log==TRUE ) result <- log(f) - log(sum(f))
+    result
 }
 
 # multinomial logit link

@@ -125,7 +125,7 @@ se <- function( model ) {
 }
 
 # quadratic estimate confidence intervals from means and standard errors
-confint.quad <- function( model=NULL , est , se , level=0.95 ) {
+confint_quad <- function( model=NULL , est , se , level=0.95 ) {
     if ( !is.null(model) ) {
         found.class <- FALSE
         if ( class(model)=="lm" ) {

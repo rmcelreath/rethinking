@@ -98,7 +98,7 @@ precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE ,
     result <- data.frame( est=est , se=se )
     colnames(result) <- c("Mean","StdDev")
     if ( ci==TRUE ) {
-        ci <- confint.quad( est=est , se=se , level=level )
+        ci <- confint_quad( est=est , se=se , level=level )
         if ( the.class=="data.frame" ) {
             # HPDI from samples
             ci <- t( apply( model , 2 , HPDI , prob=level ) )

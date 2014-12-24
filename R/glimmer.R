@@ -2,7 +2,7 @@
 # translate glmer style model formulas into equivalent formula alist suitable for map2stan
 # just a stub for now
 
-parse_glimmer_formula <- function( formula , data ) {
+xparse_glimmer_formula <- function( formula , data ) {
     ## take a formula and parse into fixed effect and varying effect lists
     nobars <- function(term) {
         if (!('|' %in% all.names(term))) return(term)
@@ -162,7 +162,7 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
     prior_list <- alist()
     
     # parse
-    pf <- parse_glimmer_formula( formula , data )
+    pf <- xparse_glimmer_formula( formula , data )
     pf$yname <- undot(pf$yname)
     
     # build likelihood

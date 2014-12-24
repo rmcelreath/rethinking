@@ -64,15 +64,14 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
 \author{Richard McElreath}
 \seealso{\code{\link{resample}}, \code{\link{map}}, \code{\link{stan}}, \code{\link{link}}, \code{\link{sim}}, \code{\link{glimmer}}}
 \examples{
+\dontrun{
 library(rethinking)
 data(chimpanzees)
 
-# note that Stan doesn't allow "." in variable names
-# we replace them with _
-# also don't want any variables with NAs
+# don't want any variables with NAs
 d <- list( 
-    pulled_left = chimpanzees$pulled.left ,
-    prosoc_left = chimpanzees$prosoc.left ,
+    pulled_left = chimpanzees$pulled_left ,
+    prosoc_left = chimpanzees$prosoc_left ,
     condition = chimpanzees$condition ,
     actor = as.integer( chimpanzees$actor ) ,
     blockid = as.integer( chimpanzees$block )
@@ -184,7 +183,7 @@ ci <- apply( v , 2 , PI )
 plot( y ~ mu )
 cicols <- ifelse( is.na(x1) | is.na(x2) , "red" , "gray" )
 for( i in 1:N ) lines( ci[,i] , rep(y[i],2) , col=cicols[i] )
-
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

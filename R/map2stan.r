@@ -531,6 +531,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 xvp$T_text <- T_text
                 fp[['vprior']][[n+1]] <- xvp
                 fp_order <- listappend( fp_order , list(type="vprior",i=n+1) )
+                # make sure index variabe is class 'integer'
+                # if not, will be coerced and index automatically generated
+                if ( !is.null(d[[ xvp$group ]]) )
+                    if ( class(d[[ xvp$group ]])!="integer" )
+                        d[[ xvp$group ]] <- coerce_index( d[[ xvp$group ]] )
+                # next!
                 next
             }
         }
@@ -769,7 +775,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             
             # format parmater inputs
             # use par_map function in template, so ordering etc can change
-            klist <- tmplt$par_map( vprior$pars_in , environment() , npars )
+            klist <- tmplt$par_map( vprior$pars_in , environment() , npars , N_txt )
             for ( j in 1:length(klist) ) {
                 l <- tag_var(klist[[j]])
                 if ( !is.null(l) ) {
@@ -998,10 +1004,18 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             type <- "real"
             # integer check
             if ( class(d[[var$var]])=="integer" ) type <- "int"
+            if ( class(d[[var$var]])=="matrix" ) {
+                type <- "matrix"
+                if ( is.null(var$N) ) var$N <- dim(d[[var$var]])
+            }
             # coerce outcome type
             if ( !is.null(var$type) ) type <- var$type
             # build
-            m_data <- concat( m_data , indent , type , " " , var$var , "[" , var$N , "];\n" )
+            if ( type=="matrix" )
+                # rely on var$N being vector of matrix dimensions
+                m_data <- concat( m_data , indent , type , "[",var$N[1],",",var$N[2],"] " , var$var , ";\n" )
+            else
+                m_data <- concat( m_data , indent , type , " " , var$var , "[" , var$N , "];\n" )
         }#i
     }
     

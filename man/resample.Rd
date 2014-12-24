@@ -33,6 +33,7 @@ resample( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 ,
 \author{Richard McElreath}
 \seealso{\code{\link{map2stan}}, \code{\link{mclapply}}, \code{\link{sflist2stanfit}}}
 \examples{
+\dontrun{
 data(Trolley)
 d <- Trolley
 d2 <- list(
@@ -46,9 +47,9 @@ Nid <- length(unique(d2$id))
 
 # ordered logit regression with varying intercepts
 m.init <- map2stan(
-    list(
+    alist(
         y ~ dordlogit( phi , cutpoints ),
-        phi ~ aj + bA*xA + bI*xI + bC*xC,
+        phi <- aj + bA*xA + bI*xI + bC*xC,
         c(bA,bI,bC) ~ dnorm(0,1),
         aj[id] ~ dnorm(0,sigma_id),
         sigma_id ~ dcauchy(0,2.5),
@@ -60,13 +61,13 @@ m.init <- map2stan(
         cutpoints=c(-2,-1.7,-1,-0.2,0.5,1.3),
         aj=rep(0,Nid),sigma_id=1
     ),
-    types=list(cutpoints="ordered[6]") , 
-    iter=200
+    types=list(cutpoints="ordered") , 
+    iter=2
 )
 
 # Note: parallel chains won't work on Windows
 m <- resample( m.init , chains=3 , cores=3 , warmup=1000 , iter=3000 )
-
+}
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
