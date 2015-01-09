@@ -5,7 +5,6 @@ Version: 1.47
 Date: 2014-12-23
 Author: Richard McElreath
 Maintainer: Richard McElreath <mcelreath@ucdavis.edu>
-Imports: coda, MASS
-Extends: rstan
+Imports: coda, MASS, rstan
 Description: Utilities for fitting and comparing models
 License: GPL (>= 3)
