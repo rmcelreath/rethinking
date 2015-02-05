@@ -17,8 +17,13 @@ compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
         L <- L[[1]]
     
     # retrieve model names from function call
+    # if names of the call are set (as would be with a do.call())
+    # use those rather than coercing match.call() to character
     mnames <- match.call()
-    mnames <- as.character(mnames)[2:(length(L)+1)]
+    if (!is.null(names(mnames)))
+      mnames <- names(mnames)[2:(length(L)+1)]
+    else
+      mnames <- as.character(mnames)[2:(length(L)+1)]
     
     dSE.matrix <- matrix( NA , nrow=length(L) , ncol=length(L) )
     if ( WAIC==FALSE ) {
