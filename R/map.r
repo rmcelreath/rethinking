@@ -126,10 +126,14 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     # so user can pass arguments out of order to density function
         RHS <- f[[3]]
         LHS <- f[[2]]
-        fname <- as.character( RHS[[1]] )
         flag_monad_linear_model <- FALSE
-        if ( length(RHS)==1 & class(RHS[[1]])=="numeric" )
-            flag_monad_linear_model <- TRUE
+        if ( length(RHS)==1 ) {
+            if ( class(RHS)=="numeric" | class(RHS)=="name" )
+                flag_monad_linear_model <- TRUE
+            fname <- ""
+        } else {
+            fname <- as.character( RHS[[1]] )
+        }
         if ( fname=="+" | fname=="*" | fname=="-" | fname=="/" | fname=="%*%" | fname %in% invlink.names | flag_monad_linear_model==TRUE ) {
             # linear model formula with no density (but maybe invlink) function
             # return a list with parameter name in [[1]] and text of RHS in [[2]]

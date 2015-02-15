@@ -799,7 +799,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             }
             
             # add data declaration for grouping variable number of unique values
-            m_data <- concat( m_data , indent , "int<lower=1> " , N_txt , ";\n" )
+            #m_data <- concat( m_data , indent , "int<lower=1> " , N_txt , ";\n" )
+            fp[['used_predictors']][[N_txt]] <- list( var=N_txt , type="index" )
             
             # add N count to data
             N <- length( unique( d[[ vprior$group ]] ) )
@@ -1011,11 +1012,15 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             # coerce outcome type
             if ( !is.null(var$type) ) type <- var$type
             # build
-            if ( type=="matrix" )
+            if ( type=="matrix" ) {
                 # rely on var$N being vector of matrix dimensions
                 m_data <- concat( m_data , indent , type , "[",var$N[1],",",var$N[2],"] " , var$var , ";\n" )
-            else
+            }
+            if ( type=="index" ) {
+                m_data <- concat( m_data , indent , "int<lower=1> " , var$var , ";\n" )
+            } else {
                 m_data <- concat( m_data , indent , type , " " , var$var , "[" , var$N , "];\n" )
+            }
         }#i
     }
     

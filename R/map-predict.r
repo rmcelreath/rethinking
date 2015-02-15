@@ -7,7 +7,7 @@ function( fit , data , n=1000 , ... ) {
 )
 
 setMethod("link", "map",
-function( fit , data , n=1000 , post , probs=NULL , refresh=0.1 , flatten=TRUE , ... ) {
+function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
     
     if ( class(fit)!="map" ) stop("Requires map fit")
     if ( missing(data) ) {
@@ -23,6 +23,13 @@ function( fit , data , n=1000 , post , probs=NULL , refresh=0.1 , flatten=TRUE ,
     else {
         n <- dim(post[[1]])[1]
         if ( is.null(n) ) n <- length(post[[1]])
+    }
+    
+    # replace with any elements of replace list
+    if ( length( replace ) > 0 ) {
+        for ( i in 1:length(replace) ) {
+            post[[ names(replace)[i] ]] <- replace[[i]]
+        }
     }
     
     nlm <- length(fit@links)

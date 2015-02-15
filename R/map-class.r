@@ -84,7 +84,7 @@ setMethod("summary", "map", function(object){
 
 setGeneric("extract.samples",
 function( object , n=10000 , clean.names=TRUE , ... ) {
-    require(MASS)
+    #require(MASS)
     mu <- 0
     if ( class(object)[1] %in% c("mer","bmer","glmerMod","lmerMod") ) {
         mu <- fixef(object)

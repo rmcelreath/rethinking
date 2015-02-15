@@ -11,7 +11,7 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{flist}{A formula or list of formulas that define the likelihood and priors. See details.}
+  \item{flist}{A formula or list of formulas that define the likelihood and priors. Can also pass in a \code{map} model fit. See details.}
   \item{data}{A data frame or list containing the data}
   \item{start}{Optional named list specifying parameters and their initial values}
   \item{pars}{Optional: character vector of parameters to return samples for}
@@ -27,7 +27,7 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
 \details{
   This command provides a convenient interface for building arbitary fixed effect and mixed effect generalized linear models, as defined by a list of formulas. Syntax is similar to \code{map}, but also allowing multivariate priors corresponding to varying (aka random) effects, as well as simple imputation schemes.
   
-  \code{flist} should be a either a single formula that defines the likelihood function or rather a list of formulas that define the likelihood and linear models and priors for parameters. See examples below.
+  \code{flist} should be either (1) a single formula that defines the likelihood function or rather a list of formulas that define the likelihood and linear models and priors for parameters (see examples below) or (2) a previously fit \code{map} model.
   
   Likelihood formulas take the form \code{y ~ dfoo(bar)}, where \code{y} is the outcome variable, \code{dfoo} is a density function such as \code{dnorm}, and \code{bar} is a parameter of the density.
   
@@ -37,11 +37,13 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   
   Linear models can be specified as formulas of the form \code{mu <- a + b*x} for a direct link. To use a link function, use the form \code{link(mu) <- a + b*x}. The name "link" must be recognized by \code{map2stan}. It currently recognizes \code{log} and \code{logit}.
   
-  Imputation of missing values is available by specifying distributions for predictor variables that contain \code{NA} values. \code{map2stan} will split the variable into observed and a vector of parameters used to estimate the missing values, assigning the same distribution to each. See the example.
+  Imputation of missing values is available by specifying distributions for predictor variables that contain \code{NA} values. \code{map2stan} will split the variable into observed values and a vector of parameters used to estimate the missing values, assigning the same distribution to each. See the example.
   
   The \code{start} list is optional. When missing from the list, for each parameter with a defined prior, an initial value will be sampled from the prior. Sampled initial values will try to respect parameter constraints. For varying effect parameter vectors, initial values will always be set to zero. Specific initial values can be specified in the \code{start} list. See examples below. 
   
-  The Stan model code includes a generated quantities block that computes the deviance for each iteration of parameter samples. When sampling completes, \code{map2stan} computes DIC, the deviance information criterion, from the samples. DIC information is available from \code{show} and \code{DIC}, as well as being attributes of the returned object. WAIC can be computed with \code{WAIC}, or by setting \code{WAIC=TRUE} when calling \code{map2stan}.
+  The Stan model code includes a generated quantities block that computes the deviance for each iteration of parameter samples. When sampling completes, \code{map2stan} computes DIC, the deviance information criterion, from the samples. DIC information is available from \code{show} and \code{DIC}, as well as being attributes of the returned object. 
+  
+  WAIC can be computed with \code{WAIC}, or by setting \code{WAIC=TRUE} when calling \code{map2stan}. This is currently the default. WAIC is calculated entirely after Stan completes sampling. 
   
   Functions meant for (re)processing \code{map2stan} fits are: \code{extract.samples}, \code{\link{resample}}, and \code{stancode}.
   

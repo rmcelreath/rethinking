@@ -1,5 +1,5 @@
 \name{Kline}
-\alias{Kline}\alias{Kline2}\alias{KlineDistMatrix}
+\alias{Kline}\alias{Kline2}\alias{islandsDistMatrix}\alias{islands}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Oceanic islands data}
 \description{

@@ -312,3 +312,60 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     
 }
 )
+
+# lm
+setMethod("WAIC", "lm",
+function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
+    
+    if ( refresh > 0 ) message("Constructing posterior predictions")
+    
+    # extract samples --- will need for inline parameters e.g. sigma in likelihood
+    post <- extract.samples( object , n=n )
+    # get sigma
+    sigma <- sd(resid(object))
+    
+    # compute log-lik at each sample
+    # can hijack predict.lm() to do this by inserting samples into object$coefficients
+    m_temp <- object
+    out_var <- object$model[[1]] # should be outcome variable
+    n_coefs <- length(coef(object))
+    s <- sapply( 1:n , 
+        function(i) {
+            for ( j in 1:n_coefs ) m_temp$coefficients[[j]] <- post[i,j]             
+            mu <- as.numeric(predict(m_temp)) # as.numeric strips names
+            dnorm( out_var , mu , sigma , log=TRUE )
+        } )
+    
+    pD <- 0
+    lppd <- 0
+    n_cases <- length(out_var)
+    n_samples <- n
+    lppd_vec <- rep(NA,n_cases)
+    pD_vec <- rep(NA,n_cases)
+    for ( i in 1:n_cases ) {# for each case
+        
+        vll <- var2(s[i,])
+        pD <- pD + vll
+        lpd <- log_sum_exp(s[i,]) - log(n_samples)
+        lppd <- lppd + lpd
+        lppd_vec[i] <- lpd
+        pD_vec[i] <- vll
+    }#i - cases
+    
+    waic_vec <- (-2)*( lppd_vec - pD_vec )
+    if ( pointwise==TRUE ) {
+        # return decomposed as WAIC for each observation i --- can sum to get total WAIC
+        # this is useful for computing standard errors of differences with compare()
+        waic <- (-2)*( lppd_vec - pD_vec )
+        lppd <- lppd_vec
+        pD <- pD_vec
+    } else {
+        waic <- (-2)*( lppd - pD )
+    }
+    attr(waic,"lppd") = lppd
+    attr(waic,"pWAIC") = pD
+    attr(waic,"se") = try(sqrt( n_cases*var2(waic_vec) ))
+    
+    return(waic)
+} )
+

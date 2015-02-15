@@ -3,11 +3,10 @@
 
 # to do:
 # (*) fix dzipois vectorization hack --- need to fix dzipois itself
-# (*) fix dordlogit in WAIC calculation -- not sure what issue is
 
 # new link function that doesn't invoke Stan
 setMethod("link", "map2stan",
-function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
+function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
 
     if ( class(fit)!="map2stan" ) stop("Requires map2stan fit")
     if ( missing(data) ) {
@@ -18,7 +17,12 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
         #data <- as.data.frame(data)
     }
     
-    post <- extract.samples(fit)
+    # get samples from Stan fit
+    if ( missing(post) )
+        post <- extract.samples(fit)
+    
+    # check n and truncate accordingly
+    # if ( n==0 )
     
     # replace with any elements of replace list
     if ( length( replace ) > 0 ) {
@@ -89,7 +93,10 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
     
     init <- fit@start
     
+    ###################
     # loop over samples and compute each case for each linear model
+    
+    # initialize refresh counter
     ref_inc <- floor(n*refresh)
     ref_next <- ref_inc
     
@@ -134,6 +141,7 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
         rhs[[k]] <- rhs0
     }#k
     
+    # loop over samples
     for ( i in 1:n ) {
     
         # refresh progress display
@@ -197,10 +205,6 @@ function( fit , data , n=1000 , probs=NULL , refresh=0.1 , replace=list() , flat
         }#k
         
     }#i
-    
-    if ( !is.null(probs) ) {
-        #NYI
-    }
     
     if ( refresh>0 ) cat("\n")
     
