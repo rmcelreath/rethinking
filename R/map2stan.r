@@ -1017,8 +1017,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 m_data <- concat( m_data , indent , type , "[",var$N[1],",",var$N[2],"] " , var$var , ";\n" )
             }
             if ( type=="index" ) {
-                m_data <- concat( m_data , indent , "int<lower=1> " , var$var , ";\n" )
-            } else {
+                # index variable go at top of m_data
+                m_data <- concat( indent , "int<lower=1> " , var$var , ";\n" , m_data )
+            }  
+            if ( type!="index" & type!="matrix" ) {
                 m_data <- concat( m_data , indent , type , " " , var$var , "[" , var$N , "];\n" )
             }
         }#i
