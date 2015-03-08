@@ -6,9 +6,7 @@
 # templates map R density functions onto Stan functions
 
 # to-do:
-# (*) imputation merging -- 'impute' list? 
 # (*) need to do p*theta and (1-p)*theta multiplication outside likelihood in betabinomial (similar story for gammapoisson) --- or is there an operator for pairwise vector multiplication?
-# (*) nobs calculation after fitting needs to account for aggregated binomial
 # (-) handle improper input more gracefully
 # (-) add "as is" formula type, with quoted text on RHS to dump into Stan code
 
@@ -71,9 +69,18 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     if ( missing(start) ) start <- list()
     start.orig <- start
     
+    # check data for scale attributes and remove
+    for ( i in 1:length(data) ) {
+        if ( !is.null( attr(data[[i]],"scaled:center") ) | !is.null( attr(data[[i]],"scaled:scale") ) ) {
+            warning( concat("Stripping scale attributes from variable ",names(data)[i] ) )
+            data[[i]] <- as.numeric(data[[i]])
+        }
+    }
+    
     ########################################
     # private functions
     
+    # this is now in rethinking namespace, so should prob remove
     concat <- function( ... ) {
         paste( ... , collapse="" , sep="" )
     }
@@ -216,6 +223,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         }
         template <- get_template( as.character(fl[[3]][[1]]) )
         likelihood <- template$stan_name
+        
+        # check for special Stan distribution with bound link function
+        nat_link <- FALSE
+        if ( !is.null(template$nat_link) ) nat_link <- template$nat_link
+        
         likelihood_pars <- list()
         for ( i in 1:(length(fl[[3]])-1) ) likelihood_pars[[i]] <- fl[[3]][[i+1]]
         N_cases <- length( d[[ outcome ]] )
@@ -232,13 +244,15 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             pars = likelihood_pars ,
             N_cases = N_cases ,
             N_name = N_name ,
-            out_type = template$out_type
+            out_type = template$out_type ,
+            nat_link = nat_link
         )
     }
     
     # extract linear model(s)
     extract_linearmodel <- function( fl ) {
         # check for link function
+        use_link <- TRUE
         if ( length(fl[[2]])==1 ) {
             parameter <- as.character( fl[[2]] )
             link <- "identity"
@@ -246,6 +260,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             # link!
             parameter <- as.character( fl[[2]][[2]] )
             link <- as.character( fl[[2]][[1]] )
+            use_link <- TRUE # later detect special Stan dist with built-in link
         }
         RHS <- paste( deparse(fl[[3]]) , collapse=" " )
         # find likelihood that contains this lm
@@ -256,17 +271,37 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # find par in likelihood that matches lhs of this lm
                 for ( j in 1:length(pars) ) {
                     if ( parameter == pars[[j]] ) {
+                        # match!
                         N_name <- fp[['likelihood']][[i]][['N_name']]
-                    }
-                }
-            }
+                        # check if link for this linear model matches 
+                        #   nat_link for likelihood
+                        if ( link != "identity" ) {
+                            nat_link <- fp[['likelihood']][[i]][['nat_link']]
+                            if ( nat_link != FALSE ) {
+                                if ( nat_link == link ) {
+                                    # use special Stan distribution
+                                    # so replace likelihood name in likelihood entry
+                                    lik <- fp[['likelihood']][[i]][['likelihood']]
+                                    lik <- concat( lik , "_" , link )
+                                    fp_new <- fp
+                                    fp_new[['likelihood']][[i]][['likelihood']] <- lik
+                                    assign( "fp" , fp_new , inherits=TRUE )
+                                    # and erase explicit link
+                                    use_link <- FALSE
+                                }
+                            }
+                        }# not identity
+                    }#match
+                }#j
+            }#i
         }
         # result
         list(
             parameter = parameter ,
             RHS = RHS ,
             link = link ,
-            N_name = N_name
+            N_name = N_name ,
+            use_link = use_link
         )
     }
     
@@ -300,7 +335,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # extract ordinary prior
     extract_prior <- function( fl ) {
         # apar <- as.character( fl[[2]] )
-        apar <- deparse( fl[[2]] ) # deparse handles 'par[i]' correctly
+        if ( class(fl[[2]])=="call" ) {
+            apar <- fl[[2]] # preserve c(a,b) call structure
+        } else {
+            apar <- deparse( fl[[2]] ) # deparse handles 'par[i]' correctly
+        }
         template <- get_template(as.character(fl[[3]][[1]]))
         adensity <- template$stan_name
         inpars <- list()
@@ -546,18 +585,39 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         if ( length( flist[[i]][[2]] ) > 1 ) {
             fname <- as.character( flist[[i]][[2]][[1]] )
             if ( fname=="c" ) {
-                # get list of parameters and add each as parsed prior
-                np <- length( flist[[i]][[2]] )
-                for ( j in 2:np ) {
-                    fcopy <- flist[[i]]
-                    fcopy[[2]] <- flist[[i]][[2]][[j]]
+                # need to distinguish between 
+                    # repeat a prior, e.g.: c(a,b) ~ dnorm(0,1)
+                    # multivariate prior, e.g.: c(a,b) ~ dmvnorm(0,Sigma)
+                flag_mvprior <- FALSE
+                if ( length(RHS)>1 ) {
+                    fname <- as.character( RHS[[1]] )
+                    if ( fname %in% c("dmvnorm","dmvnorm2","normal","multi_normal") )
+                        flag_mvprior <- TRUE
+                }
+                if ( flag_mvprior==FALSE ) {
+                    # get list of parameters and add each as parsed prior
+                    np <- length( flist[[i]][[2]] )
+                    for ( j in 2:np ) {
+                        fcopy <- flist[[i]]
+                        fcopy[[2]] <- flist[[i]][[2]][[j]]
+                        n <- length( fp[['prior']] )
+                        xp <- extract_prior( fcopy )
+                        xp$T_text <- T_text
+                        fp[['prior']][[n+1]] <- xp
+                        fp_order <- listappend( fp_order , list(type="prior",i=n+1) )
+                    } #j
+                } # not mvprior
+                if ( flag_mvprior==TRUE ) {
+                    # treat like ordinary prior
+                    # template handles vector conversion in Stan code
+                    # extract_prior() should preserve call structure
                     n <- length( fp[['prior']] )
-                    xp <- extract_prior( fcopy )
+                    xp <- extract_prior( flist[[i]] )
                     xp$T_text <- T_text
                     fp[['prior']][[n+1]] <- xp
                     fp_order <- listappend( fp_order , list(type="prior",i=n+1) )
-                }
-            }
+                } # mvprior
+            } # "c" call
             if ( fname=="[" ) {
                 # hard-coded index
                 n <- length( fp[['prior']] )
@@ -565,7 +625,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 xp$T_text <- T_text
                 fp[['prior']][[n+1]] <- xp
                 fp_order <- listappend( fp_order , list(type="prior",i=n+1) )
-            }
+            } # "[" call
         } else {
             # ordinary simple prior
             n <- length( fp[['prior']] )
@@ -689,6 +749,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     klist[[j]] <- l$var # handles undotting
                 }
             }
+            if ( class(prior$par_out)!="character" )
+                prior$par_out <- deparse(prior$par_out)
             parstxt <- paste( klist , collapse=" , " )
             txt <- concat( indent , prior$par_out , " ~ " , prior$density , "( " , parstxt , " )" , prior$T_text , ";" )
             
@@ -729,15 +791,26 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     # any old anonymous prior -- sample init from prior density
                     # but must check for dimension, in case is a vector
                     ndims <- max(ndims,1)
-                    theta <- replicate( ndims , sample_from_prior( tmplt$R_name , prior$pars_in ) )
-                    start_prior[[ prior$par_out ]] <- theta
-                    if ( ndims==1 ) {
-                        if ( verbose==TRUE )
-                            message( paste(prior$par_out,": using prior to sample start value") )
+                    theta <- try(
+                        replicate( 
+                            ndims , 
+                            sample_from_prior( tmplt$R_name , prior$pars_in ) ),
+                        silent=TRUE)
+                    if ( class(theta)=="try-error" ) {
+                        # something went wrong
+                        msg <- attr(theta,"condition")$message
+                        message(concat("Error trying to sample start value for parameter '",prior$par_out,"'.\nPrior malformed, or maybe you mistyped a variable name?"))
+                        stop(msg)
                     } else {
-                        if ( verbose==TRUE ) 
-                            message( paste(prior$par_out,": using prior to sample start values [",ndims,"]") )
-                    }
+                        start_prior[[ prior$par_out ]] <- theta
+                        if ( ndims==1 ) {
+                            if ( verbose==TRUE )
+                                message( paste(prior$par_out,": using prior to sample start value") )
+                        } else {
+                            if ( verbose==TRUE ) 
+                                message( paste(prior$par_out,": using prior to sample start values [",ndims,"]") )
+                        }
+                    }#no error
                 }
             }#not in start list
             
@@ -858,7 +931,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             m_gq <- concat( m_gq , txt1 )
             
             # link function
-            if ( linmod$link != "identity" ) {
+            if ( linmod$link != "identity" & linmod$use_link==TRUE ) {
                 # check for valid link function
                 if ( is.null( inverse_links[[linmod$link]] ) ) {
                     stop( paste("Link function '",linmod$link,"' not recognized in formula line:\n",deparse(flist[[f_num]]),sep="") )

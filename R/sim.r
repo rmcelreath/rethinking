@@ -207,13 +207,20 @@ function( fit , data , n=0 , post , ... ) {
     post2 <- as.data.frame(post)
     for ( s in 1:n ) {
         # build environment
-        ndims <- length(dim(pred[[1]]))
-        if ( ndims==2 )
-            elm <- pred[[1]][s,] # extract s-th sample case calculations
-        if ( ndims==3 )
-            elm <- pred[[1]][s,,]
-        elm <- list(elm)
-        names(elm)[1] <- names(pred)[1]
+        #ndims <- length(dim(pred[[1]]))
+        #if ( ndims==2 )
+        #    elm <- pred[[1]][s,] # extract s-th sample case calculations
+        #if ( ndims==3 )
+        #    elm <- pred[[1]][s,,]
+        #elm <- list(elm)
+        #names(elm)[1] <- names(pred)[1]
+        
+        elm <- list()
+        for ( j in 1:length(pred) ) {
+            elm[[j]] <- pred[[j]][s,]
+        }
+        names(elm) <- names(pred)
+        
         e <- list( as.list(data) , as.list(post2[s,]) , as.list(elm) )
         e <- unlist( e , recursive=FALSE )
         # evaluate

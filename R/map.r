@@ -1,5 +1,7 @@
 # MAP - maximum a posteriori estimation
 
+# to-do:
+
 # utility function to convert alist() construction with <- tagged linear model to regular ~ variety
 flist_untag <- function(flist) {
     for ( i in 1:length(flist) ) {

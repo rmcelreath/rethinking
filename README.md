@@ -61,6 +61,17 @@ generated quantities{
 }
 ```
 
+## Posterior prediction
+
+Both ``map`` and ``map2stan`` model fits can be post-processed to produce posterior distributions of any linear models and posterior predictive distributions.
+
+``link`` is used to compute values of any linear models over samples from the posterior distribution. 
+
+``sim`` is used to simulate posterior predictive distributions, simulating outcomes over samples from the posterior distribution of parameters. See ``?link`` and ``?sim`` for details.
+
+``postcheck`` automatically computes posterior predictive (retrodictive?) checks for each case used to fit a model. 
+
+
 ## Multilevel model formulas
 
 While ``map`` is limited to fixed effects models for the most part, ``map2stan`` can specify multilevel models, even quite complex ones. For example, a simple varying intercepts model looks like:
@@ -166,4 +177,6 @@ Note the use of the ``constraints`` list to pass custom parameter constraints to
 ## Information criteria
 
 Both ``map`` and ``map2stan`` provide DIC and WAIC. Well, in most cases they do. In truth, both tools are flexible enough that you can specify models for which neither DIC nor WAIC can be correctly calculated. But for ordinary GLMs and GLMMs, it works. See the R help ``?WAIC``. A convenience function ``compare`` summarizes information criteria comparisons, including standard errors for WAIC. 
+
+``ensemble`` computes ``link`` and ``sim`` output for an ensemble of models, each weighted by its Akaike weight, as computed from WAIC.
 

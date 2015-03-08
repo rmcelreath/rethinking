@@ -234,9 +234,15 @@ setMethod("plot" , "map2stan" , function(x,y,...) {
     tracerplot(x,...)
 })
 
-setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=16 , adj=1 , ...) {
+setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=16 , adj=1 , pars , ...) {
     require(rstan)
     posterior <- extract.samples(x)
+    if ( !missing(pars) ) {
+        # select out named parameters
+        p <- list()
+        for ( k in pars ) p[[k]] <- posterior[[k]]
+        posterior <- p
+    }
     panel.dens <- function(x, ...) {
         usr <- par("usr"); on.exit(par(usr))
         par(usr = c(usr[1:2], 0, 1.5) )

@@ -639,16 +639,16 @@ dev <- dev + (-2)*(bernoulli_log(0,PAR1) + gamma_log(OUTCOME,PAR2,PAR3));",
         stan_name = "increment_log_prob",
         stan_code = 
 "if (OUTCOME == 0)
-increment_log_prob(log_sum_exp(bernoulli_log(1,PAR1),
-    bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2)));
-else
-increment_log_prob(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
+      increment_log_prob(log_sum_exp(bernoulli_log(1,PAR1),
+        bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2)));
+    else
+      increment_log_prob(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
         stan_dev = 
 "if (OUTCOME == 0)
-dev <- dev + (-2)*(log_sum_exp(bernoulli_log(1,PAR1),
-    bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2)));
-else
-dev <- dev + (-2)*(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
+      dev <- dev + (-2)*(log_sum_exp(bernoulli_log(1,PAR1),
+        bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2)));
+    else
+      dev <- dev + (-2)*(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
         num_pars = 2,
         par_names = c("p","lambda"),
         par_bounds = c("",""),

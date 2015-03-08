@@ -73,7 +73,7 @@ postlistprecis <- function( post , prob=0.95 ) {
     result
 }
 
-precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE ) {
+precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE , func=mean ) {
     the.class <- class(model)[1]
     found.class <- FALSE
     if ( the.class=="numeric" ) {
@@ -86,7 +86,7 @@ precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE ,
     if ( the.class=="list" )
         if ( class( model[[1]] ) != "mcarray" ) found.class <- FALSE
     if ( found.class==TRUE ) {
-        est <- xcoef( model )
+        est <- xcoef( model , func=func )
         se <- xse( model )
         if ( corr==TRUE ) Rho <- xrho( model )
     }
@@ -95,8 +95,11 @@ precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE ,
         return(invisible())
     }
     # format
+    fname <- deparse(substitute(func))
+    # capitalize first letter
+    fname <- concat( toupper(substring(fname,1,1)) , substring(fname,2) )
     result <- data.frame( est=est , se=se )
-    colnames(result) <- c("Mean","StdDev")
+    colnames(result) <- c( fname ,"StdDev")
     if ( ci==TRUE ) {
         ci <- confint_quad( est=est , se=se , level=level )
         if ( the.class=="data.frame" ) {
@@ -167,7 +170,7 @@ precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE ,
 }
 
 ####
-xcoef <- function( model ) {
+xcoef <- function( model , func=mean ) {
     the.class <- class(model)[1]
     the.method <- precis.whitelist$coef.method[ precis.whitelist$class==the.class ]
     if ( the.method=="coef" ) {
@@ -181,7 +184,7 @@ xcoef <- function( model ) {
     }
     if ( the.method=="chain" ) {
         # average of chains
-        result <- apply( model , 2 , mean )
+        result <- apply( model , 2 , func )
     }
     if ( the.method=="stanfit" ) {
         result <- summary( model )$summary[,1]
