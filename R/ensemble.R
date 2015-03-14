@@ -1,5 +1,5 @@
 # build ensemble of samples using DIC/WAIC weights
-ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 ) {
+ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 , replace=list() ) {
     # retrieve list of models
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 )
@@ -22,11 +22,11 @@ ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 ) {
     # generate simulated predictions for each model
     # then compose ensemble using weights
     if ( missing(data) ) {
-        link.list <- lapply( L , function(m) link(m , n=n , refresh=refresh ) )
-        sim.list <- lapply( L , function(m) sim(m , n=n , refresh=refresh ) )
+        link.list <- lapply( L , function(m) link(m , n=n , refresh=refresh , replace=replace ) )
+        sim.list <- lapply( L , function(m) sim(m , n=n , refresh=refresh , replace=replace ) )
     } else {
-        link.list <- lapply( L , function(m) link(m , data=data , n=n , refresh=refresh ) )
-        sim.list <- lapply( L , function(m) sim(m , data=data , n=n , refresh=refresh ) )
+        link.list <- lapply( L , function(m) link(m , data=data , n=n , refresh=refresh , replace=replace ) )
+        sim.list <- lapply( L , function(m) sim(m , data=data , n=n , refresh=refresh , replace=replace ) )
     }
     #print(str(sim.list))
     
@@ -37,7 +37,8 @@ ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 ) {
     if ( length(L)>1 )
         for ( i in 2:length(idx) ) {
             idx_start[i] <- min( idx_start[i-1] + idx[i-1] , n )
-            idx_end[i] <- min( idx_end[i-1] + idx[i] , n )
+            idx_end[i] <- min( idx_start[i] + idx[i] - 1 , n )
+            if ( i==length(idx) ) idx_end[i] <- n
         }
     #print(idx)
     #print(idx_start)

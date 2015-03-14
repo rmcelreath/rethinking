@@ -6,7 +6,7 @@
 }
 \usage{
 dbetabinom( x , size , prob , theta , shape1 , shape2 , log=FALSE )
-rbetabinom( n , size , prob , theta , shape2 , shape2 )
+rbetabinom( n , size , prob , theta , shape1 , shape2 )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -30,6 +30,7 @@ rbetabinom( n , size , prob , theta , shape2 , shape2 )
 \author{Richard McElreath}
 \seealso{}
 \examples{
+\dontrun{
 data(reedfrogs)
 reedfrogs$pred_yes <- ifelse( reedfrogs$pred=="pred" , 1 , 0 )
 
@@ -57,7 +58,7 @@ m.stan <- map2stan(
     ),
     data=reedfrogs,
     constraints=list(theta="lower=0") )
-}
+}}
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
 \keyword{ }

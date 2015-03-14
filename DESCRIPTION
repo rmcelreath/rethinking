@@ -1,11 +1,11 @@
 Package: rethinking
 Type: Package
 Title: Statistical Rethinking book package
-Version: 1.50
-Date: 2015-03-07
+Version: 1.51
+Date: 2015-03-14
 Author: Richard McElreath
 Maintainer: Richard McElreath <mcelreath@ucdavis.edu>
 Imports: coda, MASS
-Extends: rstan
+Depends: rstan, parallel
 Description: Utilities for fitting and comparing models
 License: GPL (>= 3)

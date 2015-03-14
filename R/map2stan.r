@@ -6,6 +6,8 @@
 # templates map R density functions onto Stan functions
 
 # to-do:
+# (*) different chains get different random start values
+# (*) support cores argument -> compile -> resample
 # (*) need to do p*theta and (1-p)*theta multiplication outside likelihood in betabinomial (similar story for gammapoisson) --- or is there an operator for pairwise vector multiplication?
 # (-) handle improper input more gracefully
 # (-) add "as is" formula type, with quoted text on RHS to dump into Stan code
@@ -13,7 +15,7 @@
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , ... ) {
     
     ########################################
     # empty Stan code
@@ -397,6 +399,15 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     impute_bank <- list()
     d <- as.list(data)
     
+    # undot all the variable names
+    for ( i in 1:length(d) ) {
+        raw_name <- names(d)[i]
+        new_name <- undot(raw_name)
+        if ( raw_name != new_name )
+            warning( concat("Renaming variable '",raw_name,"' to '",new_name,"' internally.\nYou should rename the variable to remove all dots '.'") )
+        names(d)[i] <- new_name
+    }
+    
     ##################################
     # check for previous fit object
     # if found, build again to get data right, but use compiled model later
@@ -490,7 +501,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             
             # check for missing values
             # if found, indicates predictor variable for imputation
-            if ( any(is.na(d[[lik$outcome]])) ) {
+            if ( any(is.na(d[[undot(lik$outcome)]])) ) {
                 # overwrite with top 'N' name
                 fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
                 
@@ -510,7 +521,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # flag as used
                 fp[['used_predictors']][[missingness_name]] <- list( var=missingness_name , N=N_missing_name , type="int" )
                 # replace variable with missing values
-                d[[lik$outcome]] <- var_temp
+                d[[undot(lik$outcome)]] <- var_temp
+                
+                # message to user
+                message(concat("Imputing ",length(var_missingness)," missing values (NA) in variable '",undot(lik$outcome),"'."))
             }
             
             # check for binomial size variable and mark used

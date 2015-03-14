@@ -59,21 +59,21 @@ progbar <- function( current , min=0 , max=100 , starttime , update.interval=100
 }
 
 # convenience interface to glmer (lme4) that always uses REML=FALSE
-glmm <- function( ... , family , REML=FALSE ) {
-    require(lme4)
-    if ( missing(family) ) {
-        result <- lmer( ... , REML=REML )
-    } else {
-        result <- glmer( ... , family=family )
-    }
-    result
-}
+#glmm <- function( ... , family , REML=FALSE ) {
+#    require(lme4)
+#    if ( missing(family) ) {
+#        result <- lmer( ... , REML=REML )
+#    } else {
+#        result <- glmer( ... , family=family )
+#    }
+#    result
+#}
 
-bglmm <- function( ... , REML=FALSE ) {
-    require(lme4)
-    require(blme)
-    blmer( ... , REML=REML )
-}
+#bglmm <- function( ... , REML=FALSE ) {
+#    require(lme4)
+#    require(blme)
+#    blmer( ... , REML=REML )
+#}
 
 covmat <- function( m , digits=4 ) {
     # upper diag is covariances
@@ -171,7 +171,7 @@ replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
 
 # multi-core replicate
 mcreplicate <- function (n, expr, refresh = 0.1, mc.cores=2 ) {
-    require(parallel)
+    #require(parallel)
     show_progress <- function(i) {
         intervaln <- floor(n * refresh)
         if (floor(i/intervaln) == i/intervaln) {

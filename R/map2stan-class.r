@@ -150,7 +150,7 @@ resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC
         fit <- stan( fit=object@stanfit , data=data , init=init , pars=object@pars , iter=iter , warmup=warmup , chains=chains , ... )
     } else {
         init[[1]] <- object@start
-        require(parallel)
+        #require(parallel)
         sys <- .Platform$OS.type
         if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
         if ( sys=='unix' ) {
@@ -170,7 +170,7 @@ resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC
             env0 <- list( fit=fit, data=data, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup )
             clusterExport(cl = CL, c("iter","warmup","data", "fit", "pars", "rng_seed"), as.environment(env0))
             sflist <- parLapply(CL, 1:chains, fun = function(cid) {
-                require(rstan)
+                #require(rstan)
                 stan(fit = fit, data = data, pars = pars, chains = 1, 
                   iter = iter, warmup = warmup, seed = rng_seed, 
                   chain_id = cid)
@@ -218,7 +218,7 @@ resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC
     #WAIC
     if ( WAIC==TRUE ) {
         attr(result,"WAIC") <- NULL
-        waic_calc <- try(WAIC(result))
+        waic_calc <- try(WAIC(result,n=0))
         attr(result,"WAIC") <- waic_calc
     } else {
         # clear out any old WAIC calculation

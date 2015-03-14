@@ -186,7 +186,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
                 if ( lm_lik[k] == "ordered_logistic" ) {
                     # need vector of probabilities as result
                     cuts <- init[['cutpoints']]
-                    v <- predict.ordlogit( r , cuts )
+                    v <- predict_ordlogit( r , cuts )
                     #r <- t(v)
                     r <- v
                 }
@@ -215,7 +215,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
 }
 )
 
-predict.ordlogit <- function( phi , a ) {
+predict_ordlogit <- function( phi , a ) {
     K <- 1:(length(a)+1)
     a <- c( as.numeric(a) , Inf )
     p <- sapply( K , function(k) logistic(a[k]-phi) )

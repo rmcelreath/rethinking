@@ -5,7 +5,7 @@
   Simulates posterior observations for \code{map} and \code{map2stan} model fits.
 }
 \usage{
-sim( fit , data , n=1000 , post , ... )
+sim( fit , data , n=1000 , post , ll , refresh=0.1 , replace , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

@@ -5,7 +5,7 @@
   Uses \code{link} and \code{sim} for a list of \code{map} or \code{map2stan} model fits to construct Akaike weighted ensemble of predictions.
 }
 \usage{
-ensemble( ... , data , n=1e3 , WAIC=TRUE , refresh=0 )
+ensemble( ... , data , n=1e3 , WAIC=TRUE , refresh=0 , replace=list() )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -14,6 +14,7 @@ ensemble( ... , data , n=1e3 , WAIC=TRUE , refresh=0 )
   \item{n}{Number of samples to draw from posterior for each model}
   \item{WAIC}{Use WAIC to compute weights. Otherwise tries to use DIC.}
   \item{refresh}{Progress update refresh interval. 0 suppresses output.}
+  \item{replace}{Optional named list with replacement posterior samples. Used for maginalizing over random effects, for example. See example in \code{\link{link}}.}
 }
 \details{
   This function calls \code{\link{link}} and \code{\link{sim}} for each fit model given as input. The results are then combined into ensemble link and simulation output, where samples from each model are represented according the Akaike weights.

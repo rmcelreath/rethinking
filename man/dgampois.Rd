@@ -23,6 +23,7 @@ rgampois( n , mu , scale )
 \author{Richard McElreath}
 \seealso{}
 \examples{
+\dontrun{
 data(Hurricanes)
 
 # map model fit
@@ -50,7 +51,7 @@ m.stan <- map2stan(
     data=Hurricanes,
     constraints=list(scale="lower=0"),
     start=list(scale=2) )
-}
+}}
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.
 \keyword{ }

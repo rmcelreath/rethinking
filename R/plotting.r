@@ -1,9 +1,12 @@
 # plotting
 
 set_nice_margins <- function() {
-    mfrow_old <- par("mfrow")
-    on.exit(par(mfrow = mfrow_old))
-    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
+    par_mf <- par("mfrow","mfcol")
+    if ( all(unlist(par_mf)==1) ) {
+        #par_old <- par(no.readonly = TRUE)
+        #on.exit(par(par_old))
+        par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
+    }
 }
 
 dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , add=FALSE , ...) {
