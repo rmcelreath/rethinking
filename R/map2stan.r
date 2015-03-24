@@ -1272,10 +1272,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     # so use parLapply instead
                     CL = makeCluster(cores)
                     #data <- object@data
-                    #env0 <- list( fit_prep=fit_prep, data=d, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup , initlist=list(start) )
+                    env0 <- list( fit_prep=fit_prep, d=d, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup , start=start )
                     clusterExport(cl = CL, 
-                        c("fit_prep","d","pars","iter","warmup","rng_seed","start") )
+                        c("fit_prep","d","pars","iter","warmup","rng_seed","start") , as.environment(env0) )
                     sflist <- parLapply(CL, 1:chains, fun = function(cid) {
+						require(rstan) # will CRAN tolerate this?
                         stan( fit=fit_prep , data = d, pars = pars, chains = 1, 
                           iter = iter, warmup = warmup, seed = rng_seed, 
                           chain_id = cid, init=list(start) )
