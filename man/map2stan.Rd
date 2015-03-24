@@ -7,7 +7,8 @@
 }
 \usage{
 map2stan( flist , data , start , pars , constraints=list() , types=list() , 
-    sample=TRUE , iter=2000 , chains=1 , debug=FALSE , WAIC=TRUE , ... )
+  sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , 
+  verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -18,10 +19,13 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   \item{constraints}{Optional: named list of custom parameter constraints, using Stan notation}
   \item{types}{Optional: named list of custom parameter types, using Stan notation}
   \item{sample}{If \code{FALSE}, builds Stan code without sampling}
-  \item{iter}{Number of iterations of sampling. By default, half of these iterations are warmup}
+  \item{iter}{Number of iterations of sampling. By default, half of these iterations are warmup.}
+  \item{warmup}{Number of warmup iterations. By default, half of \code{iter}.}
   \item{chains}{Number of independent chains to sample from}
   \item{debug}{If \code{TRUE}, prints various internal steps to help with debugging}
+  \item{verbose}{If \code{TRUE}, prints extra progress messages.}
   \item{WAIC}{When \code{TRUE}, computes WAIC after sampling, storing the result}
+  \item{cores}{Number of processor cores to distribute chains over, using \code{\link{parallel}}.}
   \item{...}{Additional arguments to pass to \code{\link{stan}}}
 }
 \details{
@@ -45,9 +49,7 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   
   WAIC can be computed with \code{WAIC}, or by setting \code{WAIC=TRUE} when calling \code{map2stan}. This is currently the default. WAIC is calculated entirely after Stan completes sampling. 
   
-  Functions meant for (re)processing \code{map2stan} fits are: \code{extract.samples}, \code{\link{resample}}, and \code{stancode}.
-  
-  Methods are defined for \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, \code{plot}, \code{pairs}, and \code{show}.
+  Methods are defined for \code{\link{extract.samples}}, \code{\link{link}}, \code{\link{sim}}, \code{\link{ensemble}}, \code{\link{compare}}, \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, \code{plot}, \code{pairs}, and \code{show}.
 }
 \value{
     Returns an object of class \code{map2stan} with the following slots.

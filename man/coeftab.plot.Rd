@@ -1,12 +1,12 @@
-\name{coeftab.plot}
-\alias{coeftab.plot}
+\name{coeftab_plot}
+\alias{coeftab_plot}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Plots of coefficient tables}
 \description{
   Plots coefficient tables produced by \code{coeftab}, clustered either by models or by parameter names.
 }
 \usage{
-coeftab.plot( x , y , pars , col.ci="black" , by.model=FALSE , 
+coeftab_plot( x , y , pars , col.ci="black" , by.model=FALSE , 
     prob=0.95 , ... )
 }
 %- maybe also 'usage' for other objects documented here.

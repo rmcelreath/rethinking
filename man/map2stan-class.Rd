@@ -8,6 +8,14 @@
 \alias{plot,map2stan-method}
 \alias{extract.samples,map2stan-method}
 \alias{stancode,map2stan-method}
+\alias{WAIC,map2stan-method}
+\alias{DIC,map2stan-method}
+\alias{deviance,map2stan-method}
+\alias{sim,map2stan-method}
+\alias{logLik,map2stan-method}
+\alias{nobs,map2stan-method}
+\alias{summary,map2stan-method}
+\alias{vcov,map2stan-method}
 
 \title{Class \code{map2stan}: fitted map2stan Stan model}
 
@@ -32,7 +40,7 @@
   \describe{
     \item{\code{show}}{\code{signature(object = "map2stan")}: print the default summary for the model.}
     \item{\code{stancode}}{Displays the \code{model} slot.}
-
+    \item{\code{WAIC}}{Computes WAIC}
   }
 }
 \references{

@@ -1,13 +1,19 @@
-\name{link}
+\name{link-methods}
+\docType{methods}
 \alias{link}
+\alias{link-methods}
+\alias{link,map2stan-method}
+\alias{link,map-method}
+\alias{link,lm-method}
+
 \title{Predictions for map and map2stan models}
 \description{
   Computes inverse-link linear model values for \code{map} and \code{map2stan} samples.
 }
 \usage{
 link( fit , data , n=1000 , ... )
-link( fit , data , n=1000 , post , refresh=0.1 , replace=list() , 
-    flatten=TRUE , ... )
+\S4method{link}{map2stan}( fit , data , n=1000 , post , refresh=0.1 , 
+    replace=list() , flatten=TRUE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

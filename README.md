@@ -1,7 +1,7 @@
 rethinking
 ==========
 
-This R package accompanies a course and book on Bayesian data analysis. It contains tools for conducting both MAP estimation and Hamiltonian Monte Carlo (through RStan). These tools force the user to specify the model as a list of explicit distributional assumptions.
+This R package accompanies a course and book on Bayesian data analysis. It contains tools for conducting both MAP estimation and Hamiltonian Monte Carlo (through RStan - mc-stan.org). These tools force the user to specify the model as a list of explicit distributional assumptions.
 
 For example, a simple Gaussian model could be specified with this list of formulas:
 
@@ -26,7 +26,12 @@ fit <- map(
     start=list(mu=0,sigma=1)
 )
 ```
-The object ``fit`` holds the result.
+The object ``fit`` holds the result. For a summary of marginal posterior distributions, use ``summary(fit)`` or ``precis(fit)``:
+```
+      Mean StdDev  2.5% 97.5%
+mu    0.00   0.59 -1.16  1.16
+sigma 0.84   0.33  0.20  1.48
+```
 
 ## Hamiltonian Monte Carlo estimation
 
@@ -39,7 +44,9 @@ fit.stan <- map2stan(
     start=list(mu=0,sigma=1)
 )
 ```
-The ``start`` list is optional, provided a prior is defined for every parameter. In that case, ``map2stan`` will automatically sample from each prior to get starting values for the chains. The chain runs automatically, provided ``rstan`` is installed. The Stan code can be accessed by using ``stancode(fit.stan)``:
+The ``start`` list is optional, provided a prior is defined for every parameter. In that case, ``map2stan`` will automatically sample from each prior to get starting values for the chains.  The chain runs automatically, provided ``rstan`` is installed. The ``plot`` method will display trace plots for the chains.
+
+The Stan code can be accessed by using ``stancode(fit.stan)``:
 ```
 data{
     int<lower=1> N;
@@ -59,6 +66,16 @@ generated quantities{
     dev <- 0;
     dev <- dev + (-2)*normal_log( y , mu , sigma );
 }
+```
+
+To run multiple chains in parallel on multiple cores, use the ``cores`` argument:
+```
+fit.stan <- map2stan( 
+    f , 
+    data=list(y=c(-1,1)) , 
+    start=list(mu=0,sigma=1) ,
+    chains=4 , cores=4 , iter=1e4 , warmup=1000
+)
 ```
 
 ## Posterior prediction

@@ -3,7 +3,7 @@
 # coeftab class definition and show method
 setClass( "coeftab" , representation( coefs="matrix" , se="matrix" , nobs="numeric" , AIC="numeric" , digits="numeric" , width="numeric" ) )
 
-coeftab.show <- function( object ) {
+coeftab_show <- function( object ) {
     result <- object@coefs
     if ( !is.null(object@nobs) ) {
         result <- rbind( result , object@nobs )
@@ -12,9 +12,9 @@ coeftab.show <- function( object ) {
     coefs <- rrformat( result , digits=object@digits , width=object@width )
     print( coefs , quote=FALSE , justify="right" )
 }
-setMethod( "show" , "coeftab" , function(object) coeftab.show(object) )
+setMethod( "show" , "coeftab" , function(object) coeftab_show(object) )
 
-coeftab.plot <- function( x , y , pars , col.ci="black" , by.model=FALSE , prob=0.95 , ... ) {
+coeftab_plot <- function( x , y , pars , col.ci="black" , by.model=FALSE , prob=0.95 , ... ) {
     x.orig <- x
     xse <- x@se
     x <- x@coefs
@@ -59,9 +59,9 @@ coeftab.plot <- function( x , y , pars , col.ci="black" , by.model=FALSE , prob=
     }
     abline( v=0 , lty=1 , col=col.alpha("black",0.15) )
 }
-setMethod( "plot" , "coeftab" , function(x,y,...) coeftab.plot(x,y,...) )
+setMethod( "plot" , "coeftab" , function(x,y,...) coeftab_plot(x,y,...) )
 
-coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , width=7 , rotate=FALSE , compare=FALSE ) {
+coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , width=7 , rotate=FALSE ) {
     
     # se=TRUE outputs standard errors
     # se.inside=TRUE prints standard errors in parentheses in same column as estimates
@@ -118,7 +118,7 @@ coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , w
                     d[i,][ paste(names(kse)[j],".se",sep="") ] <- as.numeric( round(kse[j],digits) )
                 else
                     # combine with estimate
-                    d[i,][ names(kse)[j] ] <- paste( formatC( as.real(d[i,][ names(kse)[j] ]) , digits=digits ) , " (" , formatC( as.real( kse[j] ) , digits=digits ) , ")" , sep="" )
+                    d[i,][ names(kse)[j] ] <- paste( formatC( (d[i,][ names(kse)[j] ]) , digits=digits ) , " (" , formatC( as.real( kse[j] ) , digits=digits ) , ")" , sep="" )
             }
         }
     }
@@ -142,15 +142,6 @@ coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , w
         nobs <- sapply( L , xnobs )
     } else {
         nobs <- 0
-    }
-    
-    # add AICc and weights
-    if ( compare==TRUE ) {
-        require(bbmle)
-        d$AICc <- sapply( 1:length(L) , function(z) AICc( L[[z]] , nobs=d$nobs[z] ) )
-        deltAICc <- d$AICc - min(d$AICc) 
-        wAIC <- exp( -0.5*deltAICc )
-        d$weight <- wAIC / sum( wAIC )
     }
     
     # return table

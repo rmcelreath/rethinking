@@ -15,7 +15,7 @@ setMethod("coef", "map2stan", function(object) {
 
 setMethod("extract.samples","map2stan",
 function(object) {
-    require(rstan)
+    #require(rstan)
     p <- rstan::extract(object@stanfit)
     # get rid of dev and lp__
     p[['dev']] <- NULL
@@ -30,7 +30,7 @@ function(object) {
 
 setMethod("extract.samples","stanfit",
 function(object) {
-    require(rstan)
+    #require(rstan)
     p <- rstan::extract(object)
     # get rid of dev and lp__
     #p[['dev']] <- NULL
@@ -235,7 +235,7 @@ setMethod("plot" , "map2stan" , function(x,y,...) {
 })
 
 setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=16 , adj=1 , pars , ...) {
-    require(rstan)
+    #require(rstan)
     posterior <- extract.samples(x)
     if ( !missing(pars) ) {
         # select out named parameters
@@ -270,7 +270,9 @@ setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=1
 })
 
 # my trace plot function
-tracerplot <- function( object , col=c("slateblue","orange","red","green") , alpha=0.7 , bg=gray(0.6,0.5) , ask=TRUE , ... ) {
+#rethink_palette <- c("#5BBCD6","#F98400","#F2AD00","#00A08A","#FF0000")
+rethink_palette <- c("#8080FF","#F98400","#F2AD00","#00A08A","#FF0000")
+tracerplot <- function( object , col=rethink_palette , alpha=1 , bg=gray(0.6,0.5) , ask=TRUE , ... ) {
     chain.cols <- col
     
     if ( class(object)!="map2stan" ) stop( "requires map2stan fit" )

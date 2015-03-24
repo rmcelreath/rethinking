@@ -98,24 +98,55 @@ chainmode <- function( chain , ... ) {
 
 # highest posterior density interval, sensu Box and Tiao
 # requires coda library
-HPDI <- function( samples , prob=0.95 ) {
+PIprimes <- c(0.67,0.89,0.97) # my snarky prime valued percentiles
+HPDI <- function( samples , prob=0.89 ) {
     # require(coda)
     class.samples <- class(samples)[1]
     coerce.list <- c( "numeric" , "matrix" , "data.frame" , "integer" , "array" )
     if ( class.samples %in% coerce.list ) {
         # single chain for single variable
-        samples <- as.mcmc( samples )
+        samples <- coda::as.mcmc( samples )
     }
-    x <- coda::HPDinterval( samples , prob=prob )
-    result <- c( x[1] , x[2] )
-    names(result) <- c(paste("lower",prob),paste("upper",prob))
-    result
+    x <- sapply( prob , function(p) coda::HPDinterval( samples , prob=p ) )
+    # now order inside-out in pairs
+    n <- length(prob)
+    result <- rep(0,n*2)
+    for ( i in 1:n ) {
+        low_idx <- n+1-i
+        up_idx <- n+i
+        # lower
+        result[low_idx] <- x[1,i]
+        # upper
+        result[up_idx] <- x[2,i]
+        # add names
+        names(result)[low_idx] <- concat("|",prob[i])
+        names(result)[up_idx] <- concat(prob[i],"|")
+    }
+    return(result)
 }
 
 # percentile confidence/credible interval
-PCI <- function( samples , prob=0.95 ) {
-    a <- (1-prob)/2
-    quantile( samples , probs=c(a,1-a) )
+PCI <- function( samples , prob=0.89 ) {
+    x <- sapply( prob , function(p) {
+        a <- (1-p)/2
+        quantile( samples , probs=c(a,1-a) )
+    } )
+    # now order inside-out in pairs
+    n <- length(prob)
+    result <- rep(0,n*2)
+    for ( i in 1:n ) {
+        low_idx <- n+1-i
+        up_idx <- n+i
+        # lower
+        result[low_idx] <- x[1,i]
+        # upper
+        result[up_idx] <- x[2,i]
+        # add names
+        a <- (1-prob[i])/2
+        names(result)[low_idx] <- concat(round(a*100,0),"%")
+        names(result)[up_idx] <- concat(round((1-a)*100,0),"%")
+    }
+    return(result)
 }
 PI <- PCI
 
@@ -125,7 +156,7 @@ se <- function( model ) {
 }
 
 # quadratic estimate confidence intervals from means and standard errors
-confint_quad <- function( model=NULL , est , se , level=0.95 ) {
+confint_quad <- function( model=NULL , est , se , prob=0.89 ) {
     if ( !is.null(model) ) {
         found.class <- FALSE
         if ( class(model)=="lm" ) {
@@ -144,7 +175,7 @@ confint_quad <- function( model=NULL , est , se , level=0.95 ) {
     }
     n <- length(est)
     mat <- matrix(c(rep(-1,n),rep(1,n)),nrow=n)
-    p <- (1-level)/2
+    p <- (1-prob)/2
     z <- -qnorm( p )
     ci <- est + mat * ( se * z )
     rownames(ci) <- names(est)

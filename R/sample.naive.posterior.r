@@ -7,8 +7,8 @@
 sample.naive.posterior <- function( ... ) sample.qa.posterior( ... )
 
 sample.qa.posterior <- function( model , n=10000 , clean.names=TRUE , model.weights="AICc" , nobs=0 , add.names=FALSE , fill.na=0 , verbose=FALSE ) {
-    require(MASS)
-    require(bbmle)
+    #require(MASS)
+    #require(bbmle)
     # need own BIC, as one in stats doesn't allow nobs
     getdf <- function(x) {
         if (!is.null(df <- attr(x, "df"))) 

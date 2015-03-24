@@ -7,7 +7,7 @@
 }
 \usage{
 resample( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , 
-    DIC=TRUE , WAIC=TRUE , rng_seed , ... )
+    DIC=TRUE , WAIC=TRUE , rng_seed , data , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

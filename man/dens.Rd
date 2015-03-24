@@ -6,7 +6,7 @@
   Convenient interface for plotting density estimates.
 }
 \usage{
-dens( x , adj=0.1 , norm.comp=FALSE , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , add=FALSE , ... )
+dens( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , add=FALSE , ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

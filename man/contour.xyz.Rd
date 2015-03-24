@@ -1,12 +1,12 @@
-\name{contour.xyz}
-\alias{contour.xyz}
+\name{contour_xyz}
+\alias{contour_xyz}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Contour plot from equal length x,y,z vectors}
 \description{
   Provides an interface to use \code{contour} by providing three equal length vectors for x, y and z coordinates.
 }
 \usage{
-contour.xyz( x , y , z , ... )
+contour_xyz( x , y , z , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -20,7 +20,7 @@ contour.xyz( x , y , z , ... )
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{contour}}}
 \examples{

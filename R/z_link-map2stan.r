@@ -34,6 +34,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
     lm <- fit@formula_parsed$lm
     lik <- fit@formula_parsed$lik
     n_lm <- length(lm)
+    f_do_lm <- TRUE
     n_lik <- length(lik)
     lm_names <- c()
     lm_lik <- c()
@@ -51,6 +52,10 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         }#i
     } else {
         stop( "There appear to be no linear models here" )
+        # no linear models!
+        # so need to flag to skip lm insertions into eval environment for ll
+        n_lm <- 1
+        f_do_lm <- FALSE
     }
     
     # number of samples
@@ -104,8 +109,23 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
     rhs <- list()
     for ( k in 1:n_lm ) {
         # ready linear model code
-        rhs0 <- fit@formula_parsed$lm[[k]]$RHS
-        rhs0 <- gsub( "[i]" , "" , rhs0 , fixed=TRUE )
+        if ( f_do_lm==TRUE ) {
+            rhs0 <- fit@formula_parsed$lm[[k]]$RHS
+            rhs0 <- gsub( "[i]" , "" , rhs0 , fixed=TRUE )
+        } else {
+            # no linear models
+            # so use dummy linear model with appropriate likelihood parameter
+            parout <- "ll"
+            rhs0 <- "0"
+            # hacky solution -- find density function and insert whatever expression in typical link spot
+            flik <- as.character(liks[[1]][[3]][[1]])
+            # mu for Gaussian
+            if ( flik=="dnorm" ) rhs0 <- as.character(liks[[1]][[3]][[2]])
+            # p for binomial -- assume in third spot, after size
+            if ( flik=="dbinom" ) rhs0 <- as.character(liks[[1]][[3]][[3]])
+            # lambda for poisson
+            if ( flik=="dpois" ) rhs0 <- as.character(liks[[1]][[3]][[2]])
+        }
         # check for imputed predictors
         if ( length(fit@formula_parsed$impute_bank) > 0 ) {
             # replace each imputed variable name with merged name

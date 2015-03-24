@@ -1,5 +1,5 @@
 \name{compare}
-\alias{compare}
+\alias{compare}\alias{ICweights}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Compare fit models using WAIC or DIC}
 \description{
@@ -7,6 +7,7 @@
 }
 \usage{
 compare( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 )
+ICweights( dev )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -15,6 +16,7 @@ compare( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 )
   \item{sort}{Sort table by ascending values in named column}
   \item{WAIC}{If \code{TRUE}, uses WAIC for comparison. If \code{FALSE}, uses DIC.}
   \item{refresh}{Progress display update interval. 0 suppresses display.}
+  \item{dev}{Vector of deviance values to use in computing model weights}
 }
 \details{
   This function computes WAIC and optionally DIC values for fit models and returns a table sorted by ascending values. Each row in this table is a model, and the various columns provide WAIC, effective numbers of parameters, model weights, and standard errors.

@@ -46,7 +46,7 @@ dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , sh
 }
 
 # just converts x,y,z lists of same length to a matrix for contour to plot
-contour.xyz <- function( x , y , z , ... ) {
+contour_xyz <- function( x , y , z , ... ) {
     ux <- unique(x)
     uy <- unique(y)
     n <- length(ux)
@@ -55,7 +55,7 @@ contour.xyz <- function( x , y , z , ... ) {
 }
 
 # just converts inputs to form expected by image()
-image.xyz <- function( x , y , z , ... ) {
+image_xyz <- function( x , y , z , ... ) {
     image( unique(x) , unique(y) , matrix(z, length(unique(x)), length(unique(y)) ) , ... )
 }
 

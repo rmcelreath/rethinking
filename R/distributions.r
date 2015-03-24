@@ -265,7 +265,7 @@ dcategorical <- function( x , prob , log=TRUE ) {
 
 rcategorical <- function( n , prob ) {
     k <- length(prob)
-    y <- sample( 1:k , size=n , prob=p , replace=TRUE )
+    y <- sample( 1:k , size=n , prob=prob , replace=TRUE )
     return(y)
 }
 
@@ -300,3 +300,19 @@ softmax <- function( ... ) {
         return(p)
     }
 }
+
+
+# dmvnorm2 - SRS form of multi_normal
+# uses package mvtnorm
+dmvnorm2 <- function( x , Mu , sigma , Rho , log=FALSE ) {
+    DS <- diag(sigma)
+    SIGMA <- DS %*% Rho %*% DS
+    dmvnorm(x, Mu, SIGMA, log=log )
+}
+
+rmvnorm2 <- function( n , Mu=rep(0,length(sigma)) , sigma=rep(1,length(Mu)) , Rho=diag(length(Mu)) , method="chol" ) {
+    DS <- diag(sigma)
+    SIGMA <- DS %*% Rho %*% DS
+    rmvnorm( n=n , mean=Mu , sigma=SIGMA , method=method )
+}
+

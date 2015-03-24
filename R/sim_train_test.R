@@ -1,6 +1,6 @@
 
 sim.train.test <- function( N=20 , k=3 , rho=c(0.15,-0.4) , b_sigma=100 , DIC=FALSE , WAIC=FALSE, devbar=FALSE , devbarout=FALSE ) {
-    require(MASS)
+    #require(MASS)
     n_dim <- 1+length(rho)
     if ( n_dim < k ) n_dim <- k
     Rho <- diag(n_dim)

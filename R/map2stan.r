@@ -7,7 +7,6 @@
 
 # to-do:
 # (*) different chains get different random start values
-# (*) support cores argument -> compile -> resample
 # (*) need to do p*theta and (1-p)*theta multiplication outside likelihood in betabinomial (similar story for gammapoisson) --- or is there an operator for pairwise vector multiplication?
 # (-) handle improper input more gracefully
 # (-) add "as is" formula type, with quoted text on RHS to dump into Stan code
@@ -15,7 +14,7 @@
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , ... ) {
     
     ########################################
     # empty Stan code
@@ -70,6 +69,13 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     
     if ( missing(start) ) start <- list()
     start.orig <- start
+    
+    if ( iter <= warmup ) {
+        # user probably meant iter as number of samples
+        # so warn and convert
+        warning(concat("'iter' less than or equal to 'warmup'. Setting 'iter' to sum of 'iter' and 'warmup' instead (",iter+warmup,")."))
+        iter <- iter + warmup
+    }
     
     # check data for scale attributes and remove
     for ( i in 1:length(data) ) {
@@ -1226,7 +1232,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     }
     
     if ( sample==TRUE ) {
-        require(rstan)
+        #require(rstan) # don't need anymore
         
         # sample
         modname <- deparse( flist[[1]] )
@@ -1234,11 +1240,57 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         for ( achain in 1:chains ) initlist[[achain]] <- start
         
         if ( flag_refit==FALSE ) {
-            fit <- stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , chains=chains , pars=pars , ... )
+        
+            if ( chains==1 | cores==1 ) {
+            
+                # single core
+                # so just run the model
+                fit <- stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , chains=chains , pars=pars , ... )
+                
+            } else {
+            
+                # multi-core, multi-chain
+                # so pre-compile then run again
+                message("Precompiling model...")
+                fit_prep <- stan( model_code=model_code , model_name=modname , data=d , init=list(start) , iter=1 , chains=0 , pars=pars , test_grad=FALSE , refresh=-1 , ... )
+                #fit_prep <- stan_model( model_code=model_code , model_name=modname )
+                
+                # if no seed provided, make one
+                if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
+                
+                message(concat("Dispatching ",chains," chains to ",cores," cores."))
+                sys <- .Platform$OS.type
+                if ( sys=='unix' ) {
+                    # Mac or Linux
+                    # hand off to mclapply
+                    sflist <- mclapply( 1:chains , mc.cores=cores ,
+                        function(chainid)
+                            stan( fit=fit_prep , data=d , init=list(start) , pars=pars , iter=iter , warmup=warmup , chains=1 , seed=rng_seed , chain_id=chainid , ... )
+                    )
+                } else {
+                    # Windows
+                    # so use parLapply instead
+                    CL = makeCluster(cores)
+                    #data <- object@data
+                    env0 <- list( fit_prep=fit_prep, data=d, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup , initlist=list(start) )
+                    clusterExport(cl = CL, c("iter","warmup","data", "fit_prep", "pars", "rng_seed","initlist"), as.environment(env0))
+                    sflist <- parLapply(CL, 1:chains, fun = function(cid) {
+                        stan( fit=fit_prep , data = data, pars = pars, chains = 1, 
+                          iter = iter, warmup = warmup, seed = rng_seed, 
+                          chain_id = cid, init=initlist )
+                    })
+                }
+                # merge result
+                fit <- sflist2stanfit(sflist)
+                
+            }#multicore
+            
         } else {
+        
+            # reuse previous compiled model
             message(concat("Reusing previously compiled model ",oldfit@stanfit@model_name))
             fit <- stan( fit=oldfit@stanfit , model_name=modname , data=d , init=initlist , iter=iter , chains=chains , pars=pars , ... )
-        }
+        }# reuse
         
     } else {
         fit <- NULL
@@ -1288,7 +1340,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         
         # push expected values back through model and fetch deviance
         #message("Taking one more sample now, at expected values of parameters, in order to compute DIC")
-        fit2 <- stan( fit=fit , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=1 , refresh=-1 )
+        #fit2 <- stan( fit=fit , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=1 , refresh=-1 )
+        fit2 <- sampling( fit@stanmodel , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=1 , refresh=-1 )
         dhat <- as.numeric( extract(fit2,"dev") )
         pD <- dbar - dhat
         dic <- dbar + pD

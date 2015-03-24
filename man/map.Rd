@@ -6,7 +6,7 @@
   Find mode of posterior distribution for arbitrary fixed effect models.
 }
 \usage{
-map( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , ... )
+map( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose=FALSE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

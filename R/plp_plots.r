@@ -70,7 +70,7 @@ plp <- function( mapfit , prob=0.9 , xlim , postcol="black" , priorcol="darkgray
     left <- as.numeric( post2[1,n:1] )
     right <- as.numeric( post2[3,n:1] )
     if ( missing(xlim) ) xlim <- c(min(left),max(right))
-    dotchart( mu , labels=colnames(post2)[n:1] , xlab="Value" , xlim=xlim , col=postcol , ... )
+    dotchart( mu , labels=colnames(post2)[n:1] , xlab="Value" , xlim=xlim , color=postcol , ... )
     for ( i in 1:length(mu) ) {
         lines( c(left[i],right[i]) , c(i,i) , lwd=2 , col=postcol )
         # and prior

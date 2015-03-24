@@ -73,7 +73,7 @@ postlistprecis <- function( post , prob=0.95 ) {
     result
 }
 
-precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE , digits=2 , warn=TRUE , func=mean ) {
+precis <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , digits=2 , warn=TRUE ) {
     the.class <- class(model)[1]
     found.class <- FALSE
     if ( the.class=="numeric" ) {
@@ -86,7 +86,7 @@ precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE ,
     if ( the.class=="list" )
         if ( class( model[[1]] ) != "mcarray" ) found.class <- FALSE
     if ( found.class==TRUE ) {
-        est <- xcoef( model , func=func )
+        est <- xcoef( model )
         se <- xse( model )
         if ( corr==TRUE ) Rho <- xrho( model )
     }
@@ -95,33 +95,33 @@ precis <- function( model , depth=1 , pars , ci=TRUE , level=0.95 , corr=FALSE ,
         return(invisible())
     }
     # format
-    fname <- deparse(substitute(func))
+    fname <- "Mean"
     # capitalize first letter
     fname <- concat( toupper(substring(fname,1,1)) , substring(fname,2) )
     result <- data.frame( est=est , se=se )
     colnames(result) <- c( fname ,"StdDev")
     if ( ci==TRUE ) {
-        ci <- confint_quad( est=est , se=se , level=level )
+        ci <- confint_quad( est=est , se=se , prob=prob )
         if ( the.class=="data.frame" ) {
             # HPDI from samples
-            ci <- t( apply( model , 2 , HPDI , prob=level ) )
+            ci <- t( apply( model , 2 , HPDI , prob=prob ) )
         }
         result <- cbind( result , ci )
         if ( the.class=="map2stan" ) {
             # HPDI from samples
             post <- extract.samples(model)
-            result <- postlistprecis( post , prob=level )
+            result <- postlistprecis( post , prob=prob )
         }
         if ( the.class=="stanfit" ) {
             # HPDI from samples
             post <- extract.samples(model)
             post[['lp__']] <- NULL
-            result <- postlistprecis( post , prob=level )
+            result <- postlistprecis( post , prob=prob )
         }
     }
     if ( the.class=="map2stan" | the.class=="stanfit" ) {
         # add n_eff to result
-        require(rstan)
+        #require(rstan)
         if ( the.class=="map2stan" )
             the_summary <- summary( model@stanfit )$summary
         else

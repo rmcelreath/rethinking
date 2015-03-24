@@ -1,12 +1,12 @@
-\name{image.xyz}
-\alias{image.xyz}
+\name{image_xyz}
+\alias{image_xyz}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Heat map from equal length x,y,z vectors}
 \description{
   Provides an interface to use \code{image} by providing three equal length vectors for x, y and z coordinates.
 }
 \usage{
-image.xyz( x , y , z , ... )
+image_xyz( x , y , z , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -20,7 +20,7 @@ image.xyz( x , y , z , ... )
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{image}}}
 \examples{

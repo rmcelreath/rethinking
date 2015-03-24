@@ -11,7 +11,7 @@ glimmer( formula , data , family=gaussian , prefix=c("b_","v_") ,
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{formula}{A formula of the sort used by \code{\link{glm}} or \code{\link{glmer}}}
+  \item{formula}{A formula of the sort used by \code{\link{glm}} or \code{glmer}}
   \item{data}{A data frame or list containing the data}
   \item{family}{Name of family, as in \code{glm}/\code{glmer}. Recognizes \code{gaussian}, \code{binomial}, and \code{poisson} with arbitrary links}
   \item{prefix}{Text prefixes for fixed and varying effects parameters}

@@ -3,11 +3,15 @@
 # compare class definition and show method
 setClass( "compareIC" , representation( output="data.frame" , dSE="matrix" ) )
 
-compare.show <- function( object ) {
-    r <- format_show( object@output , digits=c('default__'=1,'weight'=2,'SE'=2,'dSE'=2) )
+#compare.show <- function( object ) {
+#    r <- format_show( object@output , #digits=c('default__'=1,'weight'=2,'SE'=2,'dSE'=2) )
+#    print( r )
+#}
+setMethod( "show" , "compareIC" , function(object) {
+    r <- format_show( object@output , 
+                      digits=c('default__'=1,'weight'=2,'SE'=2,'dSE'=2) )
     print( r )
-}
-setMethod( "show" , "compareIC" , function(object) compare.show(object) )
+} )
 
 # new compare function, defaulting to WAIC
 compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
@@ -19,6 +23,22 @@ compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
     # retrieve model names from function call
     mnames <- match.call()
     mnames <- as.character(mnames)[2:(length(L)+1)]
+    
+    # check class of fit models and warn when more than one class represented
+    classes <- as.character(sapply( L , class ))
+    if ( any(classes!=classes[1]) ) {
+        warning("Not all model fits of same class.\nThis is usually a bad idea, because it implies they were fit by different algorithms.\nCheck yourself, before you wreck yourself.")
+    }
+    
+    # check nobs for all models
+    # if different, warn
+    nobs_list <- sapply( L , nobs )
+    if ( any(nobs_list != nobs_list[1]) ) {
+        nobs_out <- paste( mnames , nobs_list , "\n" )
+        nobs_out <- concat(nobs_out)
+        warning(concat(
+            "Different numbers of observations found for at least two models.\nInformation criteria only valid for comparing models fit to exactly same observations.\nNumber of observations for each model:\n",nobs_out))
+    }
     
     dSE.matrix <- matrix( NA , nrow=length(L) , ncol=length(L) )
     if ( WAIC==FALSE ) {
@@ -119,6 +139,7 @@ setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALS
     }
 })
 
+if ( FALSE ) {
 # AICc/BIC model comparison table
 compare_old <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE , delta=TRUE , DICsamples=1e4 ) {
     require(bbmle)
@@ -206,6 +227,7 @@ compare_old <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE ,
     
     new( "compareIC" , output=result )
 }
+}#FALSE
 
 # convert estimated D_test values to weights
 ICweights <- function( dev ) {

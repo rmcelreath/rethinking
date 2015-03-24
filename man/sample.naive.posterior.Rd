@@ -7,8 +7,9 @@
   Samples from the posterior density of a fit model or models, assuming multivariate normal density. 
 }
 \usage{
-sample.qa.posterior( model , n = 10000 )
-sample.qa.posterior( models , n = 10000 , model.weights = "AICc" , nobs = 0 , add.names = FALSE , fill.na = 0 , verbose = FALSE )
+sample.qa.posterior(model, n = 10000, clean.names = TRUE, model.weights =
+                 "AICc", nobs = 0, add.names = FALSE, fill.na = 0,
+                 verbose = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
