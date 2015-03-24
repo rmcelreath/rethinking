@@ -1272,12 +1272,13 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     # so use parLapply instead
                     CL = makeCluster(cores)
                     #data <- object@data
-                    env0 <- list( fit_prep=fit_prep, data=d, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup , initlist=list(start) )
-                    clusterExport(cl = CL, c("iter","warmup","data", "fit_prep", "pars", "rng_seed","initlist"), as.environment(env0))
+                    #env0 <- list( fit_prep=fit_prep, data=d, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup , initlist=list(start) )
+                    clusterExport(cl = CL, 
+                        c("fit_prep","d","pars","iter","warmup","rng_seed","start") )
                     sflist <- parLapply(CL, 1:chains, fun = function(cid) {
-                        stan( fit=fit_prep , data = data, pars = pars, chains = 1, 
+                        stan( fit=fit_prep , data = d, pars = pars, chains = 1, 
                           iter = iter, warmup = warmup, seed = rng_seed, 
-                          chain_id = cid, init=initlist )
+                          chain_id = cid, init=list(start) )
                     })
                 }
                 # merge result
