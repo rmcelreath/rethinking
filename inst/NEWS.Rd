@@ -3,21 +3,11 @@
 \name{NEWS}
 \title{rethinking News}
 \encoding{UTF-8}
-\section{CHANGES IN VERSION 1.2.8 (2013-01-20)}{
+
+\section{CHANGES}{
   \itemize{
-     \item Fixed bug with \code{compare} not computing DIC for single parameter models, due to dropped variable names when subsetting
+     \item See github.com/rmcelreath/rethinking for a complete list of changes.
    }
 }
-\section{CHANGES IN VERSION 1.2.7 (2013-12-29)}{
-  \itemize{
-     \item added \code{map} convergence warnings
-     \item added recognition of log and logit links to \code{map} 
-     \item \code{sample.qa.posterior} can now accept arbitrary model weights
-   }
-}
-\section{CHANGES IN VERSION 1.2.0 (2013-07-11)}{
-  \itemize{
-     \item add \code{map} command to replace functionality of \code{mle2} in \code{bbmle} package
-     \item added NEWS (this document)
-   }
+
 }

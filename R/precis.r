@@ -135,6 +135,12 @@ precis <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , 
             Rhat <- Rhat[ -which(names(Rhat)=="dev") ]
         }
         result <- cbind( result , n_eff , Rhat )
+        
+        # check divergent iterations
+        nd <- divergent(model)
+        if ( nd > 0 & warn==TRUE ) {
+            warning( concat("There were ",nd," divergent iterations during sampling.\nCheck the chains (trace plots, n_eff, Rhat) carefully to ensure they are valid.") )
+        }
     }
     if ( corr==TRUE ) {
         result <- cbind( result , Rho )

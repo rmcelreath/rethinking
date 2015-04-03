@@ -272,7 +272,7 @@ setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=1
 # my trace plot function
 #rethink_palette <- c("#5BBCD6","#F98400","#F2AD00","#00A08A","#FF0000")
 rethink_palette <- c("#8080FF","#F98400","#F2AD00","#00A08A","#FF0000")
-tracerplot <- function( object , col=rethink_palette , alpha=1 , bg=gray(0.6,0.5) , ask=TRUE , ... ) {
+tracerplot <- function( object , col=rethink_palette , alpha=1 , bg=gray(0.7,0.5) , ask=TRUE , window , n_cols=2 , ... ) {
     chain.cols <- col
     
     if ( class(object)!="map2stan" ) stop( "requires map2stan fit" )
@@ -292,7 +292,6 @@ tracerplot <- function( object , col=rethink_palette , alpha=1 , bg=gray(0.6,0.5
     
     # figure out grid and paging
     n_pars <- length( pars )
-    n_cols=2
     n_rows=ceiling(n_pars/n_cols)
     n_rows_per_page <- n_rows
     paging <- FALSE
@@ -304,16 +303,23 @@ tracerplot <- function( object , col=rethink_palette , alpha=1 , bg=gray(0.6,0.5
     }
     n_iter <- object@stanfit@sim$iter
     n_warm <- object@stanfit@sim$warmup
+    wstart <- 1
+    wend <- n_iter
+    if ( !missing(window) ) {
+        wstart <- window[1]
+        wend <- window[2]
+    }
     
     # worker
     plot_make <- function( main , par , neff , ... ) {
-        ylim <- c( min(post[,,par]) , max(post[,,par]) )
-        plot( NULL , xlab="sample" , ylab="position" , col=chain.cols[1] , type="l" , main=main , xlim=c(1,n_iter) , ylim=ylim , ... )
+        ylim <- c( min(post[wstart:wend,,par]) , max(post[wstart:wend,,par]) )
+        plot( NULL , xlab="" , ylab="" , type="l" , xlim=c(wstart,wend) , ylim=ylim , ... )
         # add polygon here for warmup region?
         diff <- abs(ylim[1]-ylim[2])
         ylim <- ylim + c( -diff/2 , diff/2 )
         polygon( n_warm*c(-1,1,1,-1) , ylim[c(1,1,2,2)] , col=bg , border=NA )
-        mtext( paste("n_eff =",round(neff,0)) , 3 , adj=1 , cex=0.8 )
+        mtext( paste("n_eff =",round(neff,0)) , 3 , adj=1 , cex=0.9 )
+        mtext( main , 3 , adj=0 , cex=1 )
     }
     plot_chain <- function( x , nc , ... ) {
         lines( 1:n_iter , x , col=col.alpha(chain.cols[nc],alpha) , lwd=0.5 )
@@ -323,7 +329,9 @@ tracerplot <- function( object , col=rethink_palette , alpha=1 , bg=gray(0.6,0.5
     n_eff <- summary(object@stanfit)$summary[,'n_eff']
     
     # make window
-    set_nice_margins()
+    #set_nice_margins()
+    par(mgp = c(0.5, 0.5, 0), mar = c(1.5, 1.5, 1.5, 1) + 0.1, 
+            tck = -0.02)
     par(mfrow=c(n_rows_per_page,n_cols))
     
     # draw traces

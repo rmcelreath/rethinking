@@ -90,9 +90,7 @@ m2 <- map2stan(
         bp ~ dnorm(0,10),
         bpc ~ dnorm(0,10)
     ) ,
-    data=d,
-    start=list(a=0,bp=0,bpc=0)
-)
+    data=d, chains=2, cores=1 )
 
 precis(m2)
 summary(m2)
@@ -112,9 +110,7 @@ m3 <- map2stan(
         sigma_actor ~ dcauchy(0,1)
     ) ,
     data=d,
-    start=list(a=0,bp=0,bpc=0,sigma_actor=1,aj=rep(0,max(d$actor))),
-    iter=5000 , warmup=1000 , chains=2
-)
+    iter=5000 , warmup=1000 , chains=2 , cores=1 )
 
 precis(m3)
 plot(m3)
@@ -135,8 +131,7 @@ m4 <- map2stan(
         sigma_block ~ dcauchy(0,1)
     ) ,
     data=d,
-    iter=5000 , warmup=1000 , chains=2
-)
+    iter=5000 , warmup=1000 , chains=2 , cores=1 )
 
 precis(m4)
 summary(m4)
@@ -146,7 +141,7 @@ plot(m4)
 coeftab(m2,m3,m4)
 plot(coeftab(m2,m3,m4))
 
-# show DIC for m2,m3,m4
+# show WAIC for m2,m3,m4
 compare(m2,m3,m4)
 plot(compare(m2,m3,m4))
 

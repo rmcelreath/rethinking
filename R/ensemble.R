@@ -1,5 +1,5 @@
 # build ensemble of samples using DIC/WAIC weights
-ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 , replace=list() ) {
+ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 , replace=list() , do_link=TRUE , do_sim=TRUE ) {
     # retrieve list of models
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 )
@@ -21,12 +21,18 @@ ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 , replace=list(
     
     # generate simulated predictions for each model
     # then compose ensemble using weights
+    link.list <- list("empty")
+    sim.list <- list("empty")
     if ( missing(data) ) {
-        link.list <- lapply( L , function(m) link(m , n=n , refresh=refresh , replace=replace ) )
-        sim.list <- lapply( L , function(m) sim(m , n=n , refresh=refresh , replace=replace ) )
+        if ( do_link==TRUE )
+            link.list <- lapply( L , function(m) link(m , n=n , refresh=refresh , replace=replace ) )
+        if ( do_sim==TRUE )
+            sim.list <- lapply( L , function(m) sim(m , n=n , refresh=refresh , replace=replace ) )
     } else {
-        link.list <- lapply( L , function(m) link(m , data=data , n=n , refresh=refresh , replace=replace ) )
-        sim.list <- lapply( L , function(m) sim(m , data=data , n=n , refresh=refresh , replace=replace ) )
+        if ( do_link==TRUE )
+            link.list <- lapply( L , function(m) link(m , data=data , n=n , refresh=refresh , replace=replace ) )
+        if ( do_sim==TRUE )
+            sim.list <- lapply( L , function(m) sim(m , data=data , n=n , refresh=refresh , replace=replace ) )
     }
     #print(str(sim.list))
     
@@ -48,8 +54,10 @@ ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 , replace=list(
     for ( i in 1:length(idx) ) {
         if ( idx[i]>0 ) {
             idxrange <- idx_start[i]:idx_end[i]
-            link_out[idxrange,] <- link.list[[i]][idxrange,]
-            sim_out[idxrange,] <- sim.list[[i]][idxrange,]
+            if ( do_link==TRUE )
+                link_out[idxrange,] <- link.list[[i]][idxrange,]
+            if ( do_sim==TRUE )
+                sim_out[idxrange,] <- sim.list[[i]][idxrange,]
         }
     }
     result <- list( link=link_out , sim=sim_out )

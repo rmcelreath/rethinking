@@ -77,6 +77,7 @@ fit.stan <- map2stan(
     chains=4 , cores=4 , iter=1e4 , warmup=1000
 )
 ```
+The ``parallel`` package is used here, relying upon ``mclapply`` (Mac, UNIX) or ``parLapply`` (Windows). It is best to run parallel operations in the Terminal/Command Prompt, as GUI interfaces sometimes crash when forking processes.
 
 ## Posterior prediction
 
@@ -86,7 +87,7 @@ Both ``map`` and ``map2stan`` model fits can be post-processed to produce poster
 
 ``sim`` is used to simulate posterior predictive distributions, simulating outcomes over samples from the posterior distribution of parameters. See ``?link`` and ``?sim`` for details.
 
-``postcheck`` automatically computes posterior predictive (retrodictive?) checks for each case used to fit a model. 
+``postcheck`` automatically computes posterior predictive (retrodictive?) checks for each case used to fit a model.
 
 
 ## Multilevel model formulas
@@ -115,6 +116,7 @@ f3 <- alist(
 )
 ```
 
+
 ## Nice covariance priors
 
 And ``map2stan`` supports decomposition of covariance matrices into vectors of standard deviations and a correlation matrix, such that priors can be specified independently for each:
@@ -130,6 +132,22 @@ f4 <- alist(
     Rho_group ~ dlkjcorr(2)
 )
 ```
+
+# Non-centered parameterization
+Here is a non-centered parameterization that moves the scale parameters in the varying effects prior to the linear model, which is often more efficient for sampling:
+```
+f4u <- alist(
+    y ~ dnorm( mu , sigma ),
+    mu <- a + zaj*sigma_group[1] + (b + zbj*sigma_group[2])*x,
+    c(zaj,zbj)[group] ~ dmvnorm( 0 , Rho_group ),
+    a ~ dnorm( 0 , 10 ),
+    b ~ dnorm( 0 , 1 ),
+    sigma ~ dcauchy( 0 , 1 ),
+    sigma_group ~ dcauchy( 0 , 1 ),
+    Rho_group ~ dlkjcorr(2)
+)
+```
+Chapter 13 of the book provides a lot more detail on this issue.
 
 ## Semi-automated Bayesian imputation
 
@@ -169,19 +187,19 @@ library(rethinking)
 data(Kline2)
 d <- Kline2
 data(islandsDistMatrix)
-d$island <- 1:10
+d$society <- 1:10
 mGP <- map2stan(
     alist(
         total_tools ~ dpois( mu ),
-        log(mu) <- a + aj[island],
+        log(mu) <- a + aj[society],
         a ~ dnorm(0,10),
-        aj[island] ~ GPL2( Dmat , etasq , rhosq , 0.01 ),
+        aj[society] ~ GPL2( Dmat , etasq , rhosq , 0.01 ),
         etasq ~ dcauchy(0,1),
         rhosq ~ dcauchy(0,1)
     ),
     data=list(
         total_tools=d$total_tools,
-        island=d$island,
+        society=d$society,
         Dmat=islandsDistMatrix),
     constraints=list(
         etasq="lower=0",

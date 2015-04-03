@@ -1002,7 +1002,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 outcome <- concat( outcome , "[i]" )
                 
                 # check for linear model names as parameters and add [i] to each
-                if ( length(fp[['lm']])>0 ) {
+                if ( length(fp[['lm']])>1 ) {
                     lm_names <- c()
                     for ( j in 1:length(fp[['lm']]) ) {
                         lm_names <- c( lm_names , fp[['lm']][[j]]$parameter )
@@ -1046,7 +1046,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     # build code in transformed parameters that constructs x_merge
                     m_tpars1 <- concat( m_tpars1 , indent , "real " , outcome , "[N];\n" )
                     m_tpars2 <- concat( m_tpars2 , indent , outcome , " <- " , lik$outcome , ";\n" )
-                    m_tpars2 <- concat( m_tpars2 , indent , "for ( u in 1:N_" , lik$outcome , "_missing ) " , outcome , "[" , lik$outcome , "_missingness[u]] <- " , lik$outcome , "_impute[u]" , ";\n" )
+                    m_tpars2 <- concat( m_tpars2 , indent , "for ( u in 1:" , lik$N_name , "_missing ) " , outcome , "[" , lik$outcome , "_missingness[u]] <- " , lik$outcome , "_impute[u]" , ";\n" )
                     # add x_impute to start list
                     imputer_name <- concat(lik$outcome,"_impute")
                     start[[ imputer_name ]] <- rep( impute_bank[[lik$outcome]]$init , impute_bank[[lik$outcome]]$N_miss )
@@ -1063,12 +1063,19 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 
             }
             
-            # add N variable to data block, if more than one likelihood in model
+            # add N variable to data block
             the_N_name <- lik$N_name
-            if ( i > 1 ) {
-                if ( lik$outcome %in% names(impute_bank) ) 
+            if ( i > 0 ) {
+                if ( lik$outcome %in% names(impute_bank) ) {
                     the_N_name <- concat( the_N_name , "_missing" )
-                m_data <- concat( m_data , indent , "int<lower=1> " , the_N_name , ";\n" )
+                    if ( i==1 ) {
+                        warning(concat("Missing values in outcome variable ",lik$outcome," being imputed (predicted) through model. The model should fit fine. But helper functions like WAIC may not work."))
+                    }
+                }
+                #m_data <- concat( m_data , indent , "int<lower=1> " , the_N_name , ";\n" )
+                fp[['used_predictors']][[the_N_name]] <- list( var=the_N_name , type="index" )
+                # warn about imputation on top-level outcome
+                
             }
             
             # add number of cases to data list
@@ -1089,7 +1096,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     m_gq <- concat( m_model_declare , indent , "real dev;\n" , indent , "dev <- 0;\n" , m_gq )
     
     # general data length data declare
-    m_data <- concat( m_data , indent , "int<lower=1> " , "N" , ";\n" )
+    #m_data <- concat( m_data , indent , "int<lower=1> " , "N" , ";\n" )
+    fp[['used_predictors']][['N']] <- list( var="N" , type="index" )
     # data from used_predictors list
     n <- length( fp[['used_predictors']] )
     if ( n > 0 ) {
@@ -1245,7 +1253,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             
                 # single core
                 # so just run the model
-                fit <- stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , chains=chains , pars=pars , ... )
+                if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
+                fit <- stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , pars=pars , seed=rng_seed , ... )
                 
             } else {
             
@@ -1377,6 +1386,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             message("Computing WAIC")
             waic <- try(WAIC( result , n=0 , pointwise=TRUE )) # n=0 to use all available samples
             attr(result,"WAIC") = waic
+        }
+        
+        # check divergent iterations
+        nd <- divergent(fit)
+        if ( nd > 0 ) {
+            warning( concat("There were ",nd," divergent iterations during sampling.\nCheck the chains (trace plots, n_eff, Rhat) carefully to ensure they are valid.") )
         }
         
     } else {

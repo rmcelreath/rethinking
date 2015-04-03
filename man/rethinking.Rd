@@ -11,8 +11,8 @@
   \tabular{ll}{
     Package: \tab rethinking\cr
     Type: \tab Package\cr
-    Version: \tab 1.51\cr
-    Date: \tab 08 Mar 2015\cr
+    Version: \tab 1.53\cr
+    Date: \tab 03 April 2015\cr
     License: \tab GPL-3 \cr
   }
   
