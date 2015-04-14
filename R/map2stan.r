@@ -900,21 +900,22 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             d[[ N_txt ]] <- N
             
             # mark grouping variable used
-            #fp[['used_predictors']] <- listappend( fp[['used_predictors']] , list(var=vprior$group,N=length(d[[vprior$group]]) ) )
-            # check likelihoods for matching length and use that N_name
-            if ( length(fp[['likelihood']])>0 ) {
-                groupN <- length(d[[vprior$group]])
-                for ( j in 1:length(fp[['likelihood']]) ) {
-                    if ( fp[['likelihood']][[j]]$N_cases == groupN ) {
-                        #fp[['used_predictors']] <- listappend( fp[['used_predictors']] , list(var=vprior$group,N=fp[['likelihood']][[j]]$N_name ) )
-                        fp[['used_predictors']][[vprior$group]] <- list( var=vprior$group , N=fp[['likelihood']][[j]]$N_name )
-                    }
-                }#j
-            } else {
-                # just add raw integer length
-                #fp[['used_predictors']] <- listappend( fp[['used_predictors']] , list(var=vprior$group,N=length(d[[vprior$group]]) ) )
-                fp[['used_predictors']][[vprior$group]] <- list( var=vprior$group , N=length(d[[vprior$group]]) )
-            }
+            # check if already there
+            if ( is.null(fp[['used_predictors']][[vprior$group]]) ) {
+                # check likelihoods for matching length and use that N_name
+                if ( length(fp[['likelihood']])>0 ) {
+                    groupN <- length(d[[vprior$group]])
+                    for ( j in 1:length(fp[['likelihood']]) ) {
+                        if ( fp[['likelihood']][[j]]$N_cases == groupN ) {
+                            fp[['used_predictors']][[vprior$group]] <- list( var=vprior$group , N=fp[['likelihood']][[j]]$N_name )
+                            break
+                        }
+                    }#j
+                } else {
+                    # just add raw integer length
+                    fp[['used_predictors']][[vprior$group]] <- list( var=vprior$group , N=length(d[[vprior$group]]) )
+                }
+            }# is.null
             
             # check for explicit start value
             for ( k in vprior$pars_out )

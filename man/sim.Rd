@@ -1,5 +1,9 @@
 \name{sim}
 \alias{sim}
+\alias{sim-methods}
+\alias{sim,map2stan-method}
+\alias{sim,map-method}
+\alias{sim,lm-method}
 \title{Simulate posterior observations}
 \description{
   Simulates posterior observations for \code{map} and \code{map2stan} model fits.

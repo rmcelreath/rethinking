@@ -1,6 +1,6 @@
 # graphical posterior validation checks for map and map2stan
 
-postcheck <- function( fit , prob=0.89 , window=20 , n=1000 , col=rangi2 , ... ) {
+postcheck <- function( fit , x , prob=0.89 , window=20 , n=1000 , col=rangi2 , ... ) {
     
     undot <- function( astring ) {
         astring <- gsub( "." , "_" , astring , fixed=TRUE )
@@ -19,6 +19,15 @@ postcheck <- function( fit , prob=0.89 , window=20 , n=1000 , col=rangi2 , ... )
     outcome <- as.character(lik[[2]])
     if ( class(fit)=="map2stan" ) outcome <- undot(outcome)
     y <- fit@data[[ outcome ]]
+    
+    # check for x-axis variable definition
+    if ( !missing(x) ) {
+        if ( x %in% names(fit@data) ) {
+            x_var <- fit@data[[x]]
+            r <- range(x_var)*c(0.9,1.1)
+            x_seq <- seq(from=r[1],to=r[2],length.out=30)
+        }
+    }
     
     # compute posterior predictions for each case
     

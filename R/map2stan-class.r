@@ -14,9 +14,9 @@ setMethod("coef", "map2stan", function(object) {
 })
 
 setMethod("extract.samples","map2stan",
-function(object) {
+function(object,n,...) {
     #require(rstan)
-    p <- rstan::extract(object@stanfit)
+    p <- rstan::extract(object@stanfit,...)
     # get rid of dev and lp__
     p[['dev']] <- NULL
     p[['lp__']] <- NULL
@@ -24,14 +24,22 @@ function(object) {
     for ( i in 1:length(p) ) {
         attr(p[[i]],"dimnames") <- NULL
     }
+    if ( !missing(n) ) {
+        for ( i in 1:length(p) ) {
+            n_dims <- length( dim(p[[i]]) )
+            if ( n_dims==1 ) p[[i]] <- p[[i]][1:n]
+            if ( n_dims==2 ) p[[i]] <- p[[i]][1:n,]
+            if ( n_dims==3 ) p[[i]] <- p[[i]][1:n,,]
+        }
+    }
     return(p)
 }
 )
 
 setMethod("extract.samples","stanfit",
-function(object) {
+function(object,...) {
     #require(rstan)
-    p <- rstan::extract(object)
+    p <- rstan::extract(object,...)
     # get rid of dev and lp__
     #p[['dev']] <- NULL
     #p[['lp__']] <- NULL
@@ -236,13 +244,16 @@ setMethod("plot" , "map2stan" , function(x,y,...) {
 
 setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=16 , adj=1 , pars , ...) {
     #require(rstan)
-    posterior <- extract.samples(x)
-    if ( !missing(pars) ) {
-        # select out named parameters
-        p <- list()
-        for ( k in pars ) p[[k]] <- posterior[[k]]
-        posterior <- p
-    }
+    if ( missing(pars) )
+        posterior <- extract.samples(x)
+    else
+        posterior <- extract.samples(x,pars=pars)
+    #if ( !missing(pars) ) {
+    #    # select out named parameters
+    #    p <- list()
+    #    for ( k in pars ) p[[k]] <- posterior[[k]]
+    #    posterior <- p
+    #}
     panel.dens <- function(x, ...) {
         usr <- par("usr"); on.exit(par(usr))
         par(usr = c(usr[1:2], 0, 1.5) )
@@ -272,13 +283,16 @@ setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=1
 # my trace plot function
 #rethink_palette <- c("#5BBCD6","#F98400","#F2AD00","#00A08A","#FF0000")
 rethink_palette <- c("#8080FF","#F98400","#F2AD00","#00A08A","#FF0000")
-tracerplot <- function( object , col=rethink_palette , alpha=1 , bg=gray(0.7,0.5) , ask=TRUE , window , n_cols=2 , ... ) {
+tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=gray(0.7,0.5) , ask=TRUE , window , n_cols=2 , max_rows=5 , ... ) {
     chain.cols <- col
     
     if ( class(object)!="map2stan" ) stop( "requires map2stan fit" )
     
     # get all chains, not mixed, from stanfit
-    post <- extract(object@stanfit,permuted=FALSE,inc_warmup=TRUE)
+    if ( missing(pars) )
+        post <- extract(object@stanfit,permuted=FALSE,inc_warmup=TRUE)
+    else
+        post <- extract(object@stanfit,pars=pars,permuted=FALSE,inc_warmup=TRUE)
     
     # names
     dimnames <- attr(post,"dimnames")
@@ -296,8 +310,8 @@ tracerplot <- function( object , col=rethink_palette , alpha=1 , bg=gray(0.7,0.5
     n_rows_per_page <- n_rows
     paging <- FALSE
     n_pages <- 1
-    if ( n_rows_per_page > 5 ) {
-        n_rows_per_page <- 5
+    if ( n_rows_per_page > max_rows ) {
+        n_rows_per_page <- max_rows
         n_pages <- ceiling(n_pars/(n_cols*n_rows_per_page))
         paging <- TRUE
     }

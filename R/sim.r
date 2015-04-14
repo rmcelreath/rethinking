@@ -159,7 +159,7 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() ,
 )
 
 setMethod("sim", "map2stan",
-function( fit , data , n , post , refresh=0.1 , replace=list() , ... ) {
+function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
     
     ########################################
     # check arguments
@@ -171,14 +171,16 @@ function( fit , data , n , post , refresh=0.1 , replace=list() , ... ) {
         #data <- as.data.frame(data)
     }
     
+    if ( n==0 ) {
+        ptemp <- extract.samples(fit)
+        n <- dim(ptemp[[1]])[1]
+    }
+    
     if ( missing(post) ) 
         post <- extract.samples(fit,n=n)
     
-    if ( missing(n) )
-        n <- dim(post[[1]])[1] # in case n=0 was passed
-    
     # get linear model values from link
-    # use our posterior samples, so later parameters have right correlation structure
+    # use our posterior samples, so later parameters have right correlation structure with link values
     # don't flatten result, so we end up with a named list, even if only one element
     pred <- link( fit , data=data , n=n , post=post , flatten=FALSE , refresh=refresh , replace=replace , ... )
     

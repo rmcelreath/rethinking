@@ -9,8 +9,9 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
 }
 )
 
+# by default uses all samples returned by Stan; indicated by n=0
 setMethod("WAIC", "map2stan",
-function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
+function( object , n=0 , refresh=0.1 , pointwise=FALSE , ... ) {
     
     if ( !(class(object)%in%c("map2stan")) ) stop("Requires map2stan fit")
     
@@ -24,6 +25,9 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
                 attr(new_waic,"pWAIC") <- sum(unlist(attr(old_waic,"pWAIC")))
                 attr(new_waic,"se") <- attr(old_waic,"se")
                 return( new_waic )
+            } else {
+                # return pointwise
+                return( old_waic )
             }
         } else {
             # old waic not pointwise

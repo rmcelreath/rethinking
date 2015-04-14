@@ -71,8 +71,13 @@ map2stan.templates <- list(
                     # vector, so constuct vector data type in Stan code
                     # and add vector to transformed parameters
                     pars <- list()
+                    n <- length(k[[1]])-1
                     for ( i in 2:(n+1) ) pars[[i-1]] <- as.character(k[[1]][[i]])
                     vname <- concat( "Mu_" , paste(pars,collapse="") )
+                    
+                    # get tpars from parent
+                    m_tpars1 <- get( "m_tpars1" , envir=parenvir )
+                    m_tpars2 <- get( "m_tpars2" , envir=parenvir )
                     
                     # add declaration to transformed parameters
                     m_tpars1 <- concat( m_tpars1 , indent , "vector[" , n , "] " , vname , ";\n" )
