@@ -96,7 +96,8 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         }
     }
     
-    init <- fit@start
+    #init <- fit@start
+    init <- list()
     
     ###################
     # loop over samples and compute each case for each linear model
@@ -175,8 +176,8 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         }
         
         # build inits
-        for ( j in 1:length(init) ) {
-            par_name <- names(init)[ j ]
+        for ( j in 1:length(fit@pars) ) {
+            par_name <- fit@pars[ j ]
             dims <- dim( post[[par_name]] )
             # scalar
             if ( length(dims)==1 ) init[[par_name]] <- post[[par_name]][i]

@@ -6,7 +6,7 @@
   Shows trace plots for Stan samples produced by a \code{map2stan} fit, annotated by number of effective samples. Automatic paging and adjustable number of columns and rows per page.
 }
 \usage{
-plot( object , pars , col=rethink_palette , alpha=1 , bg=gray(0.7,0.5) , ask=TRUE , window , n_cols=2 , max_rows=5 , ... )
+plot( object , pars , col=rethink_palette , alpha=1 , bg=gray(0.7,0.5) , ask=TRUE , window , n_cols=3 , max_rows=5 , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

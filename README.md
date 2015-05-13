@@ -1,7 +1,7 @@
 rethinking
 ==========
 
-This R package accompanies a course and book on Bayesian data analysis. It contains tools for conducting both MAP estimation and Hamiltonian Monte Carlo (through RStan - mc-stan.org). These tools force the user to specify the model as a list of explicit distributional assumptions.
+This R package accompanies a course and book on Bayesian data analysis. It contains tools for conducting both MAP estimation and Hamiltonian Monte Carlo (through RStan - mc-stan.org). These tools force the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful.
 
 For example, a simple Gaussian model could be specified with this list of formulas:
 
@@ -96,7 +96,7 @@ While ``map`` is limited to fixed effects models for the most part, ``map2stan``
 ```
 f2 <- alist(
     y ~ dnorm( mu , sigma ),
-    mu <- a + aj,
+    mu <- a + aj[group],
     aj[group] ~ dnorm( 0 , sigma_group ),
     a ~ dnorm( 0 , 10 ),
     sigma ~ dcauchy( 0 , 1 ),
@@ -107,7 +107,7 @@ And with varying slopes as well:
 ```
 f3 <- alist(
     y ~ dnorm( mu , sigma ),
-    mu <- a + aj + (b + bj)*x,
+    mu <- a + aj[group] + (b + bj[group])*x,
     c(aj,bj)[group] ~ dmvnorm( 0 , Sigma_group ),
     a ~ dnorm( 0 , 10 ),
     b ~ dnorm( 0 , 1 ),
@@ -117,13 +117,14 @@ f3 <- alist(
 ```
 
 
+
 ## Nice covariance priors
 
 And ``map2stan`` supports decomposition of covariance matrices into vectors of standard deviations and a correlation matrix, such that priors can be specified independently for each:
 ```
 f4 <- alist(
     y ~ dnorm( mu , sigma ),
-    mu <- a + aj + (b + bj)*x,
+    mu <- a + aj[group] + (b + bj[group])*x,
     c(aj,bj)[group] ~ dmvnorm2( 0 , sigma_group , Rho_group ),
     a ~ dnorm( 0 , 10 ),
     b ~ dnorm( 0 , 1 ),
@@ -138,7 +139,8 @@ Here is a non-centered parameterization that moves the scale parameters in the v
 ```
 f4u <- alist(
     y ~ dnorm( mu , sigma ),
-    mu <- a + zaj*sigma_group[1] + (b + zbj*sigma_group[2])*x,
+    mu <- a + zaj[group]*sigma_group[1] + 
+         (b + zbj[group]*sigma_group[2])*x,
     c(zaj,zbj)[group] ~ dmvnorm( 0 , Rho_group ),
     a ~ dnorm( 0 , 10 ),
     b ~ dnorm( 0 , 1 ),
@@ -147,7 +149,22 @@ f4u <- alist(
     Rho_group ~ dlkjcorr(2)
 )
 ```
-Chapter 13 of the book provides a lot more detail on this issue.
+Chapter 13 of the book provides a lot more detail on this issue. 
+
+We can take this strategy one step further and remove the correlation matrix, ``Rho_group``, from the prior as well.  ``map2stan`` facilitates this form via the ``dmvnormNC`` density, which uses an internal Cholesky decomposition of the correlation matrix to build the varying effects. Here is the previous varying slopes model, now with the non-centered notation:
+```
+f4nc <- alist(
+    y ~ dnorm( mu , sigma ),
+    mu <- a + aj[group] + (b + bj[group])*x,
+    c(aj,bj)[group] ~ dmvnormNC( sigma_group , Rho_group ),
+    a ~ dnorm( 0 , 10 ),
+    b ~ dnorm( 0 , 1 ),
+    sigma ~ dcauchy( 0 , 1 ),
+    sigma_group ~ dcauchy( 0 , 1 ),
+    Rho_group ~ dlkjcorr(2)
+)
+```
+Internally, a Cholesky factor ``L_Rho_group`` is used to perform sampling.
 
 ## Semi-automated Bayesian imputation
 

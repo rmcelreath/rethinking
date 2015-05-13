@@ -3,8 +3,14 @@
 # to-do:
 
 # utility function to convert alist() construction with <- tagged linear model to regular ~ variety
+# do some error checking here
 flist_untag <- function(flist) {
     for ( i in 1:length(flist) ) {
+        if ( !is.null(names(flist)) ) {
+            if ( names(flist)[i]!="" ) {
+                warning( concat("Named entry '",names(flist)[i],"' detected. Make sure you didn't use '=' where you meant '~' or '<-'.") )
+            }
+        }#!is.null
         if ( class(flist[[i]])=="<-" ) {
             # tagged formula, so convert to ~ formula expression
             flist[[i]][[1]] <- as.name("~")

@@ -69,6 +69,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     
     if ( missing(start) ) start <- list()
     start.orig <- start
+    transpars <- list() # holds transform parameter code
+    pars_elect <- list() # holds transformed pars to return in samples
+    pars_hide <- list() # holds pars to hide in samples
     
     if ( iter <= warmup ) {
         # user probably meant iter as number of samples
@@ -845,22 +848,41 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             N_txt <- concat( "N_" , vprior$group )
             npars <- length(vprior$pars_out)
             
+            # add N count to data
+            N <- length( unique( d[[ vprior$group ]] ) )
+            d[[ N_txt ]] <- N
+            
+            # check for explicit start value
+            # do this now, so out_map and pars_map functions can modify
+            for ( k in vprior$pars_out )
+                if ( !( k %in% names(start) ) ) {
+                    if ( verbose==TRUE )
+                        message( paste(k,": start values set to zero [",N,"]") )
+                    start_prior[[ k ]] <- rep(0,N)
+                }
+            
             # lhs -- if vector, need transformed parameter of vector type
             lhstxt <- ""
             if ( length(vprior$pars_out) > 1 ) {
-                # parameter vector
-                lhstxt <- paste( vprior$pars_out , collapse="" )
-                lhstxt <- concat( "v_" , lhstxt )
-                
-                # add declaration to transformed parameters
-                m_tpars1 <- concat( m_tpars1 , indent , "vector[" , npars , "] " , lhstxt , "[" , N_txt , "];\n" )
-                
-                # add conversion for each true parameter
-                m_tpars2 <- concat( m_tpars2 , indent , "for ( j in 1:" , N_txt , " ) {\n" )
-                for ( j in 1:npars ) {
-                    m_tpars2 <- concat( m_tpars2 , indent,indent , lhstxt , "[j," , j , "] <- " , vprior$pars_out[[j]] , "[j];\n" )
+                # check for special formatting function for density
+                if ( !is.null(tmplt$out_map) ) {
+                    lhstxt <- tmplt$out_map( vprior$pars_out , vprior$pars_in , N , N_txt , environment() )
+                } else {
+                # automated conversion to vector
+                    # parameter vector
+                    lhstxt <- paste( vprior$pars_out , collapse="" )
+                    lhstxt <- concat( "v_" , lhstxt )
+                    
+                    # add declaration to transformed parameters
+                    m_tpars1 <- concat( m_tpars1 , indent , "vector[" , npars , "] " , lhstxt , "[" , N_txt , "];\n" )
+                    
+                    # add conversion for each true parameter
+                    m_tpars2 <- concat( m_tpars2 , indent , "for ( j in 1:" , N_txt , " ) {\n" )
+                    for ( j in 1:npars ) {
+                        m_tpars2 <- concat( m_tpars2 , indent,indent , lhstxt , "[j," , j , "] <- " , vprior$pars_out[[j]] , "[j];\n" )
+                    }
+                    m_tpars2 <- concat( m_tpars2 , indent , "}\n" )
                 }
-                m_tpars2 <- concat( m_tpars2 , indent , "}\n" )
             } else {
                 # single parameter
                 lhstxt <- vprior$pars_out[[1]]
@@ -868,7 +890,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             
             # format parmater inputs
             # use par_map function in template, so ordering etc can change
-            klist <- tmplt$par_map( vprior$pars_in , environment() , npars , N_txt )
+            #print(length(vprior$pars_out))
+            klist <- tmplt$par_map( vprior$pars_in , environment() , length(vprior$pars_out) , N_txt )
             for ( j in 1:length(klist) ) {
                 l <- tag_var(klist[[j]])
                 if ( !is.null(l) ) {
@@ -879,10 +902,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             rhstxt <- paste( klist , collapse=" , " )
             
             # add text to model code
-            # new column vectorized normal and multi_normal
+            # new vectorized normal and multi_normal
             if ( vprior$density %in% c("multi_normal","normal") )
                 m_model_txt <- concat( m_model_txt , indent , lhstxt , " ~ " , vprior$density , "( " , rhstxt , " )" , vprior$T_text , ";\n" )
             else
+            # old un-vectorized code
                 m_model_txt <- concat( m_model_txt , indent , "for ( j in 1:" , N_txt , " ) " , lhstxt , "[j] ~ " , vprior$density , "( " , rhstxt , " )" , vprior$T_text , ";\n" )
             
             # declare each parameter with correct type from template
@@ -894,10 +918,6 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             # add data declaration for grouping variable number of unique values
             #m_data <- concat( m_data , indent , "int<lower=1> " , N_txt , ";\n" )
             fp[['used_predictors']][[N_txt]] <- list( var=N_txt , type="index" )
-            
-            # add N count to data
-            N <- length( unique( d[[ vprior$group ]] ) )
-            d[[ N_txt ]] <- N
             
             # mark grouping variable used
             # check if already there
@@ -916,14 +936,6 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     fp[['used_predictors']][[vprior$group]] <- list( var=vprior$group , N=length(d[[vprior$group]]) )
                 }
             }# is.null
-            
-            # check for explicit start value
-            for ( k in vprior$pars_out )
-                if ( !( k %in% names(start) ) ) {
-                    if ( verbose==TRUE )
-                        message( paste(k,": start values set to zero [",N,"]") )
-                    start_prior[[ k ]] <- rep(0,N)
-                }
             
         } # vprior
     
@@ -1199,12 +1211,35 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             
             # any custom type?
             mytype <- types[[pname]]
-            if ( !is.null(mytype) ) type <- mytype
+            if ( !is.null(mytype) ) {
+                if ( length(mytype)==1 )
+                    type <- mytype
+                else {
+                    # must have custom dims in [2]
+                    type <- mytype[1]
+                    type_dim <- mytype[2]
+                }
+            }
             
             # add to parameters block
             m_pars <- concat( m_pars , indent , type , constraint , type_dim , " " , pname , ";\n" )
         }#i
     }
+    
+    # compose any transformed parameters in transpars
+    if ( length(transpars) > 0 ) {
+        for ( i in 1:length(transpars) ) {
+            if ( length(transpars[[i]])>1 ) {
+                # declaration [1] and code [2]
+                tptxt <- concat( indent , transpars[[i]][1] , ";\n" )
+                m_tpars1 <- concat( m_tpars1 , tptxt )
+                tptxt <- concat( indent , transpars[[i]][2] , ";\n" )
+                m_tpars2 <- concat( m_tpars2 , tptxt )
+            } else {
+                # just code? --- not a used case yet
+            }
+        }#i
+    }# transpars > 0
     
     # put it all together
     
@@ -1237,7 +1272,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # use ours, unless user provided one
     if ( missing(pars) ) {
         pars <- names(start)
-        pars <- c( pars , "dev" )
+        elected <- names(pars_elect)
+        pars <- c( pars , elected , "dev" )
+        if ( length(pars_hide)>0 ) {
+            exclude_idx <- which( pars %in% names(pars_hide) )
+            pars <- pars[ -exclude_idx ]
+        }
     }
     
     if ( sample==TRUE ) {

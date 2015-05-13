@@ -28,6 +28,27 @@ map2stan.templates <- list(
         },
         vectorized = TRUE
     ),
+    LogGaussian = list(
+        name = "LogGaussian",
+        R_name = "dlnorm",
+        stan_name = "lognormal",
+        num_pars = 2,
+        par_names = c("mu","sigma"),
+        par_bounds = c("","<lower=0>"),
+        par_types = c("real","real"),
+        out_type = "real",
+        par_map = function(k,e,...) {
+            # get constraints and add <lower=0> for sigma vector
+            constr_list <- get( "constraints" , envir=e )
+            sigma_name <- as.character( k[[2]] )
+            if ( is.null(constr_list[[sigma_name]]) ) {
+                constr_list[[sigma_name]] <- "lower=0"
+                assign( "constraints" , constr_list , envir=e )
+            }
+            return(k);
+        },
+        vectorized = TRUE
+    ),
     StudentT = list(
         name = "StudentT",
         R_name = "dstudent",
@@ -198,6 +219,162 @@ map2stan.templates <- list(
             
             # get constraints and add <lower=0> for sigma vector
             constr_list <- get( "constraints" , envir=e )
+            isnum <- function(x) {
+                xn <- suppressWarnings(as.numeric(x))
+                return( ifelse(is.na(xn),FALSE,TRUE) ) 
+            }
+            if ( !isnum(Sigma_name) )
+                if ( is.null(constr_list[[Sigma_name]]) ) {
+                    constr_list[[Sigma_name]] <- "lower=0"
+                    assign( "constraints" , constr_list , envir=e )
+                }
+            
+            # result
+            return(kout);
+        },
+        vectorized = FALSE
+    ),
+    MVGaussianLNC = list(
+        # MVGauss that uses Cholesky factor for correlation matrix
+        # also uses non-centered parameterization internally
+        # this means substitutes to_vector(z) ~ normal(0,1) for sampling
+        # then transforms to correlated samples with:
+        #     v <- (diag_pre_multiply(sigma,L_Rho) * z)'
+        # but returns usual Rho and sigma parameters for inference
+        name = "MVGaussianLNC",
+        R_name = "dmvnormNC",
+        stan_name = "normal",  # univariate, because uses Cholesky trick
+        num_pars = 2,
+        par_names = c("Sigma","Rho"),
+        par_bounds = c("lower=0",""),
+        par_types = c("vector","corr_matrix"),
+        out_type = "vector",
+        out_map = function(kout,kin,N,N_txt,e,...) {
+            # this function converts c(a,b) style parameters
+            # need : to_vector(z) as output
+            # but also add transformed parameters to convert back from z
+            
+            Sigma_name <- as.character(kin[[1]])
+            Rho_name <- as.character(kin[[2]])
+            L_name <- concat( "L_" , Rho_name )
+            
+            # build name of z-score matrix
+            # dims will be [ num_effects , num_clusters ]
+            #z_name <- paste( kout , collapse="" )
+            z_name <- concat( "z_" , N_txt )
+            
+            # add z matrix to parameters
+            start <- get( "start" , envir=e )
+            start[[z_name]] <- matrix(0,nrow=length(kout),ncol=N)
+            assign( "start" , start , envir=e )
+            
+            # hide z matrix from pars returned in samples
+            #pars_hide <- get( "pars_hide" , envir=parent.frame() )
+            #pars_hide[[z_name]] <- 1
+            #assign( "pars_hide" , pars_hide , envir=parent.frame() )
+            
+            # coerce type to plain matrix
+            types <- get( "types" , envir=parent.frame() )
+            types[[z_name]] <- c( "matrix" , concat("[",length(kout),",",N_txt,"]") )
+            assign( "types" , types , envir=parent.frame() )
+            
+            # add v matrix to transformed parameters
+            # matrix[N_groups,N_effects] v; 
+            # v <- (diag_pre_multiply(sigma,L_Rho) * z)';
+            transpars <- get( "transpars" , envir=parent.frame() )
+            start <- get( "start" , envir=parent.frame() )
+            startp <- get( "start_prior" , envir=parent.frame() )
+            v_name <- concat( "v_" , N_txt )
+            transpars[[v_name]] <- c(
+                concat("matrix[",N_txt,",",length(kout),"] ",v_name),
+                concat(v_name," <- (diag_pre_multiply(",Sigma_name,",",L_name,")*",z_name,")'")
+            )
+            assign( "transpars" , transpars , envir=parent.frame() )
+            
+            # add conversion v -> c(a,b) in transformed parameters
+            # can use transpars list in parent environment to signal
+            #   to place parameters in transformed parameters,
+            #   with specified code
+            pars_elect <- get( "pars_elect" , envir=parent.frame() )
+            for ( i in 1:length(kout) ) {
+                # clear from start list, so not in parameters block
+                apar <- as.character(kout[[i]])
+                start[[apar]] <- startp[[apar]] <- NULL
+                # pattern:
+                # apar <- col(v,i) 
+                trans_txt <- c(
+                    concat( "vector[" , N_txt , "] " , apar ) ,
+                    concat( apar , " <- col(" , v_name , "," , i , ")" ) )
+                transpars[[apar]] <- trans_txt
+                pars_elect[[apar]] <- 1
+            }
+            assign( "transpars" , transpars , envir=parent.frame() )
+            assign( "start" , start , envir=parent.frame() )
+            assign( "start_prior" , startp , envir=parent.frame() )
+            assign( "pars_elect" , pars_elect , envir=parent.frame() )
+            
+            # return left hand text for sampling statement
+            return( concat("to_vector(",z_name,")") );
+        },
+        par_map = function(k,e,n_clusters,N_txt,...) {
+            # k is list of input parameters
+            # n is dimension of multi_normal
+            # e is calling environment
+            
+            kout <- list('0','1') # z ~ normal(0,1)
+            indent <- "    "
+                        
+            ###########
+            # Sigma and Rho
+            
+            Sigma_name <- as.character(k[[1]])
+            Rho_name <- as.character(k[[2]])
+            L_name <- concat( "L_" , Rho_name )
+            
+            # add Cholesky factor to parameters block
+            # use start and types lists
+            start <- get( "start" , envir=parent.frame() )
+            start[[L_name]] <- diag(n_clusters)
+            assign( "start" , start , envir=parent.frame() )
+            
+            types <- get( "types" , envir=parent.frame() )
+            types[[L_name]] <- c("cholesky_factor_corr" , concat("[",n_clusters,"]") )
+            assign( "types" , types , envir=parent.frame() )
+            
+            # convert prior for Rho to Cholesky prior
+            # assume using lkj_corr prior, otherwise going to explode
+            # also prior for Rho needs to come after this prior,
+            #   so is already in m_model_txt at this point,
+            #   because parsing is bottom-to-top
+            m_model_txt <- get( "m_model_txt" , envir=parent.frame() )
+            m_model_txt <- gsub( Rho_name , L_name , m_model_txt , fixed=TRUE )
+            m_model_txt <- gsub( "lkj_corr(" , "lkj_corr_cholesky(" , m_model_txt , fixed=TRUE )
+            assign( "m_model_txt" , m_model_txt , envir=parent.frame() )
+            
+            # remove Rho from parameters block 
+            start[[Rho_name]] <- NULL
+            assign( "start" , start , envir=parent.frame() )
+            # have to check start_prior too
+            startp <- get( "start_prior" , envir=parent.frame() )
+            startp[[Rho_name]] <- NULL
+            assign( "start_prior" , startp , envir=parent.frame() )
+            
+            # add Rho to transformed parameters
+            # Rho <- L_Rho * L_Rho'
+            transpars <- get( "transpars" , envir=parent.frame() )
+            transpars[[Rho_name]] <- c(
+                concat("matrix[",n_clusters,",",n_clusters,"] ",Rho_name),
+                concat(Rho_name," <- ",L_name," * ",L_name,"'")
+            )
+            assign( "transpars" , transpars , envir=parent.frame() )
+            
+            # and make sure Rho is returned in samples
+            pars_elect <- get( "pars_elect" , envir=parent.frame() )
+            pars_elect[[Rho_name]] <- 1
+            assign( "pars_elect" , pars_elect , envir=parent.frame() )
+            
+            # get constraints and add <lower=0> for sigma vector
+            constr_list <- get( "constraints" , envir=parent.frame() )
             isnum <- function(x) {
                 xn <- suppressWarnings(as.numeric(x))
                 return( ifelse(is.na(xn),FALSE,TRUE) ) 
