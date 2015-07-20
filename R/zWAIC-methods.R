@@ -34,17 +34,17 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , ... ) {
             if ( pointwise==FALSE ) return( old_waic )
         }
     }
-    
-    # compute linear model values at each sample
-    if ( refresh > 0 ) message("Constructing posterior predictions")
-    lm_vals <- link( object , n=n , refresh=refresh , flatten=FALSE )
-    
+
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
     post <- extract.samples( object )
     
     n_samples <- dim( post[[1]] )[1]
     if ( n == 0 ) n <- n_samples # special flag for all samples in fit
     #if ( n_samples < n ) n <- n_samples
+    
+    # compute linear model values at each sample
+    if ( refresh > 0 ) message("Constructing posterior predictions")
+    lm_vals <- link( object , n=n , refresh=refresh , flatten=FALSE )
     
     # compute log-lik at each sample
     liks <- object@formula_parsed$likelihood

@@ -43,7 +43,7 @@ map( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose
     \item{formula}{Formula list}
     \item{fminuslogl}{Minus log-likelihood function that accepts a vector of parameter values}
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{optim}}}
 \examples{

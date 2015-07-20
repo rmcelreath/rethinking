@@ -19,7 +19,7 @@ rzibinom( n , p_zero , size , prob )
 \details{
   These functions provide density and random number calculations for zero-inflated binomial observations. This distribution is defined as a finite mixture of zeros and binomial values, where \code{p_zero} determines the weight of the pure zeros. As such, the probability of a zero is \code{p_zero + (1-p_zero)(1-prob)^size}. And the probability of a non-zero value \code{x} is \code{(1-p_zero) choose(size,x) prob^x (1-prob)^(size-x)}.
   
-  \code{dzibinom} does its calculations in a way meant to reduce numerical issues with probabilities close to 0 and 1. As a result, it's not blindly fast. 
+  \code{dzibinom} does its calculations in a way meant to reduce numerical issues with probabilities close to 0 and 1. As a result, it's not very fast. 
 }
 \references{}
 \author{Richard McElreath}

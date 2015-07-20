@@ -23,7 +23,7 @@ PI( samples , prob=0.95 )
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{HPDinterval}}}
 \examples{

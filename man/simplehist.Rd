@@ -25,7 +25,7 @@ lcol="black" , bins=NULL , show.counts=0 , xlim=NULL , ylim=NULL , ... )
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{hist}}}
 \examples{

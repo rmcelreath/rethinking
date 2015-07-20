@@ -13,6 +13,10 @@ inv_logit <- function( x ) {
     p
 }
 
+logit <- function( x ) {
+    log( x ) - log( 1-x )
+}
+
 pordlogit <- function( x , phi , a , log=FALSE ) {
     a <- c( as.numeric(a) , Inf )
     if ( length(phi) == 1 ) {

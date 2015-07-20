@@ -20,7 +20,7 @@ mcreplicate(n, expr, refresh = 0.1, mc.cores=2 )
 }
 \value{
 }
-\references{McElreath 2014, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{mclapply}}, \code{\link{replicate}}}
 \examples{

@@ -12,7 +12,7 @@ rlkjcorr( n , K , eta=1 )
 \arguments{
   \item{x}{Matrix to compute probability density for}
   \item{eta}{Parameter controlling shape of distribution}
-  \item{K}{Scale parameter of gamma distribution}
+  \item{K}{Dimension of correlation matrix}
   \item{log}{If \code{TRUE}, returns log-probability instead of probability}
   \item{n}{Number of random matrices to sample}
 }

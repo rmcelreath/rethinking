@@ -323,7 +323,7 @@ map2stan.templates <- list(
             
             kout <- list('0','1') # z ~ normal(0,1)
             indent <- "    "
-                        
+            
             ###########
             # Sigma and Rho
             
@@ -603,10 +603,23 @@ map2stan.templates <- list(
         R_name = "dunif",
         stan_name = "uniform",
         num_pars = 2,
-        par_names = c("alpha","beta"),
-        par_bounds = c("<lower=0>","<lower=0>"),
+        par_names = c("min","max"),
+        par_bounds = c("",""),
         par_types = c("real","real"),
         out_type = "real",
+        out_map = function(kout,kin,...) {
+            # need to coerce bounded constraints on the parameter
+            constr_list <- get( "constraints" , envir=parent.frame() )
+            kout <- as.character(kout)
+            if ( is.null(constr_list[[kout]]) ) {
+                constr_list[[kout]] <- concat( "lower=" , as.character(kin[[1]]) , ",upper=" , as.character(kin[[2]]) )
+                assign( "constraints" , constr_list , envir=parent.frame() )
+            }
+            # add comment tag in front, so that uniform dist isn't computed during sims
+            # the bounded contraints effectively establish uniform prior in Stan
+            kout <- concat( "// " , kout )
+            return(kout)
+        },
         par_map = function(k,...) {
             return(k);
         },
@@ -670,9 +683,17 @@ map2stan.templates <- list(
         out_type = "real",
         par_map = function(k,...) {
             p_name <- k[[1]];
-            theta_name <- k[[2]];
+            theta_name <- as.character(k[[2]]);
             k[[1]] <- concat(p_name,"*",theta_name);
             k[[2]] <- concat("(1-",p_name,")*",theta_name);
+
+            # need to coerce bounded constraints on theta parameter
+            constr_list <- get( "constraints" , envir=parent.frame() )
+            if ( is.null(constr_list[[theta_name]]) ) {
+                constr_list[[theta_name]] <- "lower=0"
+                assign( "constraints" , constr_list , envir=parent.frame() )
+            }
+
             return(k);
         },
         vectorized = TRUE
@@ -688,9 +709,17 @@ map2stan.templates <- list(
         out_type = "int",
         par_map = function(k,...) {
             p_name <- k[[2]];
-            theta_name <- k[[3]];
+            theta_name <- as.character(k[[3]]);
             k[[2]] <- concat(p_name,"*",theta_name);
             k[[3]] <- concat("(1-",p_name,")*",theta_name);
+
+            # need to coerce bounded constraints on theta parameter
+            constr_list <- get( "constraints" , envir=parent.frame() )
+            if ( is.null(constr_list[[theta_name]]) ) {
+                constr_list[[theta_name]] <- "lower=0"
+                assign( "constraints" , constr_list , envir=parent.frame() )
+            }
+
             return(k);
         },
         vectorized = TRUE
@@ -758,6 +787,14 @@ map2stan.templates <- list(
             scale <- as.character(k[[2]])
             k[[1]] <- concat( mu , "/" , scale )
             k[[2]] <- concat( "1/" , scale )
+
+            # need to coerce bounded constraints on scale parameter
+            constr_list <- get( "constraints" , envir=parent.frame() )
+            if ( is.null(constr_list[[scale]]) ) {
+                constr_list[[scale]] <- "lower=0"
+                assign( "constraints" , constr_list , envir=parent.frame() )
+            }
+            
             return(k);
         },
         vectorized = TRUE
@@ -773,9 +810,17 @@ map2stan.templates <- list(
         out_type = "int",
         par_map = function(k,...) {
             mu_name <- k[[1]];
-            scale_name <- k[[2]];
+            scale_name <- as.character(k[[2]]);
             k[[1]] <- concat(mu_name);
             k[[2]] <- concat(scale_name);
+
+            # need to coerce bounded constraints on scale parameter
+            constr_list <- get( "constraints" , envir=parent.frame() )
+            if ( is.null(constr_list[[scale_name]]) ) {
+                constr_list[[scale_name]] <- "lower=0"
+                assign( "constraints" , constr_list , envir=parent.frame() )
+            }
+
             return(k);
         },
         vectorized = TRUE
@@ -808,6 +853,14 @@ dev <- dev + (-2)*(bernoulli_log(0,PAR1) + gamma_log(OUTCOME,PAR2,PAR3));",
             scale <- as.character(k[[3]])
             k[[2]] <- concat( mu , "[i]/" , scale )
             k[[3]] <- concat( "1/" , scale )
+
+            # need to coerce bounded constraints on scale parameter
+            constr_list <- get( "constraints" , envir=parent.frame() )
+            if ( is.null(constr_list[[scale]]) ) {
+                constr_list[[scale]] <- "lower=0"
+                assign( "constraints" , constr_list , envir=parent.frame() )
+            }
+
             return(k);
         },
         vectorized = FALSE

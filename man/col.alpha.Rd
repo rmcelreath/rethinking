@@ -25,7 +25,7 @@ col.dist( x , mu = 0 , sd = 1 , col="slateblue" )
   
   \code{col.dist} is used to make a list of transparent colors of differing alpha level. The levels are chosen based upon Gaussian distance from a chosen value, \code{mu}, with a chosen width of the function that determines how quickly colors become fully transparent, \code{sd}. For example, if \code{x} contains a column of data, then \code{col.dist} will return a vector of same length with transparency increasing as each value in \code{x} is distant from \code{mu}. This is useful for plotting data that emphasize points near some value or values.
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{col2rgb}}, \code{\link{rgb2hsv}}, \code{\link{rgb}}}
 \examples{

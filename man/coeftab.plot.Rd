@@ -25,7 +25,7 @@ coeftab_plot( x , y , pars , col.ci="black" , by.model=FALSE ,
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{coeftab}}, \code{\link{dotchart}}}
 \examples{

@@ -18,7 +18,7 @@ rzipois( n , p , lambda )
 \details{
   These functions provide density and random number calculations for zero-inflated Poisson observations. This distribution is defined as a finite mixture of zeros and Poisson values, where \code{p} determines the weight of the pure zeros. As such, the probability of a zero is \code{p + (1-p)exp(-lambda)}. And the probability of a non-zero value \code{x} is \code{(1-p)lambda^x exp(-lambda)/x!}.
   
-  \code{dzipois} does its calculations in a way meant to reduce numerical issues with probabilities close to 0 and 1. As a result, it's not blindly fast. 
+  \code{dzipois} does its calculations in a way meant to reduce numerical issues with probabilities close to 0 and 1. As a result, it's not very fast. 
 }
 \references{}
 \author{Richard McElreath}

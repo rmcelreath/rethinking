@@ -22,7 +22,7 @@ progbar(current, min = 0, max = 100, starttime,
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \examples{
 }

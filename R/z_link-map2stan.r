@@ -19,7 +19,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
     
     # get samples from Stan fit
     if ( missing(post) )
-        post <- extract.samples(fit)
+        post <- extract.samples(fit,n=n)
     
     # check n and truncate accordingly
     # if ( n==0 )
@@ -134,9 +134,10 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
                 name_original <- names(fit@formula_parsed$impute_bank)[kk]
                 name_merge <- concat( name_original , "_merge" )
                 # _merge name should already be in linear model
+                #rhs0 <- gsub( name_merge , concat(name_merge,"[i,]") , rhs0 , fixed=TRUE )
                 #rhs0 <- gsub( name_original , name_merge , rhs0 , fixed=TRUE )
                 # construct merged matrix in posterior
-                #   this "parameter" in constant in columns for observed
+                #   this "parameter" is constant in columns for observed
                 #   but has samples in columns for imputed
                 n_cases <- length( data[[ name_original ]] )
                 var_merged <- matrix( NA , nrow=n , ncol=n_cases )
@@ -176,8 +177,8 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         }
         
         # build inits
-        for ( j in 1:length(fit@pars) ) {
-            par_name <- fit@pars[ j ]
+        for ( j in 1:length(post) ) {
+            par_name <- names(post)[ j ]
             dims <- dim( post[[par_name]] )
             # scalar
             if ( length(dims)==1 ) init[[par_name]] <- post[[par_name]][i]
@@ -194,7 +195,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
             # ready environment
             e <- list( as.list(data) , as.list(init) )
             e <- unlist( e , recursive=FALSE )
-            
+
             # evaluate
             r <- eval(parse(text=rhs[[k]]),envir=e)
             flink <- fit@formula_parsed$lm[[k]]$link

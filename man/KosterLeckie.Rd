@@ -40,7 +40,7 @@ data(KosterLeckie)
 }
 \value{
 }
-\references{Koster and Leckie paper}
+\references{Koster and Leckie (2014) Food sharing networks in lowland Nicaragua: An application of the social relations model to count data. Social Networks.}
 \seealso{}
 \examples{
 }

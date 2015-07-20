@@ -44,7 +44,6 @@
   }
 }
 \references{
-  McElreath 2015. Statistical Rethinking: A Bayesian Course with R Examples. 
 }
 \seealso{
   \code{\link{map2stan}} 

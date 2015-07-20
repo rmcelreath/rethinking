@@ -15,7 +15,7 @@ log_sum_exp( x )
     This function is used by \code{WAIC} to compute the log average probability used in the formula for WAIC. In that context, a vector of log-probabilities is passed to \code{log_sum_exp}, obviating the need to explicitly exponentiate. This helps to avoid rounding errors that occur when working with direct probabilities.
 }
 %- maybe also 'usage' for other objects documented here.
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \examples{
 }

@@ -86,3 +86,20 @@ function( object , ... ) {
     return(val)
 }
 )
+
+# function that takes mean of each parameter in a named list of samples
+postmeans <- function(post) {
+    Epost <- list()
+    for ( i in 1:length(post) ) {
+        dims <- length( dim( post[[i]] ) )
+        name <- names(post)[i]
+        if ( name!="lp__" & name!="dev" ) {
+            if ( dims==1 ) {
+                Epost[[ name ]] <- mean( post[[i]] )
+            } else {
+                Epost[[ name ]] <- apply( post[[i]] , 2:dims , mean )
+            }
+        }
+    }#i
+    return(Epost)
+}

@@ -1,7 +1,7 @@
 rethinking
 ==========
 
-This R package accompanies a course and book on Bayesian data analysis. It contains tools for conducting both MAP estimation and Hamiltonian Monte Carlo (through RStan - mc-stan.org). These tools force the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful.
+This R package accompanies a course and book on Bayesian data analysis (McElreath 2016. Statistical Rethinking. CRC Press.). It contains tools for conducting both MAP estimation and Hamiltonian Monte Carlo (through RStan - mc-stan.org). These tools force the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful.
 
 For example, a simple Gaussian model could be specified with this list of formulas:
 
@@ -15,11 +15,32 @@ f <- alist(
 
 The first formula in the list is the likelihood; the second is the prior for ``mu``; the third is the prior for ``sigma`` (implicitly a half-Cauchy, due to positive constraint on ``sigma``).
 
+## Quick Installation
+
+You can find a manual with expanded installation and usage instructions here: ``http://xcelab.net/rm/software/``
+
+Here's the brief verison. 
+
+You'll need to install ``rstan`` first. Go to ``http://mc-stan.org`` and follow the instructions for your platform. Then you can install ``rethinking`` from within R using:
+```
+install.packages(c("coda","mvtnorm","devtools"))
+library(devtools)
+devtools::install_github("rmcelreath/rethinking")
+```
+If there are any problems, they likely arise when trying to install ``rstan``, so the ``rethinking`` package has nothing to do with it. See the manual linked above for some hints about getting ``rstan`` installed.
+
 ## MAP estimation
 
-Then to use maximum a posteriori (MAP) fitting:
+To use maximum a posteriori (MAP) fitting:
 ```
 library(rethinking)
+
+f <- alist(
+    y ~ dnorm( mu , sigma ),
+    mu ~ dnorm( 0 , 10 ),
+    sigma ~ dcauchy( 0 , 1 )
+)
+
 fit <- map( 
     f , 
     data=list(y=c(-1,1)) , 
@@ -120,7 +141,8 @@ f3 <- alist(
 
 ## Nice covariance priors
 
-And ``map2stan`` supports decomposition of covariance matrices into vectors of standard deviations and a correlation matrix, such that priors can be specified independently for each:
+The ``inv_wishart`` prior in the model just above is conventional, but not appealing. Since Stan does not use Gibbs sampling, there is no advantage to the ``inv_wishart`` prior. 
+To escape these conventional priors, ``map2stan`` supports decomposition of covariance matrices into vectors of standard deviations and a correlation matrix, such that priors can be specified independently for each:
 ```
 f4 <- alist(
     y ~ dnorm( mu , sigma ),
@@ -133,6 +155,7 @@ f4 <- alist(
     Rho_group ~ dlkjcorr(2)
 )
 ```
+
 
 # Non-centered parameterization
 Here is a non-centered parameterization that moves the scale parameters in the varying effects prior to the linear model, which is often more efficient for sampling:
@@ -164,7 +187,7 @@ f4nc <- alist(
     Rho_group ~ dlkjcorr(2)
 )
 ```
-Internally, a Cholesky factor ``L_Rho_group`` is used to perform sampling.
+Internally, a Cholesky factor ``L_Rho_group`` is used to perform sampling. It will appear in the returned samples, in addition to ``Rho_group``, which is constructed from it.
 
 ## Semi-automated Bayesian imputation
 
@@ -190,7 +213,7 @@ f5 <- alist(
 )
 m5 <- map2stan( f5 , data=list(y=y,x=x) )
 ```
-What ``map2stan`` does is notice the missing values, see the distribution assigned to the variable with the missing values, build the Stan code that uses a mix of observed and estimated ``x`` values in the regression. See the ``stancode(m)`` for details of the implementation.
+What ``map2stan`` does is notice the missing values, see the distribution assigned to the variable with the missing values, build the Stan code that uses a mix of observed and estimated ``x`` values in the regression. See the ``stancode(m5)`` for details of the implementation.
 
 ## Gaussian process
 

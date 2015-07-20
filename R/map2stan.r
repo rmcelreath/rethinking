@@ -529,6 +529,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 d[[ missingness_name ]] <- var_missingness
                 # flag as used
                 fp[['used_predictors']][[missingness_name]] <- list( var=missingness_name , N=N_missing_name , type="int" )
+                # trap for only 1 missing value and vectorization issues
+                if ( length(var_missingness)==1 )
+                    fp[['used_predictors']][[missingness_name]] <- list( var=missingness_name , type="index" )
                 # replace variable with missing values
                 d[[undot(lik$outcome)]] <- var_temp
                 
@@ -614,7 +617,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 flag_mvprior <- FALSE
                 if ( length(RHS)>1 ) {
                     fname <- as.character( RHS[[1]] )
-                    if ( fname %in% c("dmvnorm","dmvnorm2","normal","multi_normal") )
+                    if ( fname %in% c("dmvnorm","dmvnorm2","multi_normal") )
                         flag_mvprior <- TRUE
                 }
                 if ( flag_mvprior==FALSE ) {
@@ -775,7 +778,16 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             if ( class(prior$par_out)!="character" )
                 prior$par_out <- deparse(prior$par_out)
             parstxt <- paste( klist , collapse=" , " )
-            txt <- concat( indent , prior$par_out , " ~ " , prior$density , "( " , parstxt , " )" , prior$T_text , ";" )
+            
+            # check for special formatting of left hand side
+            # also handle some constraints here
+            lhstxt <- prior$par_out
+            if ( !is.null(tmplt$out_map) ) {
+                lhstxt <- tmplt$out_map( prior$par_out , prior$pars_in , environment() )
+            }
+            
+            # build text
+            txt <- concat( indent , lhstxt , " ~ " , prior$density , "( " , parstxt , " )" , prior$T_text , ";" )
             
             #m_model_priors <- concat( m_model_priors , txt , "\n" )
             m_model_txt <- concat( m_model_txt , txt , "\n" )
@@ -1054,15 +1066,25 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 
                 # imputation stuff
                 if ( outcome %in% names(impute_bank) ) {
+                    N_miss <- impute_bank[[lik$outcome]]$N_miss
                     # add _merge suffix
                     outcome <- concat(outcome,suffix_merge)
                     # build code in transformed parameters that constructs x_merge
                     m_tpars1 <- concat( m_tpars1 , indent , "real " , outcome , "[N];\n" )
                     m_tpars2 <- concat( m_tpars2 , indent , outcome , " <- " , lik$outcome , ";\n" )
-                    m_tpars2 <- concat( m_tpars2 , indent , "for ( u in 1:" , lik$N_name , "_missing ) " , outcome , "[" , lik$outcome , "_missingness[u]] <- " , lik$outcome , "_impute[u]" , ";\n" )
+                    # trap for single missing value and vectorization issues
+                    if ( N_miss>1 )
+                        m_tpars2 <- concat( m_tpars2 , indent , "for ( u in 1:" , lik$N_name , "_missing ) " , outcome , "[" , lik$outcome , "_missingness[u]] <- " , lik$outcome , "_impute[u]" , ";\n" )
+                    else
+                        m_tpars2 <- concat( m_tpars2 , indent , outcome , "[" , lik$outcome , "_missingness] <- " , lik$outcome , "_impute" , ";\n" )
                     # add x_impute to start list
                     imputer_name <- concat(lik$outcome,"_impute")
                     start[[ imputer_name ]] <- rep( impute_bank[[lik$outcome]]$init , impute_bank[[lik$outcome]]$N_miss )
+                    if ( N_miss>1 )
+                        types[[ imputer_name ]] <- c("vector", concat("[",lik$N_name,"_missing]") )
+                    else
+                        # only one missing value, so cannot use vector
+                        types[[ imputer_name ]] <- "real"
                     # make sure x_impute is in pars
                     #pars[[ imputer_name ]] <- imputer_name
                 }

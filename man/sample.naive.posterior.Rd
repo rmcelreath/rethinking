@@ -23,6 +23,8 @@ sample.qa.posterior(model, n = 10000, clean.names = TRUE, model.weights =
   \item{verbose}{If \code{TRUE}, prints various debugging information}
 }
 \details{
+  This is a legacy function and is no longer supported nor unit tested.
+
   This function provides a way to draw parameter values from a multivariate normal posterior density, estimated from the maximum a posterieri (MAP) estimates and variance-covariance (\code{vcov}) of a fit model or models.
   
   When passing a single fit model object, the function returns a data frame in which each row is a sample and each column is a parameter.
@@ -31,7 +33,7 @@ sample.qa.posterior(model, n = 10000, clean.names = TRUE, model.weights =
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{mvrnorm}}}
 \examples{
