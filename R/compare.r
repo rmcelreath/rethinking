@@ -14,7 +14,7 @@ setMethod( "show" , "compareIC" , function(object) {
 } )
 
 # new compare function, defaulting to WAIC
-compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
+compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh=0 ) {
     # retrieve list of models
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 )
@@ -23,6 +23,9 @@ compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
     # retrieve model names from function call
     mnames <- match.call()
     mnames <- as.character(mnames)[2:(length(L)+1)]
+
+    # use substitute to deparse the func argument
+    the_func <- deparse(substitute(func))
     
     # check class of fit models and warn when more than one class represented
     classes <- as.character(sapply( L , class ))
@@ -32,7 +35,7 @@ compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
     
     # check nobs for all models
     # if different, warn
-    nobs_list <- sapply( L , nobs )
+    nobs_list <- try( sapply( L , nobs ) )
     if ( any(nobs_list != nobs_list[1]) ) {
         nobs_out <- paste( mnames , nobs_list , "\n" )
         nobs_out <- concat(nobs_out)
@@ -41,16 +44,20 @@ compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
     }
     
     dSE.matrix <- matrix( NA , nrow=length(L) , ncol=length(L) )
-    if ( WAIC==FALSE ) {
-        DIC.list <- lapply( L , function(z) DIC( z , n=n ) )
-        pD.list <- sapply( DIC.list , function(x) attr(x,"pD") )
-    } else {
-        # use WAIC instead of DIC
+    # deprecate WAIC==TRUE/FALSE flag
+    # catch it and convert to func intent
+    if ( WAIC==FALSE ) func <- DIC # assume old code that wants DIC
+    if ( the_func=="DIC" ) {
+        IC.list <- lapply( L , function(z) DIC( z , n=n ) )
+        p.list <- sapply( IC.list , function(x) attr(x,"pD") )
+    }
+    if ( the_func=="WAIC" ) {
+        # use WAIC
         # WAIC is processed pointwise, so can compute SE of differences, and summed later
         WAIC.list <- lapply( L , function(z) WAIC( z , n=n , refresh=refresh , pointwise=TRUE ) )
-        pD.list <- sapply( WAIC.list , function(x) sum(attr(x,"pWAIC")) )
+        p.list <- sapply( WAIC.list , function(x) sum(attr(x,"pWAIC")) )
         se.list <- sapply( WAIC.list , function(x) attr(x,"se") )
-        DIC.list <- sapply( WAIC.list , sum )
+        IC.list <- sapply( WAIC.list , sum )
         # compute SE of differences between adjacent models from top to bottom in ranking
         colnames(dSE.matrix) <- mnames
         rownames(dSE.matrix) <- mnames
@@ -63,27 +70,58 @@ compare <- function( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 ) {
             }#j
         }#i
     }
+    if ( the_func=="LOO" ) {
+        # use LOO
+        LOO.list <- lapply( L , function(z) LOO( z , n=n , refresh=refresh , pointwise=TRUE ) )
+        p.list <- sapply( LOO.list , function(x) sum(attr(x,"pLOO")) )
+        se.list <- sapply( LOO.list , function(x) attr(x,"se") )
+        IC.list <- sapply( LOO.list , sum )
+        # compute SE of differences between adjacent models from top to bottom in ranking
+        colnames(dSE.matrix) <- mnames
+        rownames(dSE.matrix) <- mnames
+        for ( i in 1:(length(L)-1) ) {
+            for ( j in (i+1):length(L) ) {
+                loo_ptw1 <- LOO.list[[i]]
+                loo_ptw2 <- LOO.list[[j]]
+                dSE.matrix[i,j] <- as.numeric( sqrt( length(loo_ptw1)*var( loo_ptw1 - loo_ptw2 ) ) )
+                dSE.matrix[j,i] <- dSE.matrix[i,j]
+            }#j
+        }#i
+    }
+    if ( !(the_func %in% c("DIC","WAIC","LOO")) ) {
+        # unrecognized IC function; just wing it
+        IC.list <- lapply( L , function(z) func( z ) )
+    }
     
-    DIC.list <- unlist(DIC.list)
+    IC.list <- unlist(IC.list)
     
-    dDIC <- DIC.list - min( DIC.list )
-    w.DIC <- ICweights( DIC.list )
+    dIC <- IC.list - min( IC.list )
+    w.IC <- ICweights( IC.list )
     
-    if ( WAIC==FALSE )
-        result <- data.frame( DIC=DIC.list , pD=pD.list , dDIC=dDIC , weight=w.DIC )
-    else {
+    if ( the_func=="DIC" )
+        result <- data.frame( DIC=IC.list , pD=p.list , dDIC=dIC , weight=w.IC )
+    if ( the_func=="WAIC" ) {
         # find out which model has dWAIC==0
-        topm <- which( dDIC==0 )
+        topm <- which( dIC==0 )
         dSEcol <- dSE.matrix[,topm]
-        result <- data.frame( WAIC=DIC.list , pWAIC=pD.list , dWAIC=dDIC , 
-                              weight=w.DIC , SE=se.list , dSE=dSEcol )
+        result <- data.frame( WAIC=IC.list , pWAIC=p.list , dWAIC=dIC , 
+                              weight=w.IC , SE=se.list , dSE=dSEcol )
+    }
+    if ( the_func=="LOO" ) {
+        topm <- which( dIC==0 )
+        dSEcol <- dSE.matrix[,topm]
+        result <- data.frame( LOO=IC.list , pLOO=p.list , dLOO=dIC , 
+                              weight=w.IC , SE=se.list , dSE=dSEcol )
+    }
+    if ( !(the_func %in% c("DIC","WAIC","LOO")) ) {
+        result <- data.frame( IC=IC.list , dIC=dIC , weight=w.IC )
     }
     
     rownames(result) <- mnames
     
     if ( !is.null(sort) ) {
         if ( sort!=FALSE ) {
-            if ( WAIC==FALSE & sort=="WAIC" ) sort <- "DIC"
+            if ( sort=="WAIC" ) sort <- the_func
             result <- result[ order( result[[sort]] ) , ]
         }
     }

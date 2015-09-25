@@ -283,7 +283,8 @@ setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=1
 # my trace plot function
 #rethink_palette <- c("#5BBCD6","#F98400","#F2AD00","#00A08A","#FF0000")
 rethink_palette <- c("#8080FF","#F98400","#F2AD00","#00A08A","#FF0000")
-tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=gray(0.7,0.5) , ask=TRUE , window , n_cols=3 , max_rows=5 , ... ) {
+rethink_cmyk <- c(col.alpha("black",0.25),"cyan")
+tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , ... ) {
     chain.cols <- col
     
     if ( class(object)!="map2stan" ) stop( "requires map2stan fit" )

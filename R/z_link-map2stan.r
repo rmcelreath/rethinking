@@ -147,7 +147,10 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
                     if ( a_case %in% missingness ) {
                         # insert column of samples
                         idx <- which( missingness==a_case )
-                        var_merged[ , a_case ] <- post[[name_impute]][, idx ]
+                        if ( length(missingness)>1 )
+                            var_merged[ , a_case ] <- post[[name_impute]][, idx ]
+                        else
+                            var_merged[ , a_case ] <- post[[name_impute]]
                     } else {
                         # insert column of observed values
                         var_merged[ , a_case ] <- rep( data[[ name_original ]][a_case] , n )

@@ -6,7 +6,6 @@
 # templates map R density functions onto Stan functions
 
 # to-do:
-# (*) different chains get different random start values
 # (*) need to do p*theta and (1-p)*theta multiplication outside likelihood in betabinomial (similar story for gammapoisson) --- or is there an operator for pairwise vector multiplication?
 # (-) handle improper input more gracefully
 # (-) add "as is" formula type, with quoted text on RHS to dump into Stan code
@@ -43,7 +42,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     
     ########################################
     # check arguments
-    if ( missing(flist) ) stop( "Formula required." )
+    if ( missing(flist) ) stop( "Formula or previous fit required." )
+
     if ( class(flist) == "map" ) {
         # previous map fit, so pull out components
         if ( verbose==TRUE ) message( "Using formula from map fit" )
@@ -51,6 +51,17 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         if ( missing(data) ) data <- flist@data
         flist <- ftemp
     }
+
+    previous_stanfit <- NULL
+    if ( class(flist) == "map2stan" ) {
+        # previous map2stan fit, so pull out components
+        if ( verbose==TRUE ) message( "Using formula from map2stan fit" )
+        ftemp <- flist@formula
+        if ( missing(data) ) data <- flist@data
+        previous_stanfit <- flist@stanfit
+        flist <- ftemp
+    }
+
     if ( class(flist) != "list" ) {
         if ( class(flist)=="formula" ) {
             flist <- list(flist)
@@ -106,7 +117,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # x : where to search, usually a formula as character
     # add.par : whether to enclose replacement in parentheses
     
-    wildpatt <- "[()=*+/ ]"
+    wildpatt <- "[()=*+/ ,]"
     
     mygrep <- function( target , replacement , x , add.par=TRUE , fixed=FALSE , wild=wildpatt ) {
         #wild <- wildpatt
@@ -408,24 +419,13 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     impute_bank <- list()
     d <- as.list(data)
     
-    # undot all the variable names
+    # flag variable names that contain dots
     for ( i in 1:length(d) ) {
         raw_name <- names(d)[i]
         new_name <- undot(raw_name)
         if ( raw_name != new_name )
-            warning( concat("Renaming variable '",raw_name,"' to '",new_name,"' internally.\nYou should rename the variable to remove all dots '.'") )
-        names(d)[i] <- new_name
-    }
-    
-    ##################################
-    # check for previous fit object
-    # if found, build again to get data right, but use compiled model later
-    
-    flag_refit <- FALSE
-    if ( class(flist)=="map2stan" ) {
-        oldfit <- flist
-        flist <- oldfit@formula
-        flag_refit <- TRUE
+            message( concat("Warning: Variable '",raw_name,"' contains dots '.'.\nWill attempt to remove dots internally.") )
+        # names(d)[i] <- new_name
     }
     
     ####
@@ -492,7 +492,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 }
                 if ( length(LHS)==1 ) {
                     # check if symbol is a variable
-                    if ( as.character(LHS) %in% names(d) ) {
+                    if ( (as.character(LHS)) %in% names(d) ) {
                         is_likelihood <- TRUE
                     }
                 }
@@ -752,7 +752,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     
     indent <- "    " # 4 spaces
     
-    start_prior <- list() # holds any start values sampled from priors
+    # holds any start values sampled from priors
+    # need as many lists as chains to sample from, 
+    #   so chains have different inits
+    start_prior <- vector(mode="list",length=chains)
+    for ( i in 1:chains ) start_prior[[i]] <- list()
     
     # pass back through parsed formulas and build Stan code
     # parsing now goes in *reverse*
@@ -815,7 +819,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 if ( tmplt$R_name=="dlkjcorr" ) {
                     # just use identity matrix as initial value
                     if ( ndims > 0 ) {
-                        start_prior[[ prior$par_out ]] <- diag(ndims)
+                        for ( ch in 1:chains ) 
+                            start_prior[[ch]][[ prior$par_out ]] <- diag(ndims)
                         if ( verbose==TRUE )
                             message( paste(prior$par_out,": using identity matrix as start value [",ndims,"]") )
                     } else {
@@ -826,18 +831,22 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     # any old anonymous prior -- sample init from prior density
                     # but must check for dimension, in case is a vector
                     ndims <- max(ndims,1)
-                    theta <- try(
-                        replicate( 
-                            ndims , 
-                            sample_from_prior( tmplt$R_name , prior$pars_in ) ),
-                        silent=TRUE)
+                    theta <- list()
+                    for ( ch in 1:chains ) {
+                        theta[[ch]] <- try(
+                            replicate( 
+                                ndims , 
+                                sample_from_prior( tmplt$R_name , prior$pars_in ) ),
+                            silent=TRUE)
+                    }#ch
                     if ( class(theta)=="try-error" ) {
                         # something went wrong
                         msg <- attr(theta,"condition")$message
                         message(concat("Error trying to sample start value for parameter '",prior$par_out,"'.\nPrior malformed, or maybe you mistyped a variable name?"))
                         stop(msg)
                     } else {
-                        start_prior[[ prior$par_out ]] <- theta
+                        for ( ch in 1:chains )
+                            start_prior[[ch]][[ prior$par_out ]] <- theta[[ch]]
                         if ( ndims==1 ) {
                             if ( verbose==TRUE )
                                 message( paste(prior$par_out,": using prior to sample start value") )
@@ -870,7 +879,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 if ( !( k %in% names(start) ) ) {
                     if ( verbose==TRUE )
                         message( paste(k,": start values set to zero [",N,"]") )
-                    start_prior[[ k ]] <- rep(0,N)
+                    for ( ch in 1:chains )
+                        start_prior[[ch]][[ k ]] <- rep(0,N)
                 }
             
             # lhs -- if vector, need transformed parameter of vector type
@@ -1165,38 +1175,60 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # declare parameters from start list
     # use any custom constraints in constraints list
     # first merge passed start with start built from priors
-    if ( length(start_prior)>0 ) {
-        start_p2 <- start_prior
-        n <- length(start_prior)
+    if ( length(start_prior[[1]])>0 ) {
+        start_p2 <- vector(mode="list",length=chains)
+        for( ch in 1:chains ) start_p2[[ch]] <- list()
+        n <- length(start_prior[[1]])
         # reverse index order, so parameters appear in same order as formula
         # need to do this, as we passed back-to-front when parsing formula
-        for ( ki in 1:n ) start_p2[[n-ki+1]] <- start_prior[[ki]]
-        names(start_p2) <- names(start_p2)[n:1] # reverse names too
-        start <- unlist( list( start , start_p2 ) , recursive=FALSE )
+        for ( ki in n:1 ) {
+            parname <- names(start_prior[[1]])[ki]
+            for ( ch in 1:chains ) {
+                start_p2[[ch]][[parname]] <- start_prior[[ch]][[parname]]
+            }#ch
+        } #ki
+        # now merge start with start_p2
+        # need to clone start first, then use unlist to merge each chain
+        # start_p2 (inits sampled from priors) is unique to each chain at this point
+        start_cloned <- vector(mode="list",length=chains)
+        for ( ch in 1:chains ) start_cloned[[ch]] <- start
+        start <- start_cloned
+        for ( ch in 1:chains )
+            start[[ch]] <- unlist( list( start_cloned[[ch]] , start_p2[[ch]] ) , recursive=FALSE )
+    } else {
+        # no inits sampled from priors
+        # so just build the explicit start list
+        start_cloned <- vector(mode="list",length=chains)
+        for ( ch in 1:chains ) start_cloned[[ch]] <- start
+        start <- start_cloned
     }
-    n <- length( start )
+
+    ################ ATTENTION ###################
+    # from this point on, start is a list of lists
+
+    n <- length( start[[1]] )
     if ( n > 0 ) {
         for ( i in 1:n ) {
-            pname <- names(start)[i]
+            pname <- names(start[[1]])[i]
             type <- "real"
             type_dim <- ""
             constraint <- ""
             
-            if ( class(start[[i]])=="matrix" ) {
+            if ( class(start[[1]][[i]])=="matrix" ) {
                 # check for square matrix? just use nrow for now.
                 #type <- concat( "cov_matrix[" , nrow(start[[i]]) , "]" )
                 type <- "cov_matrix"
-                type_dim <- concat( "[" , nrow(start[[i]]) , "]" )
+                type_dim <- concat( "[" , nrow(start[[1]][[i]]) , "]" )
                 # corr_matrix check by naming convention
                 #Rho_check <- grep( "Rho" , pname )
                 #if ( length(Rho_check)>0 ) type <- concat( "corr_matrix[" , nrow(start[[i]]) , "]" )
             }
             
             # add correct length to numeric vectors (non-matrix)
-            if ( type=="real" & length(start[[i]])>1 ) {
+            if ( type=="real" & length(start[[1]][[i]])>1 ) {
                 #type <- concat( "vector[" , length(start[[i]]) , "]" )
                 type <- "vector"
-                type_dim <- concat( "[" , length(start[[i]]) , "]" )
+                type_dim <- concat( "[" , length(start[[1]][[i]]) , "]" )
                 #if ( length(grep("sigma",pname))>0 )
                     #type <- concat( "vector<lower=0>[" , length(start[[i]]) , "]" )
                 # check for varying effect vector by peeking at vprior list
@@ -1226,8 +1258,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             if ( !is.null(constrainttxt) ) {
                 constraint <- concat( "<" , constrainttxt , ">" )
                 # check for positive constrain and validate start value
+                # this is needed in case implicitly using half-distributions
                 if ( constrainttxt == "lower=0" ) {
-                    start[[pname]] <- abs( start[[pname]] )
+                    for ( ch in 1:chains )
+                        start[[ch]][[pname]] <- abs( start[[ch]][[pname]] )
                 }
             }
             
@@ -1293,7 +1327,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # build pars vector
     # use ours, unless user provided one
     if ( missing(pars) ) {
-        pars <- names(start)
+        pars <- names(start[[1]])
         elected <- names(pars_elect)
         pars <- c( pars , elected , "dev" )
         if ( length(pars_hide)>0 ) {
@@ -1307,64 +1341,69 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         
         # sample
         modname <- deparse( flist[[1]] )
-        initlist <- list()
-        for ( achain in 1:chains ) initlist[[achain]] <- start
+        #initlist <- list()
+        #for ( achain in 1:chains ) initlist[[achain]] <- start
+        initlist <- start # should have one list for each chain
         
-        if ( flag_refit==FALSE ) {
+        if ( chains==1 | cores==1 ) {
         
-            if ( chains==1 | cores==1 ) {
-            
-                # single core
-                # so just run the model
-                if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
+            # single core
+            # so just run the model
+            if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
+            if ( is.null(previous_stanfit) )
                 fit <- stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , pars=pars , seed=rng_seed , ... )
-                
-            } else {
-            
-                # multi-core, multi-chain
-                # so pre-compile then run again
-                message("Precompiling model...")
-                fit_prep <- stan( model_code=model_code , model_name=modname , data=d , init=list(start) , iter=1 , chains=0 , pars=pars , test_grad=FALSE , refresh=-1 , ... )
-                #fit_prep <- stan_model( model_code=model_code , model_name=modname )
-                
-                # if no seed provided, make one
-                if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
-                
-                message(concat("Dispatching ",chains," chains to ",cores," cores."))
-                sys <- .Platform$OS.type
-                if ( sys=='unix' ) {
-                    # Mac or Linux
-                    # hand off to mclapply
-                    sflist <- mclapply( 1:chains , mc.cores=cores ,
-                        function(chainid)
-                            stan( fit=fit_prep , data=d , init=list(start) , pars=pars , iter=iter , warmup=warmup , chains=1 , seed=rng_seed , chain_id=chainid , ... )
-                    )
-                } else {
-                    # Windows
-                    # so use parLapply instead
-                    CL = makeCluster(cores)
-                    #data <- object@data
-                    env0 <- list( fit_prep=fit_prep, d=d, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup , start=start )
-                    clusterExport(cl = CL, 
-                        c("fit_prep","d","pars","iter","warmup","rng_seed","start") , as.environment(env0) )
-                    sflist <- parLapply(CL, 1:chains, fun = function(cid) {
-						require(rstan) # will CRAN tolerate this?
-                        stan( fit=fit_prep , data = d, pars = pars, chains = 1, 
-                          iter = iter, warmup = warmup, seed = rng_seed, 
-                          chain_id = cid, init=list(start) )
-                    })
-                }
-                # merge result
-                fit <- sflist2stanfit(sflist)
-                
-            }#multicore
+            else
+                fit <- stan( fit=previous_stanfit , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , pars=pars , seed=rng_seed , ... )
             
         } else {
         
-            # reuse previous compiled model
-            message(concat("Reusing previously compiled model ",oldfit@stanfit@model_name))
-            fit <- stan( fit=oldfit@stanfit , model_name=modname , data=d , init=initlist , iter=iter , chains=chains , pars=pars , ... )
-        }# reuse
+            # multi-core, multi-chain
+            # so pre-compile then run again
+            # note use of chain number 1 inits only here
+            # not sure inits are used at all, given chains=0
+            if ( is.null(previous_stanfit) ) {
+                message("Precompiling model...")
+                fit_prep <- stan( model_code=model_code , model_name=modname , data=d , init=start[[1]] , iter=1 , chains=0 , pars=pars , test_grad=FALSE , refresh=-1 , ... )
+            } else {
+                # reuse compiled model
+                fit_prep <- previous_stanfit
+            }
+            
+            # if no seed provided, make one
+            if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
+            
+            message(concat("Dispatching ",chains," chains to ",cores," cores."))
+            sys <- .Platform$OS.type
+            if ( sys=='unix' ) {
+                # Mac or Linux
+                # hand off to mclapply
+                sflist <- mclapply( 1:chains , mc.cores=cores ,
+                    function(chainid)
+                        stan( fit=fit_prep , data=d , init=list(start[[chainid]]) , pars=pars , iter=iter , warmup=warmup , chains=1 , seed=rng_seed , chain_id=chainid , ... )
+                )
+            } else {
+                # Windows
+                # so use parLapply instead
+                CL = makeCluster(cores)
+                #data <- object@data
+                env0 <- list( fit_prep=fit_prep, d=d, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup , start=start )
+                clusterExport(cl = CL, 
+                    c("fit_prep","d","pars","iter","warmup","rng_seed","start") , as.environment(env0) )
+                sflist <- parLapply(CL, 1:chains, fun = function(cid) {
+					require(rstan) # will CRAN tolerate this?
+                    stan( fit=fit_prep , data = d, pars = pars, chains = 1, 
+                      iter = iter, warmup = warmup, seed = rng_seed, 
+                      chain_id = cid, init=list(start[[cid]]) )
+                })
+            }
+            # merge result
+            fit <- try( sflist2stanfit(sflist) )
+            if ( class(fit)=="try-error" ) {
+                # something went wrong in at least one chain
+                stop("Something went wrong in at least one chain. Debug your model while setting chains=1. Once the model is working with a single chain, try using multiple chains again.")
+            }
+            
+        }#multicore
         
     } else {
         fit <- NULL
@@ -1389,7 +1428,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         } else {
             coef <- s[1]
             varcov <- matrix( s[3]^2 , 1 , 1 )
-            names(coef) <- names(start)
+            names(coef) <- names(start[[1]])
         }
         
         # compute DIC
@@ -1414,8 +1453,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         
         # push expected values back through model and fetch deviance
         #message("Taking one more sample now, at expected values of parameters, in order to compute DIC")
-        #fit2 <- stan( fit=fit , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=1 , refresh=-1 )
-        fit2 <- sampling( fit@stanmodel , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=1 , refresh=-1 )
+        #fit2 <- stan( fit=fit , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=2 , refresh=-1 , cores=1 )
+        fit2 <- sampling( fit@stanmodel , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=1 , cores=1 )
         dhat <- as.numeric( extract(fit2,"dev") )
         pD <- dbar - dhat
         dic <- dbar + pD

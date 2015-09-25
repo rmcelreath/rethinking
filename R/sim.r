@@ -190,9 +190,11 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
     outcome <- as.character(lik[[2]])
     # discover likelihood function
     flik <- as.character(lik[[3]][[1]])
+    
     # get simulation partner function
     rlik <- flik
     substr( rlik , 1 , 1 ) <- "r"
+
     # pull out parameters in likelihood
     pars <- vector(mode="list",length=length(lik[[3]])-1)
     for ( i in 1:length(pars) ) {
@@ -220,7 +222,11 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
         
         elm <- list()
         for ( j in 1:length(pred) ) {
-            elm[[j]] <- pred[[j]][s,]
+            ndims <- length(dim(pred[[j]]))
+            if ( ndims==2 )
+                elm[[j]] <- pred[[j]][s,]
+            if ( ndims==3 )
+                elm[[j]] <- pred[[j]][s,,]
         }
         names(elm) <- names(pred)
         

@@ -14,6 +14,16 @@ blank <- function(ex=1,w=1,h=1) {
     par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
 }
 
+# default pdf plot size, for making cmyk figures
+# close file with dev.off() as usual
+pdfblank <- function (ex = 1, w = 1, h = 1, colormodel="cmyk" , ... ) 
+{
+    pdf("mypdf.pdf", width = 3.5 * ex * w, height = 3.5 * ex * 
+        h , colormodel=colormodel , ...)
+    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, 
+        tck = -0.02)
+}
+
 # convenience function for choosing a csv file
 choose.csv <- function( ... ) read.csv( file=file.choose() , ... )
 

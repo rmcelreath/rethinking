@@ -6,7 +6,7 @@
   Returns a table of model comparison statistics, by default focused on WAIC.
 }
 \usage{
-compare( ... , n=1e3 , sort="WAIC" , WAIC=TRUE , refresh=0 )
+compare( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh=0 )
 ICweights( dev )
 }
 %- maybe also 'usage' for other objects documented here.
@@ -14,9 +14,10 @@ ICweights( dev )
   \item{...}{A series of fit models, separated by commas}
   \item{n}{Number of samples from posterior to use in computing WAIC/DIC}
   \item{sort}{Sort table by ascending values in named column}
-  \item{WAIC}{If \code{TRUE}, uses WAIC for comparison. If \code{FALSE}, uses DIC.}
+  \item{func}{Function to use in computing criteria for comparison}
+  \item{WAIC}{Deprecated: If \code{TRUE}, uses \code{func} for comparison. If \code{FALSE}, uses DIC.}
   \item{refresh}{Progress display update interval. 0 suppresses display.}
-  \item{dev}{Vector of deviance values to use in computing model weights}
+  \item{dev}{Vector of values to use in computing model weights}
 }
 \details{
   This function computes WAIC and optionally DIC values for fit models and returns a table sorted by ascending values. Each row in this table is a model, and the various columns provide WAIC, effective numbers of parameters, model weights, and standard errors.

@@ -299,7 +299,8 @@ map2stan.templates <- list(
             for ( i in 1:length(kout) ) {
                 # clear from start list, so not in parameters block
                 apar <- as.character(kout[[i]])
-                start[[apar]] <- startp[[apar]] <- NULL
+                start[[apar]] <- NULL
+                for ( ch in 1:length(startp) ) startp[[ch]][[apar]] <- NULL
                 # pattern:
                 # apar <- col(v,i) 
                 trans_txt <- c(
@@ -356,10 +357,13 @@ map2stan.templates <- list(
             assign( "start" , start , envir=parent.frame() )
             # have to check start_prior too
             startp <- get( "start_prior" , envir=parent.frame() )
-            startp[[Rho_name]] <- NULL
+            for ( ch in 1:length(startp) ) startp[[ch]][[Rho_name]] <- NULL
             assign( "start_prior" , startp , envir=parent.frame() )
             
-            # add Rho to transformed parameters
+            # need to change this from transpars to GQ
+            # intent: add Rho to GENERATED QUANTITITIES
+            # do not want it in transformed pars, bc less efficient
+            # just need one eval per sample
             # Rho <- L_Rho * L_Rho'
             transpars <- get( "transpars" , envir=parent.frame() )
             transpars[[Rho_name]] <- c(
@@ -473,7 +477,14 @@ map2stan.templates <- list(
         par_bounds = c("","<lower=0>"),
         par_types = c("real","real"),
         out_type = "real",
-        par_map = function(k,...) {
+        par_map = function(k,e,...) {
+            # get constraints and add <lower=0> for scale
+            constr_list <- get( "constraints" , envir=e )
+            scale_name <- as.character( k[[2]] )
+            if ( is.null(constr_list[[scale_name]]) ) {
+                constr_list[[scale_name]] <- "lower=0"
+                assign( "constraints" , constr_list , envir=e )
+            }
             return(k);
         },
         vectorized = TRUE

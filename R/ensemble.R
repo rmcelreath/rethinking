@@ -1,5 +1,5 @@
 # build ensemble of samples using DIC/WAIC weights
-ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 , replace=list() , do_link=TRUE , do_sim=TRUE ) {
+ensemble <- function( ... , data , n=1e3 , func=WAIC , weights , refresh=0 , replace=list() , do_link=TRUE , do_sim=TRUE ) {
     # retrieve list of models
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 )
@@ -7,13 +7,21 @@ ensemble <- function( ... , data , n=1e3 , WAIC=TRUE , refresh=0 , replace=list(
     # retrieve model names from function call
     mnames <- match.call()
     mnames <- as.character(mnames)[2:(length(L)+1)]
-    if ( length(L)>1 ) {
-        ictab <- compare( ... , WAIC=WAIC , refresh=refresh , n=n , sort=FALSE )
-        rownames(ictab@output) <- mnames
-        weights <- ictab@output$weight
+
+    if ( missing(weights) ) {
+        if ( length(L)>1 ) {
+            use_func <- func
+            ictab <- compare( ... , func=use_func , refresh=refresh , n=n , sort=FALSE )
+            rownames(ictab@output) <- mnames
+            weights <- ictab@output$weight
+        } else {
+            ictab <- NA
+            weights <- 1
+        }
     } else {
+        # explicit custom weights
         ictab <- NA
-        weights <- 1
+        weights <- weights/sum(weights) # ensure sum to one
     }
     
     # compute number of predictions per model

@@ -98,7 +98,6 @@ plot(m2)
 pairs(m2)
 
 # now RStan fit of model with varying intercepts on actor
-# note initial values for each varying intercept in start
 m3 <- map2stan(
     alist(
         pulled_left ~ dbinom(1,theta),
@@ -117,7 +116,6 @@ plot(m3)
 pairs(m3)
 
 # varying intercepts on actor and experimental block
-# also has no explicit start values
 m4 <- map2stan(
     alist(
         pulled_left ~ dbinom(1,theta),
@@ -144,6 +142,57 @@ plot(coeftab(m2,m3,m4))
 # show WAIC for m2,m3,m4
 compare(m2,m3,m4)
 plot(compare(m2,m3,m4))
+
+###########
+# varying slopes models
+
+# varying slopes on actor
+# also demonstrates use of multiple linear models
+# see Chapter 13 for discussion
+m5 <- map2stan(
+    alist(
+        # likeliood
+        pulled_left ~ dbinom(1,p),
+
+        # linear models
+        logit(p) <- A + (BP + BPC*condition)*prosoc_left,
+        A <- a + a_actor[actor],
+        BP <- bp + bp_actor[actor],
+        BPC <- bpc + bpc_actor[actor],
+
+        # adaptive prior
+        c(a_actor,bp_actor,bpc_actor)[actor] ~
+                                dmvnorm2(0,sigma_actor,Rho_actor),
+
+        # fixed priors
+        c(a,bp,bpc) ~ dnorm(0,1),
+        sigma_actor ~ dcauchy(0,2),
+        Rho_actor ~ dlkjcorr(4)
+    ) , data=d , iter=5000 , warmup=1000 , chains=3 , cores=3 )
+
+# same model but with non-centered parameterization
+# see Chapter 13 for explanation and more elaborate example
+
+m6 <- map2stan(
+    alist(
+        # likeliood
+        pulled_left ~ dbinom(1,p),
+
+        # linear models
+        logit(p) <- A + (BP + BPC*condition)*prosoc_left,
+        A <- a + a_actor[actor],
+        BP <- bp + bp_actor[actor],
+        BPC <- bpc + bpc_actor[actor],
+
+        # adaptive prior - non-centered
+        c(a_actor,bp_actor,bpc_actor)[actor] ~
+                                dmvnormNC(sigma_actor,Rho_actor),
+
+        # fixed priors
+        c(a,bp,bpc) ~ dnorm(0,1),
+        sigma_actor ~ dcauchy(0,2),
+        Rho_actor ~ dlkjcorr(4)
+    ) , data=d , iter=5000 , warmup=1000 , chains=3 , cores=3 )
 
 ###########
 # Imputation example
