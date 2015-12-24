@@ -67,6 +67,12 @@ function(object) {
     return( invisible( object@model ) )
 }
 )
+setMethod("stancode", "stanfit",
+function(object) {
+    cat( object@stanmodel@model_code )
+    return( invisible( object@stanmodel@model_code ) )
+}
+)
 setMethod("stancode", "list",
 function(object) {
     cat( object$model )
@@ -148,7 +154,11 @@ setMethod("summary", "map2stan", function(object){
 
 # resample from compiled map2stan fit
 # can also run on multiple cores
-resample <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC=TRUE , WAIC=TRUE , rng_seed , data , ... ) {
+resample <- function( object , ... ) {
+    if ( class(object)!="map2stan" ) stop("Requires previous map2stan fit.")
+    map2stan(object,...)
+}
+resample_old <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 , DIC=TRUE , WAIC=TRUE , rng_seed , data , ... ) {
     if ( !(class(object)%in%(c("map2stan"))) )
         stop( "Requires map2stan fit" )
     if ( missing(data) ) data <- object@data

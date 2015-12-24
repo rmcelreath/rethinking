@@ -21,13 +21,15 @@ You can find a manual with expanded installation and usage instructions here: ``
 
 Here's the brief verison. 
 
-You'll need to install ``rstan`` first. Go to ``http://mc-stan.org`` and follow the instructions for your platform. Then you can install ``rethinking`` from within R using:
+You'll need to install ``rstan`` first. Go to ``http://mc-stan.org`` and follow the instructions for your platform. The biggest challenge is getting a C++ compiler configured to work with your installation of R. The instructions at ``https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started`` are quite thorough. Obey them, and you'll likely succeed.
+
+Then you can install ``rethinking`` from within R using:
 ```
-install.packages(c("coda","mvtnorm","devtools"))
+install.packages(c("coda","mvtnorm","devtools","loo"))
 library(devtools)
 devtools::install_github("rmcelreath/rethinking")
 ```
-If there are any problems, they likely arise when trying to install ``rstan``, so the ``rethinking`` package has nothing to do with it. See the manual linked above for some hints about getting ``rstan`` installed.
+If there are any problems, they likely arise when trying to install ``rstan``, so the ``rethinking`` package has little to do with it. See the manual linked above for some hints about getting ``rstan`` installed. But always consult the RStan section of the website at ``mc-stan.org`` for the latest information on RStan.
 
 ## MAP estimation
 
@@ -95,7 +97,7 @@ fit.stan <- map2stan(
     f , 
     data=list(y=c(-1,1)) , 
     start=list(mu=0,sigma=1) ,
-    chains=4 , cores=4 , iter=1e4 , warmup=1000
+    chains=4 , cores=4 , iter=2000 , warmup=1000
 )
 ```
 The ``parallel`` package is used here, relying upon ``mclapply`` (Mac, UNIX) or ``parLapply`` (Windows). It is best to run parallel operations in the Terminal/Command Prompt, as GUI interfaces sometimes crash when forking processes.
@@ -191,7 +193,7 @@ Internally, a Cholesky factor ``L_Rho_group`` is used to perform sampling. It wi
 
 ## Semi-automated Bayesian imputation
 
-It is possible to code simple Bayesian imputations this way. For example, let's simulate a simple regression with missing predictor values:
+It is possible to code simple Bayesian imputations. For example, let's simulate a simple regression with missing predictor values:
 ```
 N <- 100
 N_miss <- 10
@@ -247,7 +249,7 @@ mGP <- map2stan(
     ),
     warmup=1000 , iter=5000 , chains=4 )
 ```
-Note the use of the ``constraints`` list to pass custom parameter constraints to Stan. This example is explored in more detail in the (in prep) book. 
+Note the use of the ``constraints`` list to pass custom parameter constraints to Stan. This example is explored in more detail in the book. 
 
 ## Information criteria
 

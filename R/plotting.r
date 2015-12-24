@@ -155,7 +155,12 @@ show.naive.posterior <- function( est , se , model=NULL , level=0.95 , xlab="est
 }
 
 # simple histogram
-simplehist <- function( x , ylab="Frequency" , xlab="Count" , ycounts=TRUE , adjust=1 , lcol="black" , bins=NULL , show.counts=0 , xlim=NULL , ylim=NULL , ... ) {
+simplehist <- function( x , round=TRUE , ylab="Frequency" , ... ) {
+    if ( round==TRUE ) x <- round(x)
+    plot(table(x),ylab=ylab,...)
+}
+
+simplehist_old <- function( x , ylab="Frequency" , xlab="Count" , ycounts=TRUE , adjust=1 , lcol="black" , bins=NULL , show.counts=0 , xlim=NULL , ylim=NULL , ... ) {
     # first, check if integers only or continuous.
     freqs <- {}
     x2 <- round(x)

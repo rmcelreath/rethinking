@@ -12,10 +12,10 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
 # extracts log_lik matrix from stanfit and computes WAIC
 setMethod("WAIC", "stanfit",
 function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
-    if ( !is.null(extract.samples(object)[[log_lik]]) )
-        ll_matrix <- extract.samples(object)[[log_lik]]
-    else
-        stop(concat("Log-likelihood matrix '",log_lik,"'' not found."))
+    
+    ll_matrix <- extract.samples(object,pars=log_lik)[[1]]
+    
+    # stop(concat("Log-likelihood matrix '",log_lik,"'' not found."))
 
     n_obs <- ncol(ll_matrix)
     n_samples <- nrow(ll_matrix)

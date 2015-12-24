@@ -221,10 +221,10 @@ mcreplicate <- function (n, expr, refresh = 0.1, mc.cores=2 ) {
     }
     result <- simplify2array(mclapply(1:n, eval.parent(substitute(function(i, 
         ...) {
-        show_progress(i)
+        if (refresh>0) show_progress(i)
         expr
     })),mc.cores=mc.cores))
-    cat("\n")
+    if (refresh>0) cat("\n")
     result
 }
 
@@ -239,7 +239,35 @@ check_index <- function( x ) {
     if ( any(diffs)!=1 ) message( "At least one gap in consecutive values" )
 }
 
-coerce_index <- function( x ) as.integer(as.factor(as.character(x)))
+# old vector-only coerce_index
+# coerce_index <- function( x ) as.integer(as.factor(as.character(x)))
+
+# new coerce_index that can take multiple vectors
+# ensures labels in all are part of same index set
+coerce_index <- function( ... ) {
+    L <- list(...)
+    if ( is.list(L[[1]]) && length(L)==1 ) L <- L[[1]]
+    if ( length(L)==1 ) {
+        return( as.integer(as.factor(as.character(L[[1]]))) )
+    } else {
+        # multiple inputs
+        vnames <- match.call()
+        vnames <- as.character(vnames)[2:(length(L)+1)]
+        # generate levels that include all labels from all inputs
+        M <- L
+        for ( i in 1:length(L) ) M[[i]] <- as.character(L[[i]])
+        Mall <- M[[1]]
+        for ( i in 2:length(L) ) Mall <- c( Mall , M[[i]] )
+        Mall <- unique(Mall)
+        new_levels <- levels(as.factor(Mall))
+        for ( i in 1:length(L) ) {
+            M[[i]] <- factor(M[[i]],levels=new_levels)
+            M[[i]] <- as.integer(M[[i]])
+        }
+        names(M) <- paste( vnames , "_idx" , sep="" )
+        return(M)
+    } 
+}
 
 # sd and var functions that don't use n-1 denominator
 sd2 <- function( x , na.rm=TRUE ) {

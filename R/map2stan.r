@@ -1344,7 +1344,24 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         #initlist <- list()
         #for ( achain in 1:chains ) initlist[[achain]] <- start
         initlist <- start # should have one list for each chain
+
+        if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
+        if ( is.null(previous_stanfit) )
+            fit <- try(stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
+        else
+            fit <- try(stan( fit=previous_stanfit , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
+
+        if ( class(fit)=="try-error" ) {
+                # something went wrong in at least one chain
+                msg <- attr(fit,"condition")$message
+                if ( cores > 1 )
+                    stop(concat("Something went wrong in at least one chain. Debug your model while setting chains=1 and cores=1. Once the model is working with a single chain and core, try using multiple chains/cores again.\n",msg))
+                else
+                    stop(concat("Something went wrong, when calling Stan. Check any debug messages for clues, detective.\n",msg))
+            }
         
+        ###### PREVIOUS multicore code, before Stan added its own ########
+        if ( FALSE ) {
         if ( chains==1 | cores==1 ) {
         
             # single core
@@ -1404,6 +1421,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             }
             
         }#multicore
+        }
+        # END PREVIOUS multicore code
+        #############################
         
     } else {
         fit <- NULL
