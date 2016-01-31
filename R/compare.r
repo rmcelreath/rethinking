@@ -15,14 +15,17 @@ setMethod( "show" , "compareIC" , function(object) {
 
 # new compare function, defaulting to WAIC
 compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh=0 ) {
+    
     # retrieve list of models
     L <- list(...)
-    if ( is.list(L[[1]]) && length(L)==1 )
+    if ( is.list(L[[1]]) && length(L)==1 ) {
         L <- L[[1]]
-    
+        mnames = names(L)
+    } else {
     # retrieve model names from function call
     mnames <- match.call()
     mnames <- as.character(mnames)[2:(length(L)+1)]
+    }
 
     # use substitute to deparse the func argument
     the_func <- deparse(substitute(func))
