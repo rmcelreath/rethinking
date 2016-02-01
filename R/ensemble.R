@@ -2,11 +2,14 @@
 ensemble <- function( ... , data , n=1e3 , func=WAIC , weights , refresh=0 , replace=list() , do_link=TRUE , do_sim=TRUE ) {
     # retrieve list of models
     L <- list(...)
-    if ( is.list(L[[1]]) && length(L)==1 )
+    if ( is.list(L[[1]]) && length(L)==1 ) {
         L <- L[[1]]
-    # retrieve model names from function call
-    mnames <- match.call()
-    mnames <- as.character(mnames)[2:(length(L)+1)]
+        mnames = names(L)
+    } else {
+        # retrieve model names from function call
+        mnames <- match.call()
+        mnames <- as.character(mnames)[2:(length(L)+1)]
+    }
 
     if ( missing(weights) ) {
         if ( length(L)>1 ) {
