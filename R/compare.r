@@ -16,16 +16,9 @@ setMethod( "show" , "compareIC" , function(object) {
 # new compare function, defaulting to WAIC
 compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh=0 ) {
     
-    # retrieve list of models
-    L <- list(...)
-    if ( is.list(L[[1]]) && length(L)==1 ) {
-        L <- L[[1]]
-        mnames = names(L)
-    } else {
-    # retrieve model names from function call
-    mnames <- match.call()
-    mnames <- as.character(mnames)[2:(length(L)+1)]
-    }
+    # retrieve list of models and their names
+    L <- processDots(list(...))
+    mnames <- names(L)
 
     # use substitute to deparse the func argument
     the_func <- deparse(substitute(func))
@@ -179,6 +172,19 @@ setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALS
         }
     }
 })
+
+processDots <- function(L) {
+    
+    if ( is.list(L[[1]]) && length(L)==1 ) {  # calling fun provided list
+        L <- L[[1]]
+        if(is.null(names(L)))
+            return(structure(L, names = paste0('model', 1:length(L)))) else
+                return(L)
+    } else {  # calling fun provided separate models
+        mnames <- sys.call(sys.parent())
+        return(structure(L, names = as.character(mnames)[2:(length(L)+1)]))
+    }
+}
 
 if ( FALSE ) {
 # AICc/BIC model comparison table

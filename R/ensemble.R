@@ -1,20 +1,14 @@
 # build ensemble of samples using DIC/WAIC weights
 ensemble <- function( ... , data , n=1e3 , func=WAIC , weights , refresh=0 , replace=list() , do_link=TRUE , do_sim=TRUE ) {
-    # retrieve list of models
-    L <- list(...)
-    if ( is.list(L[[1]]) && length(L)==1 ) {
-        L <- L[[1]]
-        mnames = names(L)
-    } else {
-        # retrieve model names from function call
-        mnames <- match.call()
-        mnames <- as.character(mnames)[2:(length(L)+1)]
-    }
+
+    # retrieve list of models and their names
+    L <- processDots(list(...))
+    mnames <- names(L)
 
     if ( missing(weights) ) {
         if ( length(L)>1 ) {
             use_func <- func
-            ictab <- compare( ... , func=use_func , refresh=refresh , n=n , sort=FALSE )
+            ictab <- compare( L , func=use_func , refresh=refresh , n=n , sort=FALSE )
             rownames(ictab@output) <- mnames
             weights <- ictab@output$weight
         } else {
