@@ -8,8 +8,8 @@
   These functions compute highest posterior density (HPDI) and percentile (PI) intervals, using samples from a posterior density or simulated outcomes.
 }
 \usage{
-HPDI( samples , prob=0.95 )
-PI( samples , prob=0.95 )
+HPDI( samples , prob=0.89 )
+PI( samples , prob=0.89 )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

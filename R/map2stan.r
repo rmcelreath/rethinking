@@ -117,7 +117,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # x : where to search, usually a formula as character
     # add.par : whether to enclose replacement in parentheses
     
-    wildpatt <- "[()=*+/ ,]"
+    wildpatt <- "[()=*+/ ,\\^]"
     
     mygrep <- function( target , replacement , x , add.par=TRUE , fixed=FALSE , wild=wildpatt ) {
         #wild <- wildpatt
@@ -435,7 +435,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # function to check for variable name in data,
     # and if found add to used_predictors list
     tag_var <- function( var , N_name="N" ) {
-        var <- undot(as.character(var))
+        var <- undot(concat(var))
         result <- NULL
         if ( var %in% names(d) ) {
             type <- "real"
@@ -1103,8 +1103,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 m_model_txt <- concat( m_model_txt , indent , outcome , " ~ " , lik$likelihood , "( " , parstxt , " )" , lik$T_text , ";\n" )
                 
                 # don't add deviance calc when imputed predictor
-                if ( !(lik$outcome %in% names(impute_bank)) )
-                    m_gq <- concat( m_gq , indent , "dev <- dev + (-2)*" , lik$likelihood , "_log( " , outcome , " , " , parstxt , " )" , lik$T_text , ";\n" )
+                if ( !(lik$outcome %in% names(impute_bank)) ) {
+                    # get stan suffix
+                    the_suffix <- templates[[lik$template]]$stan_suffix
+                    m_gq <- concat( m_gq , indent , "dev <- dev + (-2)*" , lik$likelihood , the_suffix , "( " , outcome , " | " , parstxt , " )" , lik$T_text , ";\n" )
+                }
                 
             }
             
@@ -1314,6 +1317,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     #model_code <- concat( m_data , m_pars , m_tpars1 , m_tpars2 , "model{\n" ,  m_model_declare , m_model_priors , m_model_lm , m_model_lik , "}\n" , m_gq )
     
     model_code <- concat( m_data , m_pars , m_tpars1 , m_tpars2 , "model{\n" ,  m_model_declare , m_model_txt , "}\n" , m_gq )
+
+    # from rstan version 2.10.0: change all '<-' to '='
+    model_code <- gsub( "<-" , "=" , model_code , fixed=TRUE )
     
     if ( debug==TRUE ) cat(model_code)
 

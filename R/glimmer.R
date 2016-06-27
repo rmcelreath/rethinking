@@ -53,6 +53,7 @@ xparse_glimmer_formula <- function( formula , data ) {
     if ( class(f_nobars)=="name" & length(f_nobars)==1 ) {
         f_nobars <- nobars( as.formula( paste( deparse(formula) , "+ 1" ) ) )
     }
+    #fixef <- make.names( colnames( model.matrix( f_nobars , data ) ) )
     fixef <- colnames( model.matrix( f_nobars , data ) )
     
     # convert to all fixed effects and build needed model matrix

@@ -9,14 +9,14 @@ precis.whitelist <- data.frame(
 
 # precis class definition and show method
 setClass( "precis" , representation( output="data.frame" , digits="numeric" ) )
-precis.show <- function( object ) {
+precis_show <- function( object ) {
     #print( round( object@output , object@digits ) )
     r <- format_show( object@output , digits=c('default__'=object@digits,'n_eff'=0) )
     print(r)
 }
-setMethod( "show" , "precis" , function(object) precis.show(object) )
+setMethod( "show" , "precis" , function(object) precis_show(object) )
 
-precis.plot <- function( x , y , pars , col.ci="black" , xlab="Value" , ... ) {
+precis_plot <- function( x , y , pars , col.ci="black" , xlab="Value" , ... ) {
     x <- x@output
     if ( !missing(pars) ) {
         x <- x[pars,]
@@ -30,7 +30,7 @@ precis.plot <- function( x , y , pars , col.ci="black" , xlab="Value" , ... ) {
     for ( i in 1:length(mu) ) lines( c(left[i],right[i]) , c(i,i) , lwd=2 , col=col.ci )
     abline( v=0 , lty=1 , col=col.alpha("black",0.15) )
 }
-setMethod( "plot" , "precis" , function(x,y,...) precis.plot(x,y,...) )
+setMethod( "plot" , "precis" , function(x,y,...) precis_plot(x,y,...) )
 
 # function to process a list of posterior samples from extract.samples into a summary table
 # needed because as.data.frame borks the ordering of matrix parameters like varying effects

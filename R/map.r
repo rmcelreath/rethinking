@@ -67,7 +67,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         laplace = 'dlaplace'
     )
     
-    idx_marker_string <- "_._"
+    idx_marker_string <- "___"
     
     # function to sample from prior specified with density function
     sample_from_prior <- function( f ) {

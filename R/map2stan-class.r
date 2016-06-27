@@ -295,20 +295,22 @@ setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=1
 rethink_palette <- c("#8080FF","#F98400","#F2AD00","#00A08A","#FF0000")
 rethink_cmyk <- c(col.alpha("black",0.25),"cyan")
 tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , ... ) {
-    chain.cols <- col
     
-    if ( class(object)!="map2stan" ) stop( "requires map2stan fit" )
+    if ( !(class(object) %in% c("map2stan","stanfit")) ) stop( "requires map2stan or stanfit fit object" )
     
+    if ( class(object)=="map2stan" ) object <- object@stanfit
+
     # get all chains, not mixed, from stanfit
     if ( missing(pars) )
-        post <- extract(object@stanfit,permuted=FALSE,inc_warmup=TRUE)
+        post <- extract(object,permuted=FALSE,inc_warmup=TRUE)
     else
-        post <- extract(object@stanfit,pars=pars,permuted=FALSE,inc_warmup=TRUE)
+        post <- extract(object,pars=pars,permuted=FALSE,inc_warmup=TRUE)
     
     # names
     dimnames <- attr(post,"dimnames")
     chains <- dimnames$chains
     pars <- dimnames$parameters
+    chain.cols <- rep_len(col,length(chains))
     # cut out "dev" and "lp__"
     wdev <- which(pars=="dev")
     if ( length(wdev)>0 ) pars <- pars[-wdev]
@@ -326,8 +328,8 @@ tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.a
         n_pages <- ceiling(n_pars/(n_cols*n_rows_per_page))
         paging <- TRUE
     }
-    n_iter <- object@stanfit@sim$iter
-    n_warm <- object@stanfit@sim$warmup
+    n_iter <- object@sim$iter
+    n_warm <- object@sim$warmup
     wstart <- 1
     wend <- n_iter
     if ( !missing(window) ) {
@@ -351,7 +353,7 @@ tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.a
     }
     
     # fetch n_eff
-    n_eff <- summary(object@stanfit)$summary[,'n_eff']
+    n_eff <- summary(object)$summary[,'n_eff']
     
     # make window
     #set_nice_margins()

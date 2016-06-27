@@ -296,3 +296,6 @@ format_show <- function( x , digits ) {
     rownames(r) <- rownames(x)
     return(r)
 }
+
+# just for recoding "Yes"/"No" to 1/0
+yn2bin <- function(x) ifelse(is.na(x),NA,ifelse(x %in% c("Yes","yes","Y","y"),1,0))

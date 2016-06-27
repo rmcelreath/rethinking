@@ -11,6 +11,7 @@ map2stan.templates <- list(
         name = "Gaussian",
         R_name = "dnorm",
         stan_name = "normal",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("mu","sigma"),
         par_bounds = c("","<lower=0>"),
@@ -32,6 +33,7 @@ map2stan.templates <- list(
         name = "LogGaussian",
         R_name = "dlnorm",
         stan_name = "lognormal",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("mu","sigma"),
         par_bounds = c("","<lower=0>"),
@@ -53,6 +55,7 @@ map2stan.templates <- list(
         name = "StudentT",
         R_name = "dstudent",
         stan_name = "student_t",
+        stan_suffix = "_lpdf",
         num_pars = 3,
         par_names = c("nu","mu","sigma"),
         par_bounds = c("<lower=0>","","<lower=0>"),
@@ -67,6 +70,7 @@ map2stan.templates <- list(
         name = "MVGaussian",
         R_name = "dmvnorm",
         stan_name = "multi_normal",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("Mu","Sigma"),
         par_bounds = c("",""),
@@ -128,6 +132,7 @@ map2stan.templates <- list(
         name = "MVGaussianSRS",
         R_name = "dmvnorm2",
         stan_name = "multi_normal",
+        stan_suffix = "_lpdf",
         num_pars = 3,
         par_names = c("Mu","Sigma","Rho"),
         par_bounds = c("","lower=0",""),
@@ -244,6 +249,7 @@ map2stan.templates <- list(
         name = "MVGaussianLNC",
         R_name = "dmvnormNC",
         stan_name = "normal",  # univariate, because uses Cholesky trick
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("Sigma","Rho"),
         par_bounds = c("lower=0",""),
@@ -398,6 +404,7 @@ map2stan.templates <- list(
         name = "GaussianProcess",
         R_name = "GPL2",
         stan_name = "multi_normal",
+        stan_suffix = "_lpdf",
         num_pars = 4,
         par_names = c("d","eta_sq","rho_sq","sig_sq"),
         par_bounds = c("","<lower=0>","<lower=0>","<lower=0>"),
@@ -472,6 +479,7 @@ map2stan.templates <- list(
         name = "Cauchy",
         R_name = "dcauchy",
         stan_name = "cauchy",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("location","scale"),
         par_bounds = c("","<lower=0>"),
@@ -493,6 +501,7 @@ map2stan.templates <- list(
         name = "Ordered",
         R_name = "dordlogit",
         stan_name = "ordered_logistic",
+        stan_suffix = "_lpmf",
         num_pars = 2,
         par_names = c("eta","cutpoints"),
         par_bounds = c("",""),
@@ -556,6 +565,7 @@ map2stan.templates <- list(
         name = "LKJ_Corr",
         R_name = "dlkjcorr",
         stan_name = "lkj_corr",
+        stan_suffix = "_lpdf",
         num_pars = 1,
         par_names = c("eta"),
         par_bounds = c("<lower=0>"),
@@ -571,6 +581,7 @@ map2stan.templates <- list(
         name = "invWishart",
         R_name = "dinvwishart",
         stan_name = "inv_wishart",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("nu","Sigma"),
         par_bounds = c("<lower=0>",""),
@@ -596,6 +607,7 @@ map2stan.templates <- list(
         name = "Laplace",
         R_name = "dlaplace",
         stan_name = "double_exponential",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("location","scale"),
         par_bounds = c("<lower=0>","<lower=0>"),
@@ -613,6 +625,7 @@ map2stan.templates <- list(
         name = "Uniform",
         R_name = "dunif",
         stan_name = "uniform",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("min","max"),
         par_bounds = c("",""),
@@ -623,7 +636,9 @@ map2stan.templates <- list(
             constr_list <- get( "constraints" , envir=parent.frame() )
             kout <- as.character(kout)
             if ( is.null(constr_list[[kout]]) ) {
-                constr_list[[kout]] <- concat( "lower=" , as.character(kin[[1]]) , ",upper=" , as.character(kin[[2]]) )
+                # added concat() here instead of as.character to handle "-1" parsing as c("-","1")
+                # same problem might exist in other templates?
+                constr_list[[kout]] <- concat( "lower=" , concat(kin[[1]]) , ",upper=" , concat(kin[[2]]) )
                 assign( "constraints" , constr_list , envir=parent.frame() )
             }
             # add comment tag in front, so that uniform dist isn't computed during sims
@@ -640,6 +655,7 @@ map2stan.templates <- list(
         name = "Binomial",
         R_name = "dbinom",
         stan_name = "binomial",
+        stan_suffix = "_lpmf",
         nat_link = "logit",
         num_pars = 2,
         par_names = c("size","prob"),
@@ -656,9 +672,9 @@ map2stan.templates <- list(
         R_name = "dgeom",
         stan_name = "increment_log_prob",
         stan_code = 
-"increment_log_prob(bernoulli_log(1,PAR1) + OUTCOME*bernoulli_log(0,PAR1));",
+"target += (bernoulli_lpmf(1|PAR1) + OUTCOME*bernoulli_lpmf(0|PAR1));",
         stan_dev = 
-"dev <- dev + (-2)*(bernoulli_log(1,PAR1) + OUTCOME*bernoulli_log(0,PAR1));",
+"dev <- dev + (-2)*(bernoulli_lpmf(1|PAR1) + OUTCOME*bernoulli_lpmf(0|PAR1));",
         num_pars = 3,
         par_names = c("prob"),
         par_bounds = c("<lower=0,upper=1>"),
@@ -673,6 +689,7 @@ map2stan.templates <- list(
         name = "Beta",
         R_name = "dbeta",
         stan_name = "beta",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("alpha","beta"),
         par_bounds = c("<lower=0>","<lower=0>"),
@@ -687,6 +704,7 @@ map2stan.templates <- list(
         name = "Beta2",
         R_name = "dbeta2",
         stan_name = "beta",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("prob","theta"),
         par_bounds = c("<lower=0,upper=1>","<lower=0>"),
@@ -713,6 +731,7 @@ map2stan.templates <- list(
         name = "BetaBinomial",
         R_name = "dbetabinom",
         stan_name = "beta_binomial",
+        stan_suffix = "_lpmf",
         num_pars = 3,
         par_names = c("size","prob","theta"),
         par_bounds = c("<lower=1>","<lower=0>","<lower=0>"),
@@ -739,6 +758,7 @@ map2stan.templates <- list(
         name = "Poisson",
         R_name = "dpois",
         stan_name = "poisson",
+        stan_suffix = "_lpmf",
         nat_link = "log",
         num_pars = 1,
         par_names = c("lambda"),
@@ -754,6 +774,7 @@ map2stan.templates <- list(
         name = "Exponential",
         R_name = "dexp",
         stan_name = "exponential",
+        stan_suffix = "_lpdf",
         num_pars = 1,
         par_names = c("lambda"),
         par_bounds = c("<lower=0>"),
@@ -768,6 +789,7 @@ map2stan.templates <- list(
         name = "Gamma",
         R_name = "dgamma",
         stan_name = "gamma",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("alpha","beta"),
         par_bounds = c("<lower=0>","lower=0"),
@@ -784,6 +806,7 @@ map2stan.templates <- list(
         name = "Gamma2",
         R_name = "dgamma2",
         stan_name = "gamma",
+        stan_suffix = "_lpdf",
         num_pars = 2,
         par_names = c("alpha","beta"),
         par_bounds = c("<lower=0>","lower=0"),
@@ -814,6 +837,7 @@ map2stan.templates <- list(
         name = "GammaPoisson",
         R_name = "dgampois",
         stan_name = "neg_binomial_2",
+        stan_suffix = "_lpmf",
         num_pars = 2,
         par_names = c("alpha","beta"),
         par_bounds = c("<lower=0>","<lower=0>"),
@@ -842,14 +866,14 @@ map2stan.templates <- list(
         stan_name = "increment_log_prob",
         stan_code = 
 "if (OUTCOME == 0)
-increment_log_prob(bernoulli_log(1,PAR1));
+target += (bernoulli_lpmf(1|PAR1));
 else
-increment_log_prob(bernoulli_log(0,PAR1) + gamma_log(OUTCOME,PAR2,PAR3));",
+target += (bernoulli_lpmf(0|PAR1) + gamma_lpdf(OUTCOME|PAR2,PAR3));",
         stan_dev = 
 "if (OUTCOME == 0)
-dev <- dev + (-2)*(bernoulli_log(1,PAR1));
+dev <- dev + (-2)*(bernoulli_lpmf(1|PAR1));
 else
-dev <- dev + (-2)*(bernoulli_log(0,PAR1) + gamma_log(OUTCOME,PAR2,PAR3));",
+dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + gamma_lpdf(OUTCOME|PAR2,PAR3));",
         num_pars = 3,
         par_names = c("prob","alpha","beta"),
         par_bounds = c("<lower=0,upper=1>","<lower=0>","lower=0"),
@@ -885,16 +909,16 @@ dev <- dev + (-2)*(bernoulli_log(0,PAR1) + gamma_log(OUTCOME,PAR2,PAR3));",
         stan_name = "increment_log_prob",
         stan_code = 
 "if (OUTCOME == 0)
-      increment_log_prob(log_sum_exp(bernoulli_log(1,PAR1),
-        bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2)));
+      target += (log_sum_exp(bernoulli_lpmf(1|PAR1),
+        bernoulli_lpmf(0|PAR1) + poisson_lpmf(OUTCOME|PAR2)));
     else
-      increment_log_prob(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
+      target += (bernoulli_lpmf(0|PAR1) + poisson_lpmf(OUTCOME|PAR2));",
         stan_dev = 
 "if (OUTCOME == 0)
-      dev <- dev + (-2)*(log_sum_exp(bernoulli_log(1,PAR1),
-        bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2)));
+      dev <- dev + (-2)*(log_sum_exp(bernoulli_lpmf(1|PAR1),
+        bernoulli_lpmf(0|PAR1) + poisson_lpmf(OUTCOME|PAR2)));
     else
-      dev <- dev + (-2)*(bernoulli_log(0,PAR1) + poisson_log(OUTCOME,PAR2));",
+      dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + poisson_lpmf(OUTCOME|PAR2));",
         num_pars = 2,
         par_names = c("p","lambda"),
         par_bounds = c("",""),
@@ -914,16 +938,16 @@ dev <- dev + (-2)*(bernoulli_log(0,PAR1) + gamma_log(OUTCOME,PAR2,PAR3));",
         stan_name = "increment_log_prob",
         stan_code = 
 "if (OUTCOME == 0)
-increment_log_prob(log_sum_exp(bernoulli_log(1,PAR1),
-    bernoulli_log(0,PAR1) + binomial_log(OUTCOME,PAR2,PAR3)));
+target += (log_sum_exp(bernoulli_lpmf(1|PAR1),
+    bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3)));
 else
-increment_log_prob(bernoulli_log(0,PAR1) + binomial_log(OUTCOME,PAR2,PAR3));",
+target += (bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3));",
         stan_dev = 
 "if (OUTCOME == 0)
-dev <- dev + (-2)*(log_sum_exp(bernoulli_log(1,PAR1),
-    bernoulli_log(0,PAR1) + binomial_log(OUTCOME,PAR2,PAR3)));
+dev <- dev + (-2)*(log_sum_exp(bernoulli_lpmf(1|PAR1),
+    bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3)));
 else
-dev <- dev + (-2)*(bernoulli_log(0,PAR1) + binomial_log(OUTCOME,PAR2,PAR3));",
+dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3));",
         num_pars = 2,
         par_names = c("prob1","size","prob2"),
         par_bounds = c("",""),
@@ -948,7 +972,7 @@ dev <- dev + (-2)*(bernoulli_log(0,PAR1) + binomial_log(OUTCOME,PAR2,PAR3));",
 "{
         vector[PAR1] theta;
         PAR2 
-        dev <- dev + (-2)*categorical_log( OUTCOME , softmax(theta) );
+        dev <- dev + (-2)*categorical_lpmf( OUTCOME | softmax(theta) );
     }",
         num_pars = 1,
         par_names = c("prob"),
