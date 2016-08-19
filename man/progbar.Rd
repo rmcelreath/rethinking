@@ -6,7 +6,8 @@
   Provides a progress display with estimated time remaining, assuming rate constant process.
 }
 \usage{
-progbar( current , min=0 , max=100 , starttime , update.interval=100 )
+progbar(current, min = 0, max = 100, starttime,
+                 update.interval = 100, show.rate = FALSE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -21,7 +22,7 @@ progbar( current , min=0 , max=100 , starttime , update.interval=100 )
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \examples{
 }

@@ -18,7 +18,7 @@ chainmode( chain , ... )
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{}
 \examples{

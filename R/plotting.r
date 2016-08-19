@@ -1,11 +1,21 @@
 # plotting
 
-dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , ...) {
+set_nice_margins <- function() {
+    par_mf <- par("mfrow","mfcol")
+    if ( all(unlist(par_mf)==1) ) {
+        #par_old <- par(no.readonly = TRUE)
+        #on.exit(par(par_old))
+        par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
+    }
+}
+
+dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , add=FALSE , ...) {
     the.class <- class(x)[1]
     if ( the.class=="data.frame" ) {
         # full posterior
         n <- ncol(x)
         cnames <- colnames(x)
+        set_nice_margins()
         par( mfrow=make.grid(n) )
         for ( i in 1:n ) {
             dens( x[,i] , adj=adj , norm.comp=norm.comp , show.HPDI=show.HPDI , show.zero=TRUE , xlab=cnames[i] , ... )
@@ -14,7 +24,11 @@ dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , sh
         # vector
         if ( rm.na==TRUE ) x <- x[ !is.na(x) ]
         thed <- density(x,adjust=adj)
-        plot( thed , main=main , ... )
+        if ( add==FALSE ) {
+            set_nice_margins()
+            plot( thed , main=main , ... )
+        } else
+            lines( thed$x , thed$y , ... )
         if ( show.HPDI != FALSE ) {
             hpd <- HPDI( x , prob=show.HPDI )
             shade( thed , hpd )
@@ -32,12 +46,17 @@ dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , sh
 }
 
 # just converts x,y,z lists of same length to a matrix for contour to plot
-contour.xyz <- function( x , y , z , ... ) {
+contour_xyz <- function( x , y , z , ... ) {
     ux <- unique(x)
     uy <- unique(y)
     n <- length(ux)
     m <- matrix( z , nrow=n , ncol=n )
     contour( ux , uy , m , ... )
+}
+
+# just converts inputs to form expected by image()
+image_xyz <- function( x , y , z , ... ) {
+    image( unique(x) , unique(y) , matrix(z, length(unique(x)), length(unique(y)) ) , ... )
 }
 
 # plot new y values on secondary y-axis on right side
@@ -136,7 +155,12 @@ show.naive.posterior <- function( est , se , model=NULL , level=0.95 , xlab="est
 }
 
 # simple histogram
-simplehist <- function( x , ylab="Frequency" , xlab="Count" , ycounts=TRUE , adjust=1 , lcol="black" , bins=NULL , show.counts=0 , xlim=NULL , ylim=NULL , ... ) {
+simplehist <- function( x , round=TRUE , ylab="Frequency" , ... ) {
+    if ( round==TRUE ) x <- round(x)
+    plot(table(x),ylab=ylab,...)
+}
+
+simplehist_old <- function( x , ylab="Frequency" , xlab="Count" , ycounts=TRUE , adjust=1 , lcol="black" , bins=NULL , show.counts=0 , xlim=NULL , ylim=NULL , ... ) {
     # first, check if integers only or continuous.
     freqs <- {}
     x2 <- round(x)
@@ -159,6 +183,7 @@ simplehist <- function( x , ylab="Frequency" , xlab="Count" , ycounts=TRUE , adj
             ylim <- c( 0 , max(freqs) )
         if ( is.null(xlim) )
             xlim <- c(min(bins),max(bins))
+        set_nice_margins()
         plot( 0 ~ 0 , col="white" , xlim=xlim , ylim=ylim , ylab=ylab , xlab=xlab , ... )
         for ( i in 1:length(bins) ) {
             if ( freqs[i] > 0 )
@@ -175,6 +200,7 @@ simplehist <- function( x , ylab="Frequency" , xlab="Count" , ycounts=TRUE , adj
         # continuous
        if ( ylab=="Frequency" ) ylab <- "Density"
        if ( xlab=="Count" ) xlab <- "Value"
+       set_nice_margins()
        plot( density( x , adjust=adjust ) , ylab=ylab , xlab=xlab , ... )
     }
     
@@ -208,7 +234,7 @@ segmentsby <- function( x , y , by , ... ) {
     }
 }
 
-shade <- function( object , lim , label=NULL , col="#00000066" , border=NA , ... ) {
+shade <- function( object , lim , label=NULL , col=col.alpha("black",0.15) , border=NA , ... ) {
     if ( missing(lim) ) stop( "Interval limits missing." )
     if ( missing(object) ) stop( "No density or formula object." )
     from <- lim[1]
@@ -244,57 +270,11 @@ shade <- function( object , lim , label=NULL , col="#00000066" , border=NA , ...
     }
 }
 
-
-# mcmc utilities
-
-plotchain <- function(x , mean=TRUE , main=thecall[2][[1]] ) {
-    thecall <- match.call()
-    plot(x,col="slateblue",type="l",ylab="value",main=main)
-    if ( mean==TRUE ) {
-        imean <- rep(0,length(x))
-        imean[1] <- x[1]
-        for ( i in 2:length(x) ) {
-            imean[i] <- ( imean[i-1]*(i-1) + x[i] )/i
-        }
-        lines( 1:length(x) , imean , col="white" , lwd=4 , type="l" )
-        lines( 1:length(x) , imean , col="orange" , lwd=2 , type="l" )
-    }
-}
-
-plotpost <- function(x , burn=0.1 , width=1 , main=thecall[2][[1]] , ci=FALSE , ... ) {
-    thecall <- match.call()
-    xend <- floor( (length(x)*burn) )
-    plot( density( x[-c(1:xend)] , adjust=width ) , col="slateblue" , lwd=2 , main=main , ... )
-    if ( ci==TRUE ) {
-        x2 <- x[-c(1:xend)] # removed burn in
-        mu <- mean( x2 )
-        ci95 <- quantile( x2 , probs=c(0.025,0.975) )
-        lines( c(mu,mu) , c(0,1000) , col="orange" , lty=2 )
-        lines( c(ci95[1],ci95[1]) , c(0,1000) , col="orange" , lty=2 )
-        lines( c(ci95[2],ci95[2]) , c(0,1000) , col="orange" , lty=2 )
-        themode <- chainmode( x2 )
-        lines( c(themode,themode) , c(0,1000) , col="orange" , lty=1 )
-    }
-}
-
-plotmcmc <- function( mcmc , ci=TRUE , width=1 ) {
-    # takes associated chains in the form of a data frame,
-    # rows: parameters
-    # col 1: chains
-    # col 2: posteriors
-    npar <- ncol(mcmc)
-    par(mfrow=c(npar,2))
-    for ( i in 1:npar ) {
-        plotchain( mcmc[,i] , main=colnames(mcmc)[i] )
-        plotpost( mcmc[,i] , main=colnames(mcmc)[i] , ci=ci , width=width )
-    }
-}
-
-mcmcpairs <- function( posterior , cex=0.3 , pch=16 , col=col.alpha("slateblue",0.2) , n=1000 , ... ) {
+mcmcpairs <- function( posterior , cex=0.3 , pch=16 , col=col.alpha("slateblue",0.2) , n=1000 , adj=1 , ... ) {
     panel.dens <- function(x, ...) {
         usr <- par("usr"); on.exit(par(usr))
         par(usr = c(usr[1:2], 0, 1.5) )
-        h <- density(x,adj=0.5)
+        h <- density(x,adj=adj)
         y <- h$y
         y <- y/max(y)
         abline( v=0 , col="gray" , lwd=0.5 )
@@ -312,6 +292,7 @@ mcmcpairs <- function( posterior , cex=0.3 , pch=16 , col=col.alpha("slateblue",
         cy <- sum(range(y))/2
         text( cx , cy , round(k,2) , cex=2*exp(abs(k))/exp(1) )
     }
+    set_nice_margins()
     pairs( posterior , cex=cex , pch=pch , col=col , upper.panel=panel.2d , lower.panel=panel.cor , diag.panel=panel.dens , ... )
 }
 

@@ -18,3 +18,5 @@ col.dist <- function( x , mu=0 , sd=1 , col="slateblue" ) {
     cols <- sapply( cols , function(z) col.alpha(col,z) )
     cols
 }
+
+rangi2 <- col.desat( "blue" , 0.5 )

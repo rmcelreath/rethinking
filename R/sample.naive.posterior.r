@@ -1,10 +1,14 @@
 # sample naive posterior
 
-# convenience wrapper for sampling from naive posterior into a data frame
+# here for historical reasons - preserved for backwards compatibility with old scripts
+
+# convenience wrapper for sampling from quadratic approx posterior into a data frame
 # also capable of averaging over models, if given a list() as first argument
-sample.naive.posterior <- function( model , n=10000 , clean.names=TRUE , method="AICc" , nobs=0 , add.names=FALSE , fill.na=0 , verbose=FALSE ) {
-    require(MASS)
-    require(bbmle)
+sample.naive.posterior <- function( ... ) sample.qa.posterior( ... )
+
+sample.qa.posterior <- function( model , n=10000 , clean.names=TRUE , model.weights="AICc" , nobs=0 , add.names=FALSE , fill.na=0 , verbose=FALSE ) {
+    #require(MASS)
+    #require(bbmle)
     # need own BIC, as one in stats doesn't allow nobs
     getdf <- function(x) {
         if (!is.null(df <- attr(x, "df"))) 
@@ -18,24 +22,43 @@ sample.naive.posterior <- function( model , n=10000 , clean.names=TRUE , method=
     }
     if ( class(model)[1]=="list" ) {
         # list of models passed
-        valid.methods <- c("AIC","AICc","BIC")
-        if ( !any(method==valid.methods) ) {
-            cat( paste("Unknown model averaging method:",method) )
-            return()
-        }
+        
+        # check for list of length 1
         if ( length( model ) < 2 ) {
-            return( sample.naive.posterior( model[[1]] , n=n , method=method , nobs=nobs ) )
+            return( sample.qa.posterior( model[[1]] , n=n , nobs=nobs ) )
         }
-        if ( method=="AIC" ) factors <- sapply( model , AIC )
-        if ( nobs==0 ) {
-            if ( method=="AICc" ) factors <- sapply( model , AICc )
-            if ( method=="BIC" ) factors <- sapply( model , BIC )
+        
+        # check method
+        valid.methods <- c("AIC","AICc","BIC")
+        use.custom <- FALSE
+        if ( class(model.weights)=="numeric" ) {
+            if ( length(model.weights)!=length(model) ) {
+                stop( "Custom model weights must be same length as list of models." )
+            } else {
+                use.custom <- TRUE
+                post <- model.weights
+            }
         } else {
-            if ( method=="AICc" ) factors <- sapply( model , function(z) AICc(z,nobs=nobs) )
-            if ( method=="BIC" ) factors <- sapply( model , function(z) myBIC(z,nobs=nobs) )
+            if ( !any(model.weights==valid.methods) ) {
+                stop( paste("Unknown model averaging method:",model.weights) )
+            }
         }
-        factors <- factors - min( factors )
-        post <- exp( -1/2 * factors )/sum( exp( -1/2 * factors ) )
+        
+        # compute from metric
+        if ( use.custom==FALSE ) {
+            if ( model.weights=="AIC" ) factors <- sapply( model , AIC )
+            if ( nobs==0 ) {
+                if ( model.weights=="AICc" ) factors <- sapply( model , AICc )
+                if ( model.weights=="BIC" ) factors <- sapply( model , BIC )
+            } else {
+                if ( model.weights=="AICc" ) factors <- sapply( model , function(z) AICc(z,nobs=nobs) )
+                if ( model.weights=="BIC" ) factors <- sapply( model , function(z) myBIC(z,nobs=nobs) )
+            }
+            factors <- factors - min( factors )
+            # compute weights
+            post <- exp( -1/2 * factors )/sum( exp( -1/2 * factors ) )
+        }
+        
         sim.post <- vector( "list" , length(model) )
         f.zeros <- FALSE
         nn <- round(n*post)
@@ -43,11 +66,11 @@ sample.naive.posterior <- function( model , n=10000 , clean.names=TRUE , method=
         for ( i in 1:length(model) ) {
             if ( nn[i]==0 ) {
                 f.zeros <- TRUE
-                sim.post[[i]] <- sample.naive.posterior( model[[i]] , n=2 ) 
+                sim.post[[i]] <- sample.qa.posterior( model[[i]] , n=2 ) 
                 # 2 appears to be minimum to get columns to populate from mvrnorm
                 # need column names from these zero samples models
             } else {
-                sim.post[[i]] <- sample.naive.posterior( model[[i]] , n=max(nn[i],2) )
+                sim.post[[i]] <- sample.qa.posterior( model[[i]] , n=max(nn[i],2) )
             }
         }
         if ( f.zeros==TRUE ) {
@@ -105,7 +128,7 @@ sample.naive.posterior <- function( model , n=10000 , clean.names=TRUE , method=
     } else {
         # single model passed
         mu <- 0
-        if ( class(model)[1] %in% c("mer","bmer") ) {
+        if ( class(model)[1] %in% c("mer","bmer","glmerMod","lmerMod") ) {
             mu <- fixef(model)
         } else {
             mu <- xcoef(model)
@@ -122,3 +145,6 @@ sample.naive.posterior <- function( model , n=10000 , clean.names=TRUE , method=
     }
     result
 }
+
+# converting to use extract_samples for everything
+

@@ -1,8 +1,9 @@
 # coeftab
 
 # coeftab class definition and show method
-setClass( "coeftab" , representation( coefs="matrix" , nobs="numeric" , AIC="numeric" , digits="numeric" , width="numeric" ) )
-coeftab.show <- function( object ) {
+setClass( "coeftab" , representation( coefs="matrix" , se="matrix" , nobs="numeric" , AIC="numeric" , digits="numeric" , width="numeric" ) )
+
+coeftab_show <- function( object ) {
     result <- object@coefs
     if ( !is.null(object@nobs) ) {
         result <- rbind( result , object@nobs )
@@ -11,9 +12,56 @@ coeftab.show <- function( object ) {
     coefs <- rrformat( result , digits=object@digits , width=object@width )
     print( coefs , quote=FALSE , justify="right" )
 }
-setMethod( "show" , "coeftab" , function(object) coeftab.show(object) )
+setMethod( "show" , "coeftab" , function(object) coeftab_show(object) )
 
-coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , width=7 , rotate=FALSE , compare=FALSE ) {
+coeftab_plot <- function( x , y , pars , col.ci="black" , by.model=FALSE , prob=0.95 , ... ) {
+    x.orig <- x
+    xse <- x@se
+    x <- x@coefs
+    if ( !missing(pars) ) {
+        x <- x[pars,]
+        xse <- xse[pars,]
+    }
+    if ( by.model==FALSE ) {
+        xse <- t(xse)
+        x <- t(x)
+    }
+
+    z <- qnorm( 1-(1-prob)/2 )
+    
+    left <- x
+    right <- x
+    for ( k in 1:nrow(x) ) {
+        for ( m in 1:ncol(x) ) {
+            ci <- x[k,m] + c(-1,1)*z*xse[k,m]
+            left[k,m] <- ci[1]
+            right[k,m] <- ci[2]
+        }
+    }
+
+    llim <- min(left,na.rm=TRUE)
+    rlim <- max(right,na.rm=TRUE)
+    dotchart( x , xlab="Estimate" , xlim=c(llim,rlim) , ... )
+    
+    for ( k in 1:nrow(x) ) {
+        for ( m in 1:ncol(x) ) {
+            if ( !is.na(left[k,m]) ) {
+                # to compute y position:
+                # coefs in groups by model
+                # groups have nrow(x)+1 lines
+                # empty line between each group
+                kn <- nrow(x)
+                ytop <- ncol(x)*(kn+2)-1
+                ypos <- ytop - (m-1)*(kn+2) - (kn-k+1)
+                lines( c(left[k,m],right[k,m]) , c(ypos,ypos) , lwd=2 , col=col.ci )
+            }
+        }
+    }
+    abline( v=0 , lty=1 , col=col.alpha("black",0.15) )
+}
+setMethod( "plot" , "coeftab" , function(x,y,...) coeftab_plot(x,y,...) )
+
+coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , width=7 , rotate=FALSE ) {
     
     # se=TRUE outputs standard errors
     # se.inside=TRUE prints standard errors in parentheses in same column as estimates
@@ -48,12 +96,15 @@ coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , w
     d <- matrix( NA , ncol=nk )
     d <- data.frame(d)
     colnames(d) <- c( param.names )
+    dse <- d
     
     # loop over models and insert values
     for ( i in 1:length(L) ) {
         klist <- xcoef( L[[i]] )
+        selist <- xse( L[[i]] )
         for ( j in 1:length(klist) ) {
             d[i,][ names( klist[j] ) ] <- as.numeric( round( klist[j] , digits ) )
+            dse[i,][ names( klist[j] ) ] <- as.numeric( selist[j] )
         }
     }
     # insert standard errors
@@ -67,7 +118,7 @@ coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , w
                     d[i,][ paste(names(kse)[j],".se",sep="") ] <- as.numeric( round(kse[j],digits) )
                 else
                     # combine with estimate
-                    d[i,][ names(kse)[j] ] <- paste( formatC( as.real(d[i,][ names(kse)[j] ]) , digits=digits ) , " (" , formatC( as.real( kse[j] ) , digits=digits ) , ")" , sep="" )
+                    d[i,][ names(kse)[j] ] <- paste( formatC( (d[i,][ names(kse)[j] ]) , digits=digits ) , " (" , formatC( as.real( kse[j] ) , digits=digits ) , ")" , sep="" )
             }
         }
     }
@@ -93,16 +144,10 @@ coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , w
         nobs <- 0
     }
     
-    # add AICc and weights
-    if ( compare==TRUE ) {
-        require(bbmle)
-        d$AICc <- sapply( 1:length(L) , function(z) AICc( L[[z]] , nobs=d$nobs[z] ) )
-        deltAICc <- d$AICc - min(d$AICc) 
-        wAIC <- exp( -0.5*deltAICc )
-        d$weight <- wAIC / sum( wAIC )
-    }
-    
     # return table
-    if ( rotate==FALSE ) d <- t(d) # models along top is default
-    new( "coeftab" , coefs=d , nobs=nobs , digits=digits , width=width )
+    if ( rotate==FALSE ) {
+        d <- t(d) # models along top is default
+        dse <- t(dse)
+    }
+    new( "coeftab" , coefs=as.matrix(d) , se=as.matrix(dse) , nobs=nobs , digits=digits , width=width )
 }

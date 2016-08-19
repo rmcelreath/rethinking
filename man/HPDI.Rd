@@ -1,14 +1,15 @@
 \name{HPDI}
-\alias{PCI}
+\alias{PI}
 \alias{HPDI}
+\alias{PCI}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Confidence/credible intervals from samples}
 \description{
-  These functions compute highest posterior density (HPDI) and percentile (PCI) confidence intervals, using samples from the posterior density.
+  These functions compute highest posterior density (HPDI) and percentile (PI) intervals, using samples from a posterior density or simulated outcomes.
 }
 \usage{
-HPDI( samples , prob=0.95 )
-PCI( samples , prob=0.95 )
+HPDI( samples , prob=0.89 )
+PI( samples , prob=0.89 )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -18,11 +19,11 @@ PCI( samples , prob=0.95 )
 \details{
   Highest Posterior Density Intervals (HPDI) are calculated by \code{\link{HPDinterval}} in the \code{coda} package.
   
-  Percentile intervals (PCI) use \code{\link{quantile}} and assign equal mass to each tail.
+  Percentile intervals (PI) use \code{\link{quantile}} and assign equal mass to each tail.
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{HPDinterval}}}
 \examples{

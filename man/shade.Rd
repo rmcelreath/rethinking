@@ -6,7 +6,8 @@
   Adds a shaded interval to an existing density plot or regression plot.
 }
 \usage{
-shade( object , lim , label=NULL , col="#00000066" , border=NA , ... )
+shade(object, lim, label = NULL, col = col.alpha("black",
+                 0.15), border = NA, ...)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -26,7 +27,7 @@ shade( object , lim , label=NULL , col="#00000066" , border=NA , ... )
 }
 \value{
 }
-\references{McElreath 2011, Statistical Rethinking.}
+\references{}
 \author{Richard McElreath}
 \seealso{\code{\link{density}}, \code{\link{dens}}}
 \examples{
@@ -48,21 +49,11 @@ shade( density(samples) , PCI(samples) )
 # plotting a shaded confidence interval on a regression plot
 data(cars)
 m <- lm( dist ~ speed , cars )
-p <- sample.naive.posterior( m )
+p <- extract.samples( m )
 x.seq <- seq( from=min(cars$speed)-1 , to=max(cars$speed)+1 , length.out=30 )
-mu.ci <- sapply( x.seq , function(x) PCI( p[,1] + p[,2]*x ) )
+mu.ci <- sapply( x.seq , function(x) PI( p[,1] + p[,2]*x ) )
 plot( dist ~ speed , cars )
 abline( m )
-shade( mu.ci , x.seq )
-
-# now a goody non-linear example
-m2 <- lm( dist ~ speed + I(speed^2) + I(speed^3) , cars )
-p <- sample.naive.posterior( m2 )
-x.seq <- seq( from=min(cars$speed)-1 , to=max(cars$speed)+1 , length.out=30 )
-mu <- sapply( x.seq , function(x) mean( p[,1] + p[,2]*x + p[,3]*x^2 + p[,4]*x^3 ) )
-mu.ci <- sapply( x.seq , function(x) PCI( p[,1] + p[,2]*x + p[,3]*x^2 + p[,4]*x^3 ) )
-plot( dist ~ speed , cars )
-lines( x.seq , mu )
 shade( mu.ci , x.seq )
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

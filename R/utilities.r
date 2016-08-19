@@ -2,8 +2,27 @@
 
 # various utility functions
 
+# set help to html
+htmlhelp <- function() options(help_type="html")
+
+# set CRAN mirror
+setcran <- function(themirror="http://cran.stat.ucla.edu/") options(repos=structure(c(CRAN=themirror)))
+
 # default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
-blank <- function(ex=1) quartz("myquartz",width=3.5*ex,height=4*ex)
+blank <- function(ex=1,w=1,h=1) {
+    quartz("myquartz",width=3.5*ex*w,height=3.5*ex*h)
+    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
+}
+
+# default pdf plot size, for making cmyk figures
+# close file with dev.off() as usual
+pdfblank <- function (ex = 1, w = 1, h = 1, colormodel="cmyk" , ... ) 
+{
+    pdf("mypdf.pdf", width = 3.5 * ex * w, height = 3.5 * ex * 
+        h , colormodel=colormodel , ...)
+    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, 
+        tck = -0.02)
+}
 
 # convenience function for choosing a csv file
 choose.csv <- function( ... ) read.csv( file=file.choose() , ... )
@@ -50,21 +69,21 @@ progbar <- function( current , min=0 , max=100 , starttime , update.interval=100
 }
 
 # convenience interface to glmer (lme4) that always uses REML=FALSE
-glmm <- function( ... , family , REML=FALSE ) {
-    require(lme4)
-    if ( missing(family) ) {
-        result <- lmer( ... , REML=REML )
-    } else {
-        result <- glmer( ... , family=family )
-    }
-    result
-}
+#glmm <- function( ... , family , REML=FALSE ) {
+#    require(lme4)
+#    if ( missing(family) ) {
+#        result <- lmer( ... , REML=REML )
+#    } else {
+#        result <- glmer( ... , family=family )
+#    }
+#    result
+#}
 
-bglmm <- function( ... , REML=FALSE ) {
-    require(lme4)
-    require(blme)
-    blmer( ... , REML=REML )
-}
+#bglmm <- function( ... , REML=FALSE ) {
+#    require(lme4)
+#    require(blme)
+#    blmer( ... , REML=REML )
+#}
 
 covmat <- function( m , digits=4 ) {
     # upper diag is covariances
@@ -77,72 +96,8 @@ covmat <- function( m , digits=4 ) {
     result
 }
 
-######
-# take a fit lm object and return a fit mle2 object with same model, data
-# uses estimates from lm as starting values for mle2
-# uses do.call()
-lm.to.mle2 <- function( model , data=NULL , tau=TRUE , skip.hessian=FALSE ) {
-    if ( class(model)[1] == "formula" ) {
-        # passed formula directly, so need to fit it ourselves
-        model <- lm( model , data=data )
-    }
-    if ( class(model)[1] != "lm" ) return( "Not a model of class lm." )
-    if ( is.null(data) ) return( "Must specify data frame." )
-    require(bbmle)
-    # extract data frame
-    dm <- model$model
-    # get factors matrix
-    fm <- attr( attr( model$model , "terms" ) , "factors" )
-    # get names of variables
-    xnames <- colnames(fm)
-    yname <- rownames(fm)[1]
-    # build vector of additive terms for formula
-    k <- length(xnames)
-    terms <- rep("",k)
-    coefnames <- paste( "b" , 1:k , sep="" )
-    for ( i in 1:k ) {
-        aterm <- ifelse( fm[,i]==1 , colnames(dm) , "" )
-        aterm <- aterm[ aterm != "" ]
-        acoef <- coefnames[i]
-        aterm <- paste( c(acoef,aterm) , collapse="*" )
-        terms[i] <- aterm
-    }
-    mu <- paste( c("a",terms) , collapse=" + " )
-    # make start list
-    startvals <- coef(model)
-    sigmastart <- sqrt( var(resid(model))*(nrow(dm)-1)/(nrow(dm)-k-1) )
-    sigmaname <- "sigma"
-    sigmaform <- "sigma"
-    if ( tau==TRUE ) {
-        sigmaname <- "tau"
-        sigmastart <- 1/sigmastart
-        sigmaform <- "1/abs(tau)"
-    }
-    thestart <- paste( c("a",coefnames,sigmaname) , c( startvals , sigmastart ) , sep="=" )
-    dostart <- paste( thestart , collapse=" , " )
-    dostart <- paste( "list(" , dostart , ")" , sep="" )
-    dostart <- eval( parse( text=dostart ) )
-    # build model formula
-    theform <- paste( yname , "~ dnorm( mean=" , mu , " , sd=" , sigmaform , ")" )
-    theformula <- formula( theform )
-    # put it all together
-    holdcall <- match.call()
-    fit.m <- do.call( mle2 , list(minuslogl=theformula , data=data , start=dostart,skip.hessian=skip.hessian) )
-    fit.m@call <- holdcall
-    fit.m@call.orig <- holdcall
-    return( fit.m )
-}
-
-# Type S error function
-type.s <- function( est , se , posterior=NULL ) {
-    n <- length(est)
-    if ( is.null(posterior) ) {
-        pr.s <- pnorm( rep(0,n) , mean=est , sd=se )
-        pr.s <- ifelse( pr.s > 0.5 , 1-pr.s , pr.s )
-    } else {
-        # compute from posterior rather than standard error
-    }
-    pr.s
+Rho <- function( model , digits=2 ) {
+    round( cov2cor(vcov(model)) , digits )
 }
 
 # finds mode of a continuous density
@@ -153,32 +108,65 @@ chainmode <- function( chain , ... ) {
 
 # highest posterior density interval, sensu Box and Tiao
 # requires coda library
-HPDI <- function( samples , prob=0.95 ) {
+PIprimes <- c(0.67,0.89,0.97) # my snarky prime valued percentiles
+HPDI <- function( samples , prob=0.89 ) {
     # require(coda)
     class.samples <- class(samples)[1]
-    coerce.list <- c( "numeric" , "matrix" , "data.frame" , "integer" )
+    coerce.list <- c( "numeric" , "matrix" , "data.frame" , "integer" , "array" )
     if ( class.samples %in% coerce.list ) {
         # single chain for single variable
-        samples <- as.mcmc( samples )
+        samples <- coda::as.mcmc( samples )
     }
-    x <- coda::HPDinterval( samples , prob=prob )
-    result <- c( x[1] , x[2] )
-    names(result) <- c(paste("lower",prob),paste("upper",prob))
-    result
+    x <- sapply( prob , function(p) coda::HPDinterval( samples , prob=p ) )
+    # now order inside-out in pairs
+    n <- length(prob)
+    result <- rep(0,n*2)
+    for ( i in 1:n ) {
+        low_idx <- n+1-i
+        up_idx <- n+i
+        # lower
+        result[low_idx] <- x[1,i]
+        # upper
+        result[up_idx] <- x[2,i]
+        # add names
+        names(result)[low_idx] <- concat("|",prob[i])
+        names(result)[up_idx] <- concat(prob[i],"|")
+    }
+    return(result)
 }
 
-# percentile confidence interval
-PCI <- function( samples , prob=0.95 ) {
-    a <- (1-prob)/2
-    quantile( samples , probs=c(a,1-a) )
+# percentile confidence/credible interval
+PCI <- function( samples , prob=0.89 ) {
+    x <- sapply( prob , function(p) {
+        a <- (1-p)/2
+        quantile( samples , probs=c(a,1-a) )
+    } )
+    # now order inside-out in pairs
+    n <- length(prob)
+    result <- rep(0,n*2)
+    for ( i in 1:n ) {
+        low_idx <- n+1-i
+        up_idx <- n+i
+        # lower
+        result[low_idx] <- x[1,i]
+        # upper
+        result[up_idx] <- x[2,i]
+        # add names
+        a <- (1-prob[i])/2
+        names(result)[low_idx] <- concat(round(a*100,0),"%")
+        names(result)[up_idx] <- concat(round((1-a)*100,0),"%")
+    }
+    return(result)
 }
+PI <- PCI
+
 
 se <- function( model ) {
     sqrt( diag( vcov(model) ) )
 }
 
 # quadratic estimate confidence intervals from means and standard errors
-confint.quad <- function( model=NULL , est , se , level=0.95 ) {
+confint_quad <- function( model=NULL , est , se , prob=0.89 ) {
     if ( !is.null(model) ) {
         found.class <- FALSE
         if ( class(model)=="lm" ) {
@@ -197,7 +185,7 @@ confint.quad <- function( model=NULL , est , se , level=0.95 ) {
     }
     n <- length(est)
     mat <- matrix(c(rep(-1,n),rep(1,n)),nrow=n)
-    p <- (1-level)/2
+    p <- (1-prob)/2
     z <- -qnorm( p )
     ci <- est + mat * ( se * z )
     rownames(ci) <- names(est)
@@ -207,3 +195,107 @@ confint.quad <- function( model=NULL , est , se , level=0.95 ) {
     ci
 }
 
+# replicate with progress display
+replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
+    show_progress <- function(i) {
+        intervaln <- floor( n * interval )
+        if ( floor(i/intervaln) == i/intervaln ) {
+            cat( paste( "[" , i , "/" , n , "]\r" ) )
+        }
+    }
+    result <- sapply(1:n, 
+        eval.parent(substitute(function(i,...) { show_progress(i); expr })), 
+        simplify = simplify)
+    cat("\n")
+    result
+}
+
+# multi-core replicate
+mcreplicate <- function (n, expr, refresh = 0.1, mc.cores=2 ) {
+    #require(parallel)
+    show_progress <- function(i) {
+        intervaln <- floor(n * refresh)
+        if (floor(i/intervaln) == i/intervaln) {
+            cat(paste("[", i, "/", n, "]\r"))
+        }
+    }
+    result <- simplify2array(mclapply(1:n, eval.parent(substitute(function(i, 
+        ...) {
+        if (refresh>0) show_progress(i)
+        expr
+    })),mc.cores=mc.cores))
+    if (refresh>0) cat("\n")
+    result
+}
+
+# check index vector
+check_index <- function( x ) {
+    y <- sort(unique(x))
+    n <- length(y)
+    message( concat( "Length: ",n ) )
+    message( concat( "Range: ",min(y)," / ",max(y) ) )
+    if ( max(y) != n ) message( "Maximum index different than number of unique values" )
+    diffs <- sapply( 2:n , function(i) y[i] - y[i-1] )
+    if ( any(diffs)!=1 ) message( "At least one gap in consecutive values" )
+}
+
+# old vector-only coerce_index
+# coerce_index <- function( x ) as.integer(as.factor(as.character(x)))
+
+# new coerce_index that can take multiple vectors
+# ensures labels in all are part of same index set
+coerce_index <- function( ... ) {
+    L <- list(...)
+    if ( is.list(L[[1]]) && length(L)==1 ) L <- L[[1]]
+    if ( length(L)==1 ) {
+        return( as.integer(as.factor(as.character(L[[1]]))) )
+    } else {
+        # multiple inputs
+        vnames <- match.call()
+        vnames <- as.character(vnames)[2:(length(L)+1)]
+        # generate levels that include all labels from all inputs
+        M <- L
+        for ( i in 1:length(L) ) M[[i]] <- as.character(L[[i]])
+        Mall <- M[[1]]
+        for ( i in 2:length(L) ) Mall <- c( Mall , M[[i]] )
+        Mall <- unique(Mall)
+        new_levels <- levels(as.factor(Mall))
+        for ( i in 1:length(L) ) {
+            M[[i]] <- factor(M[[i]],levels=new_levels)
+            M[[i]] <- as.integer(M[[i]])
+        }
+        names(M) <- paste( vnames , "_idx" , sep="" )
+        return(M)
+    } 
+}
+
+# sd and var functions that don't use n-1 denominator
+sd2 <- function( x , na.rm=TRUE ) {
+    sqrt( var2(x,na.rm=na.rm) )
+}
+
+var2 <- function( x , na.rm=TRUE ) {
+    # use E(x^2) - E(x)^2 form
+    mean(x^2) - mean(x)^2
+}
+
+# function for formatting summary table output in various show methods
+# x should be a list or data frame
+# digits should be a named vector with digits to display for each column
+# name 'default__' is default digits
+# so can pass e.g. digits=c( 'default__'=2 , n_eff=0 )
+format_show <- function( x , digits ) {
+    r <- as.data.frame(lapply( 1:length(x) , 
+        function(i) { 
+            if ( names(x)[i] %in% names(digits) ) 
+                round( x[[i]] , digits[names(x)[i]] ) 
+            else 
+                round(x[[i]], digits['default__'] );
+        } ) )
+    names(r) <- names(x)
+    rownames(r) <- rownames(x)
+    return(r)
+}
+
+# just for recoding "Yes"/"No" to 1/0
+yn2bin <- function(x) ifelse(is.na(x),NA,ifelse(x %in% c("Yes","yes","Y","y"),1,0))

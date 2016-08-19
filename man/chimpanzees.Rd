@@ -18,9 +18,9 @@ data(chimpanzees)
         \item condition : partner absent (0), partner present (1)
         \item block : block of trials (each actor x each recipient 1 time)
         \item trial : trial number (by chimp = ordinal sequence of trials for each chimp, ranges from 1-72; partner present trials were interspersed with partner absent trials)
-        \item prosocial.left : 1 if prosocial (1/1) option was on left
-        \item chose.prosoc : choice chimp made (0 = 1/0 option, 1 = 1/1 option)
-        \item pulled.left : which side did chimp pull (1 = left, 0 = right)
+        \item prosocial_left : 1 if prosocial (1/1) option was on left
+        \item chose_prosoc : choice chimp made (0 = 1/0 option, 1 = 1/1 option)
+        \item pulled_left : which side did chimp pull (1 = left, 0 = right)
     }
 }
 \value{

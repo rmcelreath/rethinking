@@ -3,9 +3,11 @@
 \name{NEWS}
 \title{rethinking News}
 \encoding{UTF-8}
-\section{CHANGES IN VERSION 1.2.0 (2013-07-11)}{
+
+\section{CHANGES}{
   \itemize{
-     \item add \code{map} command to replace functionality of \code{mle2} in \code{bbmle} package
-     \item added NEWS (this document)
+     \item See github.com/rmcelreath/rethinking for a complete list of changes.
    }
+}
+
 }
