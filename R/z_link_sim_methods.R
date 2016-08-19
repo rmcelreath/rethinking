@@ -4,6 +4,8 @@
 setMethod("link", "lm",
 function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
 
+    warning("The link method for lm fits is not complete and not tested. Proceed with abundant caution.")
+
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
     if ( missing(post) ) 
         post <- extract.samples(fit,n=n)
@@ -47,6 +49,8 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
 
 setMethod("sim", "lm",
 function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , ... ) {
+
+    warning("The link and sim methods for lm fits is not complete and not tested. Proceed with abundant caution.")
 
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
     if ( missing(post) ) 

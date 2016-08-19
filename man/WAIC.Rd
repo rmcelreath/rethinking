@@ -71,7 +71,7 @@ model{
     bP ~ normal( 0 , 1 );
     a ~ normal( 0 , 10 );
     for ( i in 1:N ) {
-        p[i] <- a + bP * prosoc[i];
+        p[i] = a + bP * prosoc[i];
     }
     y ~ binomial_logit( 1 , p );
 }
@@ -79,8 +79,8 @@ generated quantities{
     vector[N] p;
     vector[N] log_lik;
     for ( i in 1:N ) {
-        p[i] <- a + bP * prosoc[i];
-        log_lik[i] <- binomial_logit_log( y[i] , 1 , p[i] );
+        p[i] = a + bP * prosoc[i];
+        log_lik[i] = binomial_logit_lpmf( y[i] , 1 , p[i] );
     }
 }
 '

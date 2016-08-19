@@ -9,17 +9,17 @@ setMethod("link", "map2stan",
 function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
 
     if ( class(fit)!="map2stan" ) stop("Requires map2stan fit")
+
+    # get samples from Stan fit
+    if ( missing(post) ) post <- extract.samples(fit,n=n)
+
+    # handle data
     if ( missing(data) ) {
         data <- fit@data
     } else {
-        # make sure all variables same length
-        # weird vectorization errors otherwise
-        #data <- as.data.frame(data)
+        # new data housekeeping
+        # none yet, but index variable conversion further down
     }
-    
-    # get samples from Stan fit
-    if ( missing(post) )
-        post <- extract.samples(fit,n=n)
     
     # check n and truncate accordingly
     # if ( n==0 )
@@ -93,6 +93,51 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         if ( lm_lik[[i]]=="ordered_logistic" ) {
             # need another dimension in result, because outcome is a vector
             lm_out[[ lm_names[i] ]] <- array( 0 , dim=c( n , n_cases , K ) )
+        }
+    }
+
+    if ( TRUE ) {
+        # check for index variables set to 0 (zero)
+        # in that case, set corresponding parameters to zero
+        # this allows users to generate predictions that ignore varying effects
+
+        # make list of index variables in model
+        idx_vars <- list()
+        if ( !is.null(fit@formula_parsed$vprior) ) {
+            for ( i in 1:length(fit@formula_parsed$vprior) ) {
+                idx_vars[[i]] <- fit@formula_parsed$vprior[[i]]$group
+            }#i
+        }
+        if ( length(idx_vars)>0 ) {
+            # check if any index variables are either missing from data or set to value zero
+            # in that case, replace corresponding pars_out (from vprior list) with zeros in post object
+            # this effectively removes the random effects, but also assumes zero-centered (non-centered) parameterization
+            for ( i in 1:length(idx_vars) ) {
+                do_fill <- FALSE
+                the_idx <- idx_vars[[i]]
+                the_effects <- fit@formula_parsed$vprior[[i]]$pars_out
+                if ( is.null(data[[the_idx]]) ) {
+                    message( concat("Index '",the_idx,"' not found in data. Assuming all corresponding varying effects equal to zero: ",the_effects) )
+                    # missing from data
+                    # insert index 1 as dummy value
+                    # will pull out zero in any event
+                    data[[the_idx]] <- rep( 1 , n_cases_list[[1]] ) # could be in other likelihood, but in that case force user to be explicit and include index in data frame
+                    do_fill <- TRUE
+                }#is.null
+                if ( any(data[[the_idx]]==0) ) {
+                    # index has zero value, so replace with 1s and do fill
+                    the_dims <- length( data[[the_idx]] )
+                    data[[the_idx]] <- rep( 1 , the_dims )
+                    do_fill <- TRUE
+                }#==0
+                if ( do_fill==TRUE ) {
+                    # now replace the effects with zeros
+                    for ( j in 1:length(the_effects) ) {
+                        the_dims <- dim(post[[ the_effects[[j]] ]])
+                        post[[ the_effects[[j]] ]] <- array( 0 , dim=the_dims )
+                    }#j
+                }#do_fill
+            }#i
         }
     }
     
