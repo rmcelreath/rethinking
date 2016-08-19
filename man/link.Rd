@@ -32,6 +32,8 @@ link( fit , data , n=1000 , ... )
   This function is used internally by \code{\link{WAIC}}, \code{\link{sim}}, \code{\link{postcheck}}, and \code{\link{ensemble}}.
   
   It is possible to replace components of the posterior distribution with simulated values. The \code{replace} argument should be a named \code{list} with replacement values. This is useful for marginalizing over varying effects. See the examples below for an example in which varying intercepts are marginalized this way.
+
+  It is easy to substitute zero values for any varying effect parameters in a model. In the \code{data} passed to \code{link}, either omit the relevant index variable or set the index variable to value zero. This will cause \code{link} to replace with zero all samples for any parameters corresponding the index variable in a prior. For example, the prior declaration \code{aid[id] ~ dmvnorm2(0,sigma,Rho)} defines a vector of parameters \code{aid} that are indexed by the variable \code{id}. If \code{id} is absent from \code{data} when calling \code{link}, or set to value zero, then \code{link} will replace all samples for \code{aid} with value zero. This effectively removes the varying effect from posterior predictions. If the prior were instead \code{c(aid,bid)[id] ~ dmvnorm(0,sigma,Rho)}, then both \code{aid} and \code{bid} would be set to zero in all samples.
 }
 \value{
 }

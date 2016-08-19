@@ -966,13 +966,13 @@ dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3));",
 "{
         vector[PAR1] theta;
         PAR2 
-        OUTCOME ~ categorical( softmax(theta) );
+        OUTCOME ~ categorical_logit( theta );
     }",
         stan_dev = 
 "{
         vector[PAR1] theta;
         PAR2 
-        dev <- dev + (-2)*categorical_lpmf( OUTCOME | softmax(theta) );
+        dev <- dev + (-2)*categorical_logit_lpmf( OUTCOME | theta );
     }",
         num_pars = 1,
         par_names = c("prob"),
@@ -983,7 +983,7 @@ dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3));",
             # k should be softmax call
             # convert to list of names with indices
             new_k <- as.character(k[[1]])
-            # add length to front, overwriting 'softmax' function name
+            # add length to front, overwriting 'softmax' or 'c' function name
             num_scores <- length(new_k)-1
             new_k[1] <- num_scores
             # now need to build the code that populates the theta vector of inputs to softmax

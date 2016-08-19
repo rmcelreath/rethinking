@@ -33,7 +33,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     inverse_links <- list(
         log = 'exp',
         logit = 'inv_logit',
-        logodds = 'inv_logit'
+        logodds = 'inv_logit',
+        cloglog = 'inv_cloglog'
     )
     
     suffix_merge <- "_merge"

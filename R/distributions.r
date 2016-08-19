@@ -17,6 +17,19 @@ logit <- function( x ) {
     log( x ) - log( 1-x )
 }
 
+# complementary log log
+# x is probability scale
+cloglog <- function( x ) {
+    log(-log(1-x))
+}
+
+# inverse cloglog
+inv_cloglog <- function( x ) {
+    p <- 1 - exp(-exp(x))
+    p <- ifelse( x==Inf , 1 , p )
+    p
+}
+
 pordlogit <- function( x , phi , a , log=FALSE ) {
     a <- c( as.numeric(a) , Inf )
     if ( length(phi) == 1 ) {
