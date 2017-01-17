@@ -11,7 +11,7 @@ flist_untag <- function(flist) {
                 warning( concat("Named entry '",names(flist)[i],"' detected. Make sure you didn't use '=' where you meant '~' or '<-'.") )
             }
         }#!is.null
-        if ( class(flist[[i]])=="<-" ) {
+        if (inherits(flist[[i]], "<-") ) {
             # tagged formula, so convert to ~ formula expression
             flist[[i]][[1]] <- as.name("~")
         }
@@ -23,12 +23,12 @@ flist_untag <- function(flist) {
 
 # main event
 map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose=FALSE , ... ) {
-    
+
     ########################################
     # check arguments
     if ( missing(flist) ) stop( "Formula required." )
-    if ( class(flist) != "list" ) {
-        if ( class(flist)=="formula" ) {
+    if ( ! inherits(flist, "list") ) {
+        if ( inherits(flist, "formula") ) {
             flist <- list(flist)
         } else {
             stop( "Formula or list of formulas required." )
@@ -36,23 +36,23 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     }
     if ( missing(start) ) start <- list()
     if ( missing(data) ) stop( "'data' required." )
-    if ( !( class(data) %in% c("list","data.frame") ) ) {
-        stop( "'data' must be of class list or data.frame." )
+    if ( ! inherits(data, c("list","data.frame") ) ) {
+        stop( "'data' must be a list or a data.frame." )
     }
-    
+
     flist.orig <- flist
     flist <- flist_untag(flist)
-    
+
     ########################################
     # check for common issues
     # (1) NAs in data vectors
     # tricky, because only want to check used variables
-    
+
     # (2) type mismatch for outcome variable
-    
+
     ########################################
     # private functions
-    
+
     # substitution list - NOT YET IMPLEMENTED
     # will allow common (Stan-like) names for distributions
     density_sub_list <- list(
@@ -66,9 +66,9 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         uniform = 'dunif',
         laplace = 'dlaplace'
     )
-    
+
     idx_marker_string <- "___"
-    
+
     # function to sample from prior specified with density function
     sample_from_prior <- function( f ) {
         RHS <- f[[3]]
@@ -85,7 +85,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         result <- do.call( the_rdensity , args=pars )
         return(result)
     }
-    
+
     # these functions are the engine that does the optimization
     # trick is to build R code for objective function that is passed to parser
     # it's slow, but easier to debug
@@ -95,7 +95,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         r <- sapply( flist , function(i) sum(eval(parse(text=i),envir=e)) )
         -sum(r)
     }
-    
+
     # this function is needed to make optim work with vector parameters
     pars_to_vectors <- function( pars_orig , veclist ) {
         pars_new <- list()
@@ -117,7 +117,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         }#i
         return(pars_new)
     }
-    
+
     make_minuslogl <- function( pars , flist , data , veclist ) {
         # check for pars with name that ends in _._n
         # convert them to vector
@@ -126,17 +126,17 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         e <- unlist( e , recursive=FALSE )
         dparser(flist,e)
     }
-    
+
     link.names <- c("log","logit")
     invlink.names <- c("exp","logistic")
     formula2text <- function( f ) {
-    # must keep named arguments with names, 
+    # must keep named arguments with names,
     # so user can pass arguments out of order to density function
         RHS <- f[[3]]
         LHS <- f[[2]]
         flag_monad_linear_model <- FALSE
         if ( length(RHS)==1 ) {
-            if ( class(RHS)=="numeric" | class(RHS)=="name" )
+            if ( inherits( RHS, "numeric") | inherits(RHS, "name") )
                 flag_monad_linear_model <- TRUE
             fname <- ""
         } else {
@@ -151,7 +151,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
             n_args <- length(RHS)
             args_list <- as.list(RHS)
             # check for LHS with brackets []
-            if ( class(LHS)=="call" ) {
+            if ( inherits(LHS, "call") ) {
                 if ( as.character(LHS[[1]])=="[" ) {
                     ival <- suppressWarnings( as.numeric(as.character(LHS[[3]])) )
                     if ( is.na(ival) ) {
@@ -182,7 +182,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         }
         return( thetext )
     }
-    
+
     ##############
     # grep function for search-replace of linear model symbols
     # trick is that symbol needs to be preceded by [(=*+ ] so grep doesn't replace copies embedded inside other symbols
@@ -192,7 +192,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     # replacement : what to replace with (usually a linear model)
     # x : where to search, usually a formula as character
     # add.par : whether to enclose replacement in parentheses
-    
+
     # needed , in case of vector or list construction in likelihood
     mygrep <- function( target , replacement , x , add.par=TRUE ) {
         wild <- "[()=*+, ]"
@@ -200,19 +200,19 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         m <- regexpr( pattern , x )
         if ( m==-1 ) return( x )
         s <- regmatches( x=x , m=m )
-        
+
         if ( add.par==TRUE ) replacement <- paste( "(" , replacement , ")" , collapse="" )
-        
+
         w.start <- substr(s,1,1)
         w.end <- substr(s,nchar(s),nchar(s))
-        
+
         r <- paste( w.start , replacement , w.end , sep="" , collapse="" )
         gsub( pattern=s , replacement=r , x=x , fixed=TRUE )
     }
-    
+
     ########################################
     # convert formulas to text in proper call order
-    
+
     # check for vectorized priors and expand
     # check for link functions on left and convert to inv-link on right
     # also build list of parameters with priors as we go
@@ -220,10 +220,10 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     if ( length(flist) > 1 ) {
         flag_flatten <- FALSE
         for ( i in 2:length(flist) ) {
-            if ( !(class(flist[[i]])=="formula") )
+            if ( !(inherits(flist[[i]], "formula") ) )
                 stop( "Input not a formula." )
             LHS <- flist[[i]][[2]]
-            if ( class(LHS)=="call" ) {
+            if ( inherits(LHS, "call") ) {
                 fname <- as.character(LHS[[1]])
                 if ( fname=="c" | fname=="[" | fname %in% link.names ) {
                     if ( fname=="c" ) {
@@ -245,7 +245,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
                         # move inverse link to right hand side
                         the.invlink <- invlink.names[ which(link.names==the.link) ]
                         old.RHS <- flist[[i]][[3]]
-                        flist[[i]][[3]] <- as.call( list( as.name(the.invlink) , old.RHS ) ) 
+                        flist[[i]][[3]] <- as.call( list( as.name(the.invlink) , old.RHS ) )
                     }
                     if ( fname=="[" ) {
                         # par[.], so need to expand any index variable
@@ -263,39 +263,39 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         if ( flag_flatten ) flist <- unlist(flist,recursive=FALSE)
     }
     if (debug) print(flist)
-    
+
     # convert from formulas to text
     # this also splits linear models
     flist2 <- lapply( flist , formula2text )
 
     if (debug) print(flist2)
-    
+
     links <- list()
-    
+
     # check for linear models in flist2 and do search-replace in likelihood
     if ( length(flist2) > 1 ) {
         # loop in reverse order, so linear models lower down get pulled up
         for ( i in length(flist2):2 ) {
             # linear models are class list
-            if ( class(flist2[[i]])=="list" ) {
+            if ( inherits(flist2[[i]], "list") ) {
                 LHS <- flist2[[i]][[1]]
                 RHS <- flist2[[i]][[2]]
                 # save current likelihood, so can check for link
                 lik_save <- flist2[[1]]
                 # replace in likelihood
                 flist2[[1]] <- mygrep( LHS , RHS , flist2[[1]] , add.par=FALSE )
-                
+
                 # need a link function?
                 if ( flist2[[1]] != lik_save ) {
                     # build a link function with current linear model in it
                     links[[ length(links)+1 ]] <- flist2[[i]]
                 }
-                
+
                 # also search in other linear models above this one
                 if ( i > 2 ) {
                     # RHSp <- paste( "(" , RHS , ")" , collapse="" )
                     for ( j in (i-1):2 ) {
-                        if ( class(flist2[[j]])=="list" ) {
+                        if ( inherits(flist2[[j]], "list") ) {
                             #flist2[[j]][[2]] <- gsub( LHS , RHSp , flist2[[j]][[2]] )
                             flist2[[j]][[2]] <- mygrep( LHS , RHS , flist2[[j]][[2]] , add.par=TRUE )
                         }
@@ -309,7 +309,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         flist3 <- list()
         j <- 1
         for ( i in 1:length(flist2) ) {
-            if ( class(flist2[[i]]) != "list" ) {
+            if ( ! inherits(flist2[[i]], "list") ) {
                 flist3[[j]] <- flist2[[i]]
                 j <- j + 1
             }
@@ -322,10 +322,10 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     if (debug) {
         print(flist.ll)
     }
-    
+
     ########################################
     # prep and check start list
-    
+
     if (debug) {
         print(start)
         print(pars_with_priors)
@@ -336,17 +336,17 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     # if priors defined, but not in start list, use prior to guess start value
     if ( any( !(names(pars_with_priors) %in% names(pars)) ) ) {
         bad_pars <- names(pars_with_priors)[ !(names(pars_with_priors) %in% names(pars)) ]
-        
+
         #stop( paste( "Priors defined for parameters not in start list:" , paste(bad_pars,collapse=" ") ) )
-        
+
         if ( verbose==TRUE )
             message( paste( "Sampling start values from priors for:" , paste(bad_pars,collapse=" ") ) )
-        
+
         for ( k in bad_pars ) {
             # scan formula for right prior
             for ( g in 2:length(flist) ) {
                 # check for `[`
-                if ( class(flist[[g]][[2]])=="call" ) {
+                if ( inherits(flist[[g]][[2]], "call") ) {
                     # assume `[`, because other calls should be purged by now
                     the_par_with_index <- deparse(flist[[g]][[2]])
                     the_par <- as.character( flist[[g]][[2]][[2]] )
@@ -355,14 +355,14 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
                         # right prior, but need to decide if numeric index or variable index
                         idx_num <- suppressWarnings( as.numeric(the_index_or_var) )
                         if ( !is.na(idx_num) ) {
-                            # for par[num], 
+                            # for par[num],
                             # sample one value and insert into vector in start list
                             if ( is.null( start[[the_par]] ) ) {
                                 # not in start list yet, so add
                                 # get length of vector by scanning priors
                                 max_index <- 1
                                 for ( h in 2:length(flist) ) {
-                                    if ( class(flist[[h]][[2]])=="call" ) {
+                                    if ( inherits(flist[[h]][[2]], "call") ) {
                                         if ( as.character(flist[[h]][[2]][[2]])=="[" & as.character(flist[[h]][[2]][[3]])==the_par ) {
                                             nval <- suppressWarnings( as.numeric(flist[[h]][[2]][[3]]) )
                                             if ( !is.null(nval) ) {
@@ -389,7 +389,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
                             start[[the_par]] <- replicate( n_unique , sample_from_prior( flist[[g]] ) )
                         }
                     }#matched
-                    
+
                 } else {
                     # ordinary parameter name, we hope
                     the_par <- paste( as.character(flist[[g]][[2]]) , collapse="" )
@@ -402,7 +402,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
             }#g
         }#k
     }
-    
+
     # list parameters without explicit priors and warn
     if ( FALSE ) {
         if ( any( !(names(pars) %in% names(pars_with_priors)) ) ) {
@@ -410,7 +410,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
             message( paste( "Using flat priors for:" , paste(flat_pars,collapse=" ") ) )
         }
     }
-    
+
     #################
     # handle vector parameters
     # at this point in parse, may have vector paramters in pars (and start)
@@ -420,9 +420,9 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     # (2) pass new pars that are flat scalar to optim
     # (3) inside minuslogl, parameters names par_._1 etc are converted back to vector with name 'par'
     # (4) after optim converges, convert solution back to vector, for both coef and vcov
-    
+
     pars <- start
-    
+
     pars_flat <- list()
     veclist <- list() # holds info needed to convert back to scalars during search
     for ( i in 1:length(pars) ) {
@@ -442,17 +442,17 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
         }
     }#i
     pars <- pars_flat
-    
+
     ########################################
     # call optim for search
     fit <- try(
         suppressWarnings(optim( par=pars , fn=make_minuslogl , flist=flist2 , data=data , veclist=veclist , hessian=hessian , method=method , ... ))
         , silent=TRUE
     )
-    if ( class(fit)=="try-error" ) {
+    if ( inherits(fit, "try-error") ) {
         # something went wrong...try to figure it out
         msg <- attr(fit,"condition")$message
-        
+
         objnotfound <- grep( "object '.*' not found" , msg )
         if ( length(objnotfound) > 0 ) {
             # a parameter without prior or start value?
@@ -460,49 +460,49 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
             out_msg <- paste( "Cannot find ",obj_name,".\nIf this is a parameter, try defining a prior for it or providing a start value.\nIf this is a variable, make sure it is in the data list." , collapse="" , sep="" )
             stop( out_msg )
         }
-        
+
         objnotfound <- grep( "initial value in 'vmmin' is not finite" , msg )
         if ( length(objnotfound) > 0 ) {
             # missing values in data?
             out_msg <- paste( msg,"\nThe start values for the parameters were invalid. This could be caused by missing values (NA) in the data or by start values outside the parameter constraints. If there are no NA values in the data, try using explicit start values." , collapse="" , sep="" )
             stop( out_msg )
         }
-        
+
         objnotfound <- grep( "non-finite finite-difference value" , msg )
         if ( length(objnotfound) > 0 ) {
             # bad start values?
             out_msg <- paste( msg,"\nStart values for parameters may be too far from MAP.\nTry better priors or use explicit start values.\nIf you sampled random start values, just trying again may work.\nStart values used in this attempt:\n", paste(names(start),"=",start,collapse="\n") , collapse="" , sep="" )
             stop( out_msg )
         }
-        
+
         # not recognized
         stop(msg)
     }
-    
+
     ########################################
     # prep results
-    
+
     # convert vector parameters back to vector form
     #pars_vec <- pars_to_vectors( fit$pars , veclist )
     #pars_raw <- fit$pars
-    
+
     if ( hessian ) {
         vcov <- try( solve(fit$hessian) )
-        if ( class(vcov)=="try-error" ) {
+        if ( inherits(vcov,  "try-error") ) {
             warning( "Error when computing variance-covariance matrix (Hessian). Fit may not be reliable." )
             vcov <- matrix( NA , nrow=length(pars) , ncol=length(pars) )
         }
     } else {
         vcov <- matrix( NA , nrow=length(pars) , ncol=length(pars) )
     }
-    
+
     # compute minus log-likelihood at MAP, ignoring priors to do so
     # need this for correct deviance calculation, as deviance ignores priors
     fit$minuslogl <- make_minuslogl( fit$par , flist=flist.ll , data=data , veclist=veclist )
-    
+
     # function to use later in computing DIC
     fmll <- function(pars) make_minuslogl( pars , flist=flist.ll , data=data , veclist=veclist )
-    
+
     # rename any _._n parameters to [n]
     coefs <- fit$par
     for ( i in 1:length(coefs) ) {
@@ -512,12 +512,12 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
             names(coefs)[i] <- new_name
         }
     }
-    
+
     ########################################
     # build and return result
-    m <- new( "map" , 
-            call = match.call(), 
-            coef = coefs, 
+    m <- new( "map" ,
+            call = match.call(),
+            coef = coefs,
             vcov = vcov,
             optim = fit,
             data = as.list(data),
@@ -564,7 +564,7 @@ flist1 <- list(
 
 flist2 <- list(
     dist ~ dnorm( mean=a+b*speed , sd=sigma ) ,
-    c(a,b) ~ dnorm(0,10) , 
+    c(a,b) ~ dnorm(0,10) ,
     sigma ~ dcauchy(0,1)
 )
 
@@ -572,7 +572,7 @@ flist2 <- list(
 
 flist3 <- list(
     dist ~ dnorm( mean=a+b*speed , sd=sigma ) ,
-    b ~ dlaplace(1) , 
+    b ~ dlaplace(1) ,
     sigma ~ dcauchy(0,1)
 )
 

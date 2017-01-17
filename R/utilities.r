@@ -16,11 +16,11 @@ blank <- function(ex=1,w=1,h=1) {
 
 # default pdf plot size, for making cmyk figures
 # close file with dev.off() as usual
-pdfblank <- function (ex = 1, w = 1, h = 1, colormodel="cmyk" , ... ) 
+pdfblank <- function (ex = 1, w = 1, h = 1, colormodel="cmyk" , ... )
 {
-    pdf("mypdf.pdf", width = 3.5 * ex * w, height = 3.5 * ex * 
+    pdf("mypdf.pdf", width = 3.5 * ex * w, height = 3.5 * ex *
         h , colormodel=colormodel , ...)
-    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, 
+    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1,
         tck = -0.02)
 }
 
@@ -88,7 +88,7 @@ progbar <- function( current , min=0 , max=100 , starttime , update.interval=100
 covmat <- function( m , digits=4 ) {
     # upper diag is covariances
     # lower diag is correlations
-    if ( class(m)[1]=="data.frame" ) mcov <- cov( m ) else mcov <- vcov(m)
+    mcov <- if ( inherits(m, "data.frame") ) cov(m) else vcov(m)
     mcor <- cov2cor( mcov )
     mcov[ lower.tri(mcov) ] <- NA
     mcor[ lower.tri(mcor) ] <- NA
@@ -111,9 +111,9 @@ chainmode <- function( chain , ... ) {
 PIprimes <- c(0.67,0.89,0.97) # my snarky prime valued percentiles
 HPDI <- function( samples , prob=0.89 ) {
     # require(coda)
-    class.samples <- class(samples)[1]
+    ## class.samples <- class(samples)[1]  # not needed now that we are using inherits()
     coerce.list <- c( "numeric" , "matrix" , "data.frame" , "integer" , "array" )
-    if ( class.samples %in% coerce.list ) {
+    if ( inherits(samples, coerce.list) ) {
         # single chain for single variable
         samples <- coda::as.mcmc( samples )
     }
@@ -203,8 +203,8 @@ replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
             cat( paste( "[" , i , "/" , n , "]\r" ) )
         }
     }
-    result <- sapply(1:n, 
-        eval.parent(substitute(function(i,...) { show_progress(i); expr })), 
+    result <- sapply(1:n,
+        eval.parent(substitute(function(i,...) { show_progress(i); expr })),
         simplify = simplify)
     cat("\n")
     result
@@ -219,7 +219,7 @@ mcreplicate <- function (n, expr, refresh = 0.1, mc.cores=2 ) {
             cat(paste("[", i, "/", n, "]\r"))
         }
     }
-    result <- simplify2array(mclapply(1:n, eval.parent(substitute(function(i, 
+    result <- simplify2array(mclapply(1:n, eval.parent(substitute(function(i,
         ...) {
         if (refresh>0) show_progress(i)
         expr
@@ -266,7 +266,7 @@ coerce_index <- function( ... ) {
         }
         names(M) <- paste( vnames , "_idx" , sep="" )
         return(M)
-    } 
+    }
 }
 
 # sd and var functions that don't use n-1 denominator
@@ -285,11 +285,11 @@ var2 <- function( x , na.rm=TRUE ) {
 # name 'default__' is default digits
 # so can pass e.g. digits=c( 'default__'=2 , n_eff=0 )
 format_show <- function( x , digits ) {
-    r <- as.data.frame(lapply( 1:length(x) , 
-        function(i) { 
-            if ( names(x)[i] %in% names(digits) ) 
-                round( x[[i]] , digits[names(x)[i]] ) 
-            else 
+    r <- as.data.frame(lapply( 1:length(x) ,
+        function(i) {
+            if ( names(x)[i] %in% names(digits) )
+                round( x[[i]] , digits[names(x)[i]] )
+            else
                 round(x[[i]], digits['default__'] );
         } ) )
     names(r) <- names(x)

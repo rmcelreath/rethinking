@@ -14,7 +14,7 @@
 # map2stan itself
 
 map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , ... ) {
-    
+
     ########################################
     # empty Stan code
     m_data <- "" # data
@@ -27,7 +27,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     m_model_lik <- "" # likelihood statements at bottom
     m_model_txt <- "" # general order-trusting code
     m_gq <- "" # generated quantities, can build mostly from m_model pieces
-    
+
     ########################################
     # inverse link list
     inverse_links <- list(
@@ -35,11 +35,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         logit = 'inv_logit',
         logodds = 'inv_logit'
     )
-    
+
     suffix_merge <- "_merge"
-    
+
     templates <- map2stan.templates
-    
+
     ########################################
     # check arguments
     if ( missing(flist) ) stop( "Formula or previous fit required." )
@@ -71,26 +71,26 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         }
     }
     if ( missing(data) ) stop( "'data' required." )
-    if ( !( class(data) %in% c("list","data.frame") ) ) {
+    if ( ! inherits(data, c("list","data.frame")) ) {
         stop( "'data' must be of class list or data.frame." )
     }
-    
+
     flist.orig <- flist
     flist <- flist_untag(flist) # converts <- to ~ and evals to formulas
-    
+
     if ( missing(start) ) start <- list()
     start.orig <- start
     transpars <- list() # holds transform parameter code
     pars_elect <- list() # holds transformed pars to return in samples
     pars_hide <- list() # holds pars to hide in samples
-    
+
     if ( iter <= warmup ) {
         # user probably meant iter as number of samples
         # so warn and convert
         warning(concat("'iter' less than or equal to 'warmup'. Setting 'iter' to sum of 'iter' and 'warmup' instead (",iter+warmup,")."))
         iter <- iter + warmup
     }
-    
+
     # check data for scale attributes and remove
     for ( i in 1:length(data) ) {
         if ( !is.null( attr(data[[i]],"scaled:center") ) | !is.null( attr(data[[i]],"scaled:scale") ) ) {
@@ -98,15 +98,15 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             data[[i]] <- as.numeric(data[[i]])
         }
     }
-    
+
     ########################################
     # private functions
-    
+
     # this is now in rethinking namespace, so should prob remove
     concat <- function( ... ) {
         paste( ... , collapse="" , sep="" )
     }
-    
+
     ##############
     # grep function for search-replace of linear model symbols
     # trick is that symbol needs to be preceded by [(=*+ ] so grep doesn't replace copies embedded inside other symbols
@@ -116,26 +116,26 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # replacement : what to replace with (usually a linear model)
     # x : where to search, usually a formula as character
     # add.par : whether to enclose replacement in parentheses
-    
+
     wildpatt <- "[()=*+/ ,\\^]"
-    
+
     mygrep <- function( target , replacement , x , add.par=TRUE , fixed=FALSE , wild=wildpatt ) {
         #wild <- wildpatt
         pattern <- paste( wild , target , wild , sep="" , collapse="" )
-        
+
         m <- gregexpr( pattern , x , fixed=fixed )
-        
+
         if ( length(m[[1]])==1 )
             if ( m==-1 ) return( x )
-        
+
         s <- regmatches( x=x , m=m )
-        
+
         if ( add.par==TRUE ) replacement <- paste( "(" , replacement , ")" , collapse="" )
-        
+
         if ( class(s)=="list" ) s <- s[[1]]
         w.start <- substr(s,1,1)
         w.end <- substr(s,nchar(s),nchar(s))
-        
+
         for ( i in 1:length(s) ) {
             r <- paste( w.start[i] , replacement , w.end[i] , sep="" , collapse="" )
             x <- gsub( pattern=s[i] , replacement=r , x=x , fixed=TRUE )
@@ -143,29 +143,29 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         return(x)
     }
     # mygrep( "[id]" , "id[i]" , "a + b[id]" , FALSE , fixed=TRUE , wild="" )
-    
+
     mygrep_old <- function( target , replacement , x , add.par=TRUE ) {
         wild <- wildpatt
         pattern <- paste( wild , target , wild , sep="" , collapse="" )
         m <- regexpr( pattern , x )
         if ( m==-1 ) return( x )
         s <- regmatches( x=x , m=m )
-        
+
         if ( add.par==TRUE ) replacement <- paste( "(" , replacement , ")" , collapse="" )
-        
+
         w.start <- substr(s,1,1)
         w.end <- substr(s,nchar(s),nchar(s))
-        
+
         r <- paste( w.start , replacement , w.end , sep="" , collapse="" )
         gsub( pattern=s , replacement=r , x=x , fixed=TRUE )
     }
-    
+
     # for converting characters not allowed by Stan
     undot <- function( astring ) {
         astring <- gsub( "." , "_" , astring , fixed=TRUE )
         astring
     }
-    
+
     # function for adding '[i]' to variables in linear models
     indicize <- function( target , index , x , replace=NULL ) {
         # add space to beginning and end as search buffer
@@ -178,7 +178,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         # remove space buffer
         substr( o , start=2 , stop=nchar(o)-1 )
     }
-    
+
     # function for adding '[i]' to index variables already in brackets in linear models
     index_indicize <- function( target , index , x , replace=NULL ) {
         # add space to beginning and end as search buffer
@@ -193,7 +193,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         substr( o , start=2 , stop=nchar(o)-1 )
     }
     # index_indicize( "id" , "i" , "a + b[id] + g[id] + id" , replace="id" )
-    
+
     detectvar <- function( target , x ) {
         wild <- wildpatt
         x2 <- paste( " " , x , " " , collapse="" , sep="" )
@@ -201,7 +201,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         m <- regexpr( pattern , x2 )
         return(m)
     }
-    
+
     # for detecting index variables already in brackets '[id]'
     detectindexvar <- function( target , x ) {
         #wild <- wildpatt
@@ -210,12 +210,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         m <- regexpr( pattern , x2 , fixed=TRUE )
         return(m)
     }
-    
+
     # detectindexvar("id","a + b[id]")
-    
+
     ########################################
     # parse formulas
-    
+
     # function to sample from prior specified with density function
     sample_from_prior <- function( the_density , par_in ) {
         the_rdensity <- the_density
@@ -228,7 +228,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         result <- do.call( the_rdensity , args=pars )
         return(result)
     }
-        
+
     # extract likelihood(s)
     extract_likelihood <- function( fl ) {
         #
@@ -245,11 +245,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         }
         template <- get_template( as.character(fl[[3]][[1]]) )
         likelihood <- template$stan_name
-        
+
         # check for special Stan distribution with bound link function
         nat_link <- FALSE
         if ( !is.null(template$nat_link) ) nat_link <- template$nat_link
-        
+
         likelihood_pars <- list()
         for ( i in 1:(length(fl[[3]])-1) ) likelihood_pars[[i]] <- fl[[3]][[i+1]]
         N_cases <- length( d[[ outcome ]] )
@@ -259,7 +259,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             N_name <- concat( N_name , "_" , outcome )
         }
         # result
-        list( 
+        list(
             outcome = undot(outcome) ,
             likelihood = likelihood ,
             template = template$name ,
@@ -270,7 +270,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             nat_link = nat_link
         )
     }
-    
+
     # extract linear model(s)
     extract_linearmodel <- function( fl ) {
         # check for link function
@@ -295,7 +295,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     if ( parameter == pars[[j]] ) {
                         # match!
                         N_name <- fp[['likelihood']][[i]][['N_name']]
-                        # check if link for this linear model matches 
+                        # check if link for this linear model matches
                         #   nat_link for likelihood
                         if ( link != "identity" ) {
                             nat_link <- fp[['likelihood']][[i]][['nat_link']]
@@ -326,7 +326,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             use_link = use_link
         )
     }
-    
+
     # extract varying effect prior (2nd level likelihood)
     extract_vprior <- function( fl ) {
         group_var <- as.character( fl[[2]][[3]] )
@@ -339,7 +339,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         } else {
             pars[[1]] <- as.character( pars_raw )
         }
-        
+
         tmplt <- get_template( as.character(fl[[3]][[1]]) )
         density <- tmplt$stan_name
         # input parameters
@@ -353,7 +353,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             template = tmplt$name
         )
     }
-    
+
     # extract ordinary prior
     extract_prior <- function( fl ) {
         # apar <- as.character( fl[[2]] )
@@ -377,14 +377,14 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             template = template$name
         )
     }
-    
+
     # function to append entry to a list
     listappend <- function(x,entry) {
         n <- length(x)
         x[[n+1]] <- entry
         x
     }
-    
+
     # function to scan distribution templates for a match in R_name or stan_name
     # returns NA if no match, name of entry otherwise
     # when there are multiple matches (for stan_name e.g.), returns first one
@@ -400,15 +400,15 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         }
         return(the_match)
     }
-    
+
     get_template <- function( fname ) {
         tmpname <- scan_templates(fname)
         if ( is.na(tmpname) ) stop(concat("Distribution ",fname," not recognized."))
         return(templates[[ tmpname ]])
     }
-    
+
     # build parsed list
-    fp <- list( 
+    fp <- list(
         likelihood = list() ,
         lm = list() ,
         vprior = list(),
@@ -418,7 +418,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     fp_order <- list()
     impute_bank <- list()
     d <- as.list(data)
-    
+
     # flag variable names that contain dots
     for ( i in 1:length(d) ) {
         raw_name <- names(d)[i]
@@ -427,11 +427,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             message( concat("Warning: Variable '",raw_name,"' contains dots '.'.\nWill attempt to remove dots internally.") )
         # names(d)[i] <- new_name
     }
-    
+
     ####
     # pass over formulas and extract into correct slots
     # we go from top to bottom, so can see where linear models plug in, when we find them
-    
+
     # function to check for variable name in data,
     # and if found add to used_predictors list
     tag_var <- function( var , N_name="N" ) {
@@ -445,9 +445,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         }
         return(result)
     }
-    
+
     for ( i in 1:length(flist) ) {
-    
+
         # first, scan for truncation operator T[,] on righthand side
         # marked for now by `&` function
         T_text <- ""
@@ -468,7 +468,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 }
             }
         }
-        
+
         # test for likelihood
         # if has distribution function on RHS and LHS is variable, then likelihood
         # could also be distribution assumption for predictor variable, for imputation
@@ -504,16 +504,16 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             n <- length( fp[['likelihood']] )
             fp[['likelihood']][[n+1]] <- lik
             fp_order <- listappend( fp_order , list(type="likelihood",i=n+1) )
-            
+
             # add outcome to used variables
             fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N=lik$N_name , type=lik$out_type )
-            
+
             # check for missing values
             # if found, indicates predictor variable for imputation
             if ( any(is.na(d[[undot(lik$outcome)]])) ) {
                 # overwrite with top 'N' name
                 fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
-                
+
                 # build info needed to perform imputation
                 var_missingness <- which(is.na(d[[undot(lik$outcome)]]))
                 var_temp <- ifelse( is.na(d[[undot(lik$outcome)]]) , -999 , d[[undot(lik$outcome)]] )
@@ -534,11 +534,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     fp[['used_predictors']][[missingness_name]] <- list( var=missingness_name , type="index" )
                 # replace variable with missing values
                 d[[undot(lik$outcome)]] <- var_temp
-                
+
                 # message to user
                 message(concat("Imputing ",length(var_missingness)," missing values (NA) in variable '",undot(lik$outcome),"'."))
             }
-            
+
             # check for binomial size variable and mark used
             if ( lik$likelihood=='binomial' | lik$likelihood=='beta_binomial' ) {
                 sizename <- as.character(lik$pars[[1]])
@@ -555,7 +555,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             }
             next
         }
-        
+
         # test for linear model
         is_linearmodel <- FALSE
         if ( length(flist[[i]][[3]]) > 1 ) {
@@ -576,7 +576,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             fp_order <- listappend( fp_order , list(type="lm",i=n+1) )
             next
         }
-        
+
         # test for varying effects prior
         # can use `|` or `[` to specify varying effects (vector of parameters)
         if ( length( flist[[i]][[2]] ) == 3 ) {
@@ -605,13 +605,13 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 next
             }
         }
-        
+
         # an ordinary prior?
         # check for vectorized LHS
         if ( length( flist[[i]][[2]] ) > 1 ) {
             fname <- as.character( flist[[i]][[2]][[1]] )
             if ( fname=="c" ) {
-                # need to distinguish between 
+                # need to distinguish between
                     # repeat a prior, e.g.: c(a,b) ~ dnorm(0,1)
                     # multivariate prior, e.g.: c(a,b) ~ dmvnorm(0,Sigma)
                 flag_mvprior <- FALSE
@@ -661,7 +661,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             fp_order <- listappend( fp_order , list(type="prior",i=n+1) )
         }
     }
-    
+
     #####
     # add index brackets in linear models
     # be careful to detect manual bracketing for parameter vectors -> only index the index variable itself
@@ -683,7 +683,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 v_name <- v
                 if ( used > -1 & v %in% names(d) ) {
                     # if variable (not lm), add to used predictors list
-                    if ( is.null(fp[['used_predictors']][[undot(v)]]) ) 
+                    if ( is.null(fp[['used_predictors']][[undot(v)]]) )
                         fp[['used_predictors']][[undot(v)]] <- list( var=undot(v) , N=fp[['lm']][[i]][['N_name']] )
                     # check for imputation
                     if ( v %in% names(impute_bank) ) {
@@ -700,7 +700,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # add index and undot the name
                 # do this outside the if-block above, so linear models get index too
                 fp[['lm']][[i]][['RHS']] <- indicize( v , index , fp[['lm']][[i]][['RHS']] , replace=undot(v_name) )
-                
+
                 # check index variables in brackets
                 used <- detectindexvar( v , fp[['lm']][[i]][['RHS']] )
                 if ( used > -1 & v %in% names(d) ) {
@@ -710,7 +710,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     fp[['lm']][[i]][['RHS']] <- index_indicize( v , index , fp[['lm']][[i]][['RHS']] , replace=undot(v) )
                 }
             }#v
-            
+
             # for each varying effect parameter, add index with group
             # also rename parameter in linear model, so can use vector data type in Stan
             n <- length( fp[['vprior']] )
@@ -726,7 +726,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                             fp[['lm']][[i]][['RHS']] <- indicize( var , jindex , fp[['lm']][[i]][['RHS']] )
                         } else {
                             # more than one parameter, so need vector name replacements
-                            #jindexn <- paste( jindex , "," , k , collapse="" , sep="" ) 
+                            #jindexn <- paste( jindex , "," , k , collapse="" , sep="" )
                             jindexn <- jindex
                             #fp[['lm']][[i]][['RHS']] <- indicize( var , jindexn , fp[['lm']][[i]][['RHS']] , vname )
                             fp[['lm']][[i]][['RHS']] <- indicize( var , jindexn , fp[['lm']][[i]][['RHS']] )
@@ -736,39 +736,39 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             }#n>0
         }#i
     }# if n_lm > 0
-    
+
     # undot all the variable names in d
     d.orig <- d
     for ( i in 1:length(d) ) {
         oldname <- names(d)[i]
         names(d)[i] <- undot(oldname)
     }
-    
+
     if ( debug==TRUE ) print(fp)
-    
+
     #
     ########################################
     # build Stan code
-    
+
     indent <- "    " # 4 spaces
-    
+
     # holds any start values sampled from priors
-    # need as many lists as chains to sample from, 
+    # need as many lists as chains to sample from,
     #   so chains have different inits
     start_prior <- vector(mode="list",length=chains)
     for ( i in 1:chains ) start_prior[[i]] <- list()
-    
+
     # pass back through parsed formulas and build Stan code
     # parsing now goes in *reverse*
-    
+
     for ( f_num in length(fp_order):1 ) {
-    
+
         f_current <- fp_order[[f_num]]
-        
+
         if ( f_current$type == "prior" ) {
-        
+
             i <- f_current$i
-            
+
             prior <- fp[['prior']][[i]]
             tmplt <- templates[[prior$template]]
             klist <- tmplt$par_map(prior$pars_in,environment())
@@ -782,28 +782,28 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             if ( class(prior$par_out)!="character" )
                 prior$par_out <- deparse(prior$par_out)
             parstxt <- paste( klist , collapse=" , " )
-            
+
             # check for special formatting of left hand side
             # also handle some constraints here
             lhstxt <- prior$par_out
             if ( !is.null(tmplt$out_map) ) {
                 lhstxt <- tmplt$out_map( prior$par_out , prior$pars_in , environment() )
             }
-            
+
             # build text
             txt <- concat( indent , lhstxt , " ~ " , prior$density , "( " , parstxt , " )" , prior$T_text , ";" )
-            
+
             #m_model_priors <- concat( m_model_priors , txt , "\n" )
             m_model_txt <- concat( m_model_txt , txt , "\n" )
-            
+
             # check for explicit start value
             # need to clean any [] index on the parameter name
             # so use regular expression to split at '['
             par_out_clean <- strsplit( prior$par_out , "\\[" )[[1]][1]
-            
+
             # now check if in start list
             if ( !( par_out_clean %in% names(start) ) ) {
-                
+
                 # try to get dimension of parameter from any corresponding vprior
                 ndims <- 0
                 if ( length(fp[['vprior']]) > 0 ) {
@@ -814,12 +814,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                         }
                     }
                 }#find ndims
-                
+
                 # lkj_corr?
                 if ( tmplt$R_name=="dlkjcorr" ) {
                     # just use identity matrix as initial value
                     if ( ndims > 0 ) {
-                        for ( ch in 1:chains ) 
+                        for ( ch in 1:chains )
                             start_prior[[ch]][[ prior$par_out ]] <- diag(ndims)
                         if ( verbose==TRUE )
                             message( paste(prior$par_out,": using identity matrix as start value [",ndims,"]") )
@@ -834,8 +834,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     theta <- list()
                     for ( ch in 1:chains ) {
                         theta[[ch]] <- try(
-                            replicate( 
-                                ndims , 
+                            replicate(
+                                ndims ,
                                 sample_from_prior( tmplt$R_name , prior$pars_in ) ),
                             silent=TRUE)
                     }#ch
@@ -851,28 +851,28 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                             if ( verbose==TRUE )
                                 message( paste(prior$par_out,": using prior to sample start value") )
                         } else {
-                            if ( verbose==TRUE ) 
+                            if ( verbose==TRUE )
                                 message( paste(prior$par_out,": using prior to sample start values [",ndims,"]") )
                         }
                     }#no error
                 }
             }#not in start list
-            
+
         } # prior
-    
+
         if ( f_current$type == "vprior" ) {
-            
+
             i <- f_current$i
-            
+
             vprior <- fp[['vprior']][[i]]
             tmplt <- templates[[vprior$template]]
             N_txt <- concat( "N_" , vprior$group )
             npars <- length(vprior$pars_out)
-            
+
             # add N count to data
             N <- length( unique( d[[ vprior$group ]] ) )
             d[[ N_txt ]] <- N
-            
+
             # check for explicit start value
             # do this now, so out_map and pars_map functions can modify
             for ( k in vprior$pars_out )
@@ -882,7 +882,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     for ( ch in 1:chains )
                         start_prior[[ch]][[ k ]] <- rep(0,N)
                 }
-            
+
             # lhs -- if vector, need transformed parameter of vector type
             lhstxt <- ""
             if ( length(vprior$pars_out) > 1 ) {
@@ -894,10 +894,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     # parameter vector
                     lhstxt <- paste( vprior$pars_out , collapse="" )
                     lhstxt <- concat( "v_" , lhstxt )
-                    
+
                     # add declaration to transformed parameters
                     m_tpars1 <- concat( m_tpars1 , indent , "vector[" , npars , "] " , lhstxt , "[" , N_txt , "];\n" )
-                    
+
                     # add conversion for each true parameter
                     m_tpars2 <- concat( m_tpars2 , indent , "for ( j in 1:" , N_txt , " ) {\n" )
                     for ( j in 1:npars ) {
@@ -909,7 +909,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # single parameter
                 lhstxt <- vprior$pars_out[[1]]
             }
-            
+
             # format parmater inputs
             # use par_map function in template, so ordering etc can change
             #print(length(vprior$pars_out))
@@ -922,7 +922,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 }
             }
             rhstxt <- paste( klist , collapse=" , " )
-            
+
             # add text to model code
             # new vectorized normal and multi_normal
             if ( vprior$density %in% c("multi_normal","normal") )
@@ -930,17 +930,17 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             else
             # old un-vectorized code
                 m_model_txt <- concat( m_model_txt , indent , "for ( j in 1:" , N_txt , " ) " , lhstxt , "[j] ~ " , vprior$density , "( " , rhstxt , " )" , vprior$T_text , ";\n" )
-            
+
             # declare each parameter with correct type from template
             outtype <- "vector"
             for ( j in 1:length(vprior$pars_out) ) {
                 #m_pars <- concat( m_pars , indent , outtype , "[" , N_txt , "] " , vprior$pars_out[[j]] , ";\n" )
             }
-            
+
             # add data declaration for grouping variable number of unique values
             #m_data <- concat( m_data , indent , "int<lower=1> " , N_txt , ";\n" )
             fp[['used_predictors']][[N_txt]] <- list( var=N_txt , type="index" )
-            
+
             # mark grouping variable used
             # check if already there
             if ( is.null(fp[['used_predictors']][[vprior$group]]) ) {
@@ -958,33 +958,33 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     fp[['used_predictors']][[vprior$group]] <- list( var=vprior$group , N=length(d[[vprior$group]]) )
                 }
             }# is.null
-            
+
         } # vprior
-    
+
         # linear models
         if ( f_current$type == "lm" ) {
-        
+
             i <- f_current$i
-        
+
             linmod <- fp[['lm']][[i]]
             N_txt <- linmod$N_name
-            
+
             # if linked outcome is imputated, fall back to basic 'N'
             N_stem <- substr(N_txt,3,nchar(N_txt))
             if ( N_stem %in% names(impute_bank) ) {
                 N_txt <- 'N'
             }
-            
+
             # open the loop
             txt1 <- concat( indent , "for ( i in 1:" , N_txt , " ) {\n" )
             m_model_txt <- concat( m_model_txt , txt1 )
             m_gq <- concat( m_gq , txt1 )
-            
+
             # assignment
             txt1 <- concat( indent,indent , linmod$parameter , "[i] <- " , linmod$RHS , ";\n" )
             m_model_txt <- concat( m_model_txt , txt1 )
             m_gq <- concat( m_gq , txt1 )
-            
+
             # link function
             if ( linmod$link != "identity" & linmod$use_link==TRUE ) {
                 # check for valid link function
@@ -997,20 +997,20 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     m_gq <- concat( m_gq , txt1 )
                 }
             }
-            
+
             # close the loop
             m_model_txt <- concat( m_model_txt , indent , "}\n" )
             m_gq <- concat( m_gq , indent , "}\n" )
-            
+
             # add declaration of linear model local variable
             # generated quantities reuse this later on in composition
             m_model_declare <- concat( m_model_declare , indent , "vector[" , N_txt , "] " , linmod$parameter , ";\n" )
-            
+
         } # lm
-    
+
         # likelihoods and gq
         if ( f_current$type == "likelihood" ) {
-            
+
             i <- f_current$i
 
             lik <- fp[['likelihood']][[i]]
@@ -1023,19 +1023,19 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     parstxt_L[[j]] <- l$var # handles undotting
                 }
             }
-            
+
             # add sampling statement to model block
             outcome <- lik$outcome
-            
+
             if ( tmplt$vectorized==FALSE ) {
                 # add loop for non-vectorized distribution
                 txt1 <- concat( indent , "for ( i in 1:" , lik$N_name , " )\n" )
                 m_model_txt <- concat( m_model_txt , txt1 )
                 m_gq <- concat( m_gq , txt1 )
-                
+
                 # add [i] to outcome
                 outcome <- concat( outcome , "[i]" )
-                
+
                 # check for linear model names as parameters and add [i] to each
                 if ( length(fp[['lm']])>1 ) {
                     lm_names <- c()
@@ -1049,11 +1049,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     }
                 }
             }
-            
+
             parstxt <- paste( parstxt_L , collapse=" , " )
-            
+
             if ( lik$likelihood=="increment_log_prob" ) {
-                
+
                 # custom distribution using increment_log_prob
                 code_model <- tmplt$stan_code
                 code_gq <- tmplt$stan_dev
@@ -1069,11 +1069,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # insert into Stan code
                 m_model_txt <- concat( m_model_txt , indent , code_model , "\n" )
                 m_gq <- concat( m_gq , indent , code_gq , "\n" )
-                
+
             } else {
-            
+
                 # regular distribution with ~
-                
+
                 # imputation stuff
                 if ( outcome %in% names(impute_bank) ) {
                     N_miss <- impute_bank[[lik$outcome]]$N_miss
@@ -1098,19 +1098,19 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     # make sure x_impute is in pars
                     #pars[[ imputer_name ]] <- imputer_name
                 }
-                
+
                 # ordinary sampling statement
                 m_model_txt <- concat( m_model_txt , indent , outcome , " ~ " , lik$likelihood , "( " , parstxt , " )" , lik$T_text , ";\n" )
-                
+
                 # don't add deviance calc when imputed predictor
                 if ( !(lik$outcome %in% names(impute_bank)) ) {
                     # get stan suffix
                     the_suffix <- templates[[lik$template]]$stan_suffix
                     m_gq <- concat( m_gq , indent , "dev <- dev + (-2)*" , lik$likelihood , the_suffix , "( " , outcome , " | " , parstxt , " )" , lik$T_text , ";\n" )
                 }
-                
+
             }
-            
+
             # add N variable to data block
             the_N_name <- lik$N_name
             if ( i > 0 ) {
@@ -1123,26 +1123,26 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 #m_data <- concat( m_data , indent , "int<lower=1> " , the_N_name , ";\n" )
                 fp[['used_predictors']][[the_N_name]] <- list( var=the_N_name , type="index" )
                 # warn about imputation on top-level outcome
-                
+
             }
-            
+
             # add number of cases to data list
             if ( lik$outcome %in% names(impute_bank) ) {
                 d[[ the_N_name ]] <- as.integer( impute_bank[[ lik$outcome ]]$N_miss )
             } else {
                 d[[ the_N_name ]] <- as.integer( lik$N_cases )
             }
-            
+
         } # likelihood
-        
+
     } # loop over fp_order
-    
+
     # add number of cases to data list, in case no likelihood found
     d[[ "N" ]] <- as.integer( length(d[[1]]) )
-    
+
     # compose generated quantities
     m_gq <- concat( m_model_declare , indent , "real dev;\n" , indent , "dev <- 0;\n" , m_gq )
-    
+
     # general data length data declare
     #m_data <- concat( m_data , indent , "int<lower=1> " , "N" , ";\n" )
     fp[['used_predictors']][['N']] <- list( var="N" , type="index" )
@@ -1168,13 +1168,13 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             if ( type=="index" ) {
                 # index variable go at top of m_data
                 m_data <- concat( indent , "int<lower=1> " , var$var , ";\n" , m_data )
-            }  
+            }
             if ( type!="index" & type!="matrix" ) {
                 m_data <- concat( m_data , indent , type , " " , var$var , "[" , var$N , "];\n" )
             }
         }#i
     }
-    
+
     # declare parameters from start list
     # use any custom constraints in constraints list
     # first merge passed start with start built from priors
@@ -1216,7 +1216,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             type <- "real"
             type_dim <- ""
             constraint <- ""
-            
+
             if ( class(start[[1]][[i]])=="matrix" ) {
                 # check for square matrix? just use nrow for now.
                 #type <- concat( "cov_matrix[" , nrow(start[[i]]) , "]" )
@@ -1226,7 +1226,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 #Rho_check <- grep( "Rho" , pname )
                 #if ( length(Rho_check)>0 ) type <- concat( "corr_matrix[" , nrow(start[[i]]) , "]" )
             }
-            
+
             # add correct length to numeric vectors (non-matrix)
             if ( type=="real" & length(start[[1]][[i]])>1 ) {
                 #type <- concat( "vector[" , length(start[[i]]) , "]" )
@@ -1250,12 +1250,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     }#j
                 }
             }
-            
+
             # add non-negative restriction to any parameter with 'sigma' in name
             #if ( length(grep("sigma",pname))>0 ) {
             #    if ( type=="real" ) constraint <- "<lower=0>"
             #}
-            
+
             # any custom constraint?
             constrainttxt <- constraints[[pname]]
             if ( !is.null(constrainttxt) ) {
@@ -1267,7 +1267,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                         start[[ch]][[pname]] <- abs( start[[ch]][[pname]] )
                 }
             }
-            
+
             # any custom type?
             mytype <- types[[pname]]
             if ( !is.null(mytype) ) {
@@ -1279,12 +1279,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     type_dim <- mytype[2]
                 }
             }
-            
+
             # add to parameters block
             m_pars <- concat( m_pars , indent , type , constraint , type_dim , " " , pname , ";\n" )
         }#i
     }
-    
+
     # compose any transformed parameters in transpars
     if ( length(transpars) > 0 ) {
         for ( i in 1:length(transpars) ) {
@@ -1299,9 +1299,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             }
         }#i
     }# transpars > 0
-    
+
     # put it all together
-    
+
     # function to add header/footer to each block in code
     # empty blocks remain empty
     blockify <- function(x,header,footer) {
@@ -1313,23 +1313,23 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     m_tpars1 <- blockify( m_tpars1 , "transformed parameters{\n" , "" )
     m_tpars2 <- blockify( m_tpars2 , "" , "}\n" )
     m_gq <- blockify( m_gq , "generated quantities{\n" , "}\n" )
-    
+
     #model_code <- concat( m_data , m_pars , m_tpars1 , m_tpars2 , "model{\n" ,  m_model_declare , m_model_priors , m_model_lm , m_model_lik , "}\n" , m_gq )
-    
+
     model_code <- concat( m_data , m_pars , m_tpars1 , m_tpars2 , "model{\n" ,  m_model_declare , m_model_txt , "}\n" , m_gq )
 
     # from rstan version 2.10.0: change all '<-' to '='
     model_code <- gsub( "<-" , "=" , model_code , fixed=TRUE )
-    
+
     if ( debug==TRUE ) cat(model_code)
 
 ##############################
 # end of Stan code compilation
 ##############################
-    
+
     ########################################
     # fit model
-    
+
     # build pars vector
     # use ours, unless user provided one
     if ( missing(pars) ) {
@@ -1341,10 +1341,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             pars <- pars[ -exclude_idx ]
         }
     }
-    
+
     if ( sample==TRUE ) {
         #require(rstan) # don't need anymore
-        
+
         # sample
         modname <- deparse( flist[[1]] )
         #initlist <- list()
@@ -1365,11 +1365,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 else
                     stop(concat("Something went wrong, when calling Stan. Check any debug messages for clues, detective.\n",msg))
             }
-        
+
         ###### PREVIOUS multicore code, before Stan added its own ########
         if ( FALSE ) {
         if ( chains==1 | cores==1 ) {
-        
+
             # single core
             # so just run the model
             if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
@@ -1377,9 +1377,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 fit <- stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , pars=pars , seed=rng_seed , ... )
             else
                 fit <- stan( fit=previous_stanfit , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , pars=pars , seed=rng_seed , ... )
-            
+
         } else {
-        
+
             # multi-core, multi-chain
             # so pre-compile then run again
             # note use of chain number 1 inits only here
@@ -1391,10 +1391,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # reuse compiled model
                 fit_prep <- previous_stanfit
             }
-            
+
             # if no seed provided, make one
             if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
-            
+
             message(concat("Dispatching ",chains," chains to ",cores," cores."))
             sys <- .Platform$OS.type
             if ( sys=='unix' ) {
@@ -1410,12 +1410,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 CL = makeCluster(cores)
                 #data <- object@data
                 env0 <- list( fit_prep=fit_prep, d=d, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup , start=start )
-                clusterExport(cl = CL, 
+                clusterExport(cl = CL,
                     c("fit_prep","d","pars","iter","warmup","rng_seed","start") , as.environment(env0) )
                 sflist <- parLapply(CL, 1:chains, fun = function(cid) {
 					require(rstan) # will CRAN tolerate this?
-                    stan( fit=fit_prep , data = d, pars = pars, chains = 1, 
-                      iter = iter, warmup = warmup, seed = rng_seed, 
+                    stan( fit=fit_prep , data = d, pars = pars, chains = 1,
+                      iter = iter, warmup = warmup, seed = rng_seed,
                       chain_id = cid, init=list(start[[cid]]) )
                 })
             }
@@ -1425,19 +1425,19 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # something went wrong in at least one chain
                 stop("Something went wrong in at least one chain. Debug your model while setting chains=1. Once the model is working with a single chain, try using multiple chains again.")
             }
-            
+
         }#multicore
         }
         # END PREVIOUS multicore code
         #############################
-        
+
     } else {
         fit <- NULL
     }
-    
+
     ########################################
     # build result
-    
+
     coef <- NULL
     varcov <- NULL
     fp$impute_bank <- impute_bank
@@ -1456,7 +1456,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             varcov <- matrix( s[3]^2 , 1 , 1 )
             names(coef) <- names(start[[1]])
         }
-        
+
         # compute DIC
         dev.post <- extract(fit, "dev", permuted = TRUE, inc_warmup = FALSE)
         dbar <- mean( dev.post$dev )
@@ -1474,9 +1474,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 }
             }
         }#i
-        
+
         if ( debug==TRUE ) print( Epost )
-        
+
         # push expected values back through model and fetch deviance
         #message("Taking one more sample now, at expected values of parameters, in order to compute DIC")
         #fit2 <- stan( fit=fit , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=2 , refresh=-1 , cores=1 )
@@ -1484,12 +1484,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         dhat <- as.numeric( extract(fit2,"dev") )
         pD <- dbar - dhat
         dic <- dbar + pD
-        
+
         # if (debug==TRUE) print(Epost)
-        
+
         # build result
-        result <- new( "map2stan" , 
-            call = match.call(), 
+        result <- new( "map2stan" ,
+            call = match.call(),
             model = model_code,
             stanfit = fit,
             coef = coef,
@@ -1499,33 +1499,33 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             pars = pars,
             formula = flist.orig,
             formula_parsed = fp )
-        
+
         attr(result,"df") = length(result@coef)
         attr(result,"DIC") = dic
         attr(result,"pD") = pD
         attr(result,"deviance") = dhat
-        try( 
-            if (!missing(d)) attr(result,"nobs") = length(d[[ fp[['likelihood']][[1]][['outcome']] ]]) , 
+        try(
+            if (!missing(d)) attr(result,"nobs") = length(d[[ fp[['likelihood']][[1]][['outcome']] ]]) ,
             silent=TRUE
         )
-        
+
         # compute WAIC?
         if ( WAIC==TRUE ) {
             message("Computing WAIC")
             waic <- try(WAIC( result , n=0 , pointwise=TRUE )) # n=0 to use all available samples
             attr(result,"WAIC") = waic
         }
-        
+
         # check divergent iterations
         nd <- divergent(fit)
         if ( nd > 0 ) {
             warning( concat("There were ",nd," divergent iterations during sampling.\nCheck the chains (trace plots, n_eff, Rhat) carefully to ensure they are valid.") )
         }
-        
+
     } else {
         # just return list
         result <- list(
-            call = match.call(), 
+            call = match.call(),
             model = model_code,
             data = d,
             start = start,
@@ -1533,9 +1533,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             formula = flist.orig,
             formula_parsed = fp )
     }
-    
+
     return( result )
-    
+
 }
 
 # EXAMPLES
@@ -1598,7 +1598,7 @@ m2 <- map2stan( f , data=list(y=y,x=x,id=id) , start=startlist , sample=TRUE , d
 cat(m$model)
 
 
-# 
+#
 f2 <- list(
     y ~ dnorm(mu,sigma),
     mu ~ a + aj + b*x,

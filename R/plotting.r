@@ -10,8 +10,8 @@ set_nice_margins <- function() {
 }
 
 dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , add=FALSE , ...) {
-    the.class <- class(x)[1]
-    if ( the.class=="data.frame" ) {
+    the.class <- class(x)[1]  # unnecessary now that we are using inherits()
+    if ( inherits(x, "data.frame") ) {
         # full posterior
         n <- ncol(x)
         cnames <- colnames(x)
@@ -121,7 +121,7 @@ show.naive.posterior <- function( est , se , model=NULL , level=0.95 , xlab="est
     }
     plot( 0 , 0 , type="n" , xlab=xlab , ylab=ylab , ylim=c(ciy,maxy) , xlim=c(minx,maxx) , yaxp=c(0,maxy,4) , yaxt=yaxistype , ... )
     if ( zero.lines==TRUE ) {
-        if ( show.density==TRUE ) 
+        if ( show.density==TRUE )
             lines( c(minx-abs(minx),maxx+abs(maxx)) , c(0,0) , lty=3 )
         lines( c(0,0) , c(-1,maxy*2) , lty=3 )
     }
@@ -203,7 +203,7 @@ simplehist_old <- function( x , ylab="Frequency" , xlab="Count" , ycounts=TRUE ,
        set_nice_margins()
        plot( density( x , adjust=adjust ) , ylab=ylab , xlab=xlab , ... )
     }
-    
+
 }
 
 ####
