@@ -1,6 +1,6 @@
 # my model summary function, précis
 
-precis.whitelist <- data.frame(
+precis.whitelist <- data.frame(stringsAsFactors = FALSE,
     class=c("map","map2stan","lm","glm","mle2","mer","bmer","polr","data.frame","clmm","clmm2","list","stanfit","lmerMod","glmerMod") ,
     coef.method=c("coef","coef","coef","coef","coef","fixef.plus","fixef.plus","polr","chain","coef","coef","mcarray","stanfit","fixef.plus","fixef.plus") ,
     vcov.method=c("vcov","vcov","vcov","vcov","vcov","vcov.VarCorr","vcov.VarCorr","vcov","chain","vcov","vcov","mcarray","stanfit","vcov.VarCorr","vcov.VarCorr") ,
@@ -119,7 +119,7 @@ precis <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , 
             result <- postlistprecis( post , prob=prob )
         }
     }
-    if ( iherits(model, c("map2stan", "stanfit")) ) {
+    if ( inherits(model, c("map2stan", "stanfit")) ) {
         # add n_eff to result
         #require(rstan)
         if ( inherits(model, "map2stan") )
