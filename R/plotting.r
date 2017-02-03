@@ -10,7 +10,6 @@ set_nice_margins <- function() {
 }
 
 dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , add=FALSE , ...) {
-    the.class <- class(x)[1]  # unnecessary now that we are using inherits()
     if ( inherits(x, "data.frame") ) {
         # full posterior
         n <- ncol(x)
