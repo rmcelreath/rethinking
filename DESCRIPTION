@@ -9,3 +9,5 @@ Imports: coda, MASS, mvtnorm, loo
 Depends: rstan (>= 2.10.0), parallel, methods, stats, graphics
 Description: Utilities for fitting and comparing models
 License: GPL (>= 3)
+LazyLoad: yes
+LazyData: yes
