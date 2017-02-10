@@ -4,7 +4,7 @@
 
 # utility function to convert alist() construction with <- tagged linear model to regular ~ variety
 # do some error checking here
-flist_untag <- function(flist) {
+flist_untag <- function(flist,eval=TRUE) {
     for ( i in 1:length(flist) ) {
         if ( !is.null(names(flist)) ) {
             if ( names(flist)[i]!="" ) {
@@ -16,7 +16,8 @@ flist_untag <- function(flist) {
             flist[[i]][[1]] <- as.name("~")
         }
         # eval required to convert from class language to class formula
-        flist[[i]] <- eval(flist[[i]])
+        if ( eval==TRUE )
+            flist[[i]] <- eval(flist[[i]])
     }
     as.list(flist)
 }

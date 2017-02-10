@@ -13,7 +13,10 @@
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , ... ) {
+
+    if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
+    set.seed(rng_seed)
     
     ########################################
     # empty Stan code
@@ -273,17 +276,44 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     }
     
     # extract linear model(s)
+    # has to handle leading 'for' loop
     extract_linearmodel <- function( fl ) {
+        # first convert 'for' loop form to standard form
+        lm_loop <- NULL
+        dims <- NULL
+        if ( as.character(fl[[1]])=="for" ) {
+            fltxt <- as.character(fl)
+            lm_loop <- list(
+                index=fl[[2]],
+                from=fl[[3]][[2]],
+                to=fl[[3]][[3]],
+                formatted=concat( "for (" , fltxt[2] , " in " , fltxt[3] , ")" )
+            )
+            dims <- c(fltxt[3],"N")
+            fl_orig <- fl
+            fl <- fl[[4]] # sub in linear model portion
+        }
         # check for link function
         use_link <- TRUE
         if ( length(fl[[2]])==1 ) {
             parameter <- as.character( fl[[2]] )
             link <- "identity"
         } else {
-            # link!
+            # link function or indexing bracket
             parameter <- as.character( fl[[2]][[2]] )
             link <- as.character( fl[[2]][[1]] )
-            use_link <- TRUE # later detect special Stan dist with built-in link
+            if ( link != "[" )
+                use_link <- TRUE # later detect special Stan dist with built-in link
+            else {
+                # bracketing notation
+                # either a loop or a single entry of vector assignment
+                if ( !is.null(lm_loop) ) {
+                    # for loop
+                    
+                } else {
+                    # single index
+                }
+            }
         }
         RHS <- paste( deparse(fl[[3]]) , collapse=" " )
         # find likelihood that contains this lm
@@ -321,10 +351,12 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         # result
         list(
             parameter = parameter ,
+            dims = dims ,
             RHS = RHS ,
             link = link ,
             N_name = N_name ,
-            use_link = use_link
+            use_link = use_link ,
+            lm_loop = lm_loop
         )
     }
     
@@ -447,6 +479,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         return(result)
     }
     
+    # first pass to identify declared 'for' loops
+
+    # scan formulas
     for ( i in 1:length(flist) ) {
     
         # first, scan for truncation operator T[,] on righthand side
@@ -559,6 +594,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         
         # test for linear model
         is_linearmodel <- FALSE
+        if ( as.character(flist[[i]][[1]])=="for" )
+            is_linearmodel <- TRUE # linear model with 'for' loop in front
         if ( length(flist[[i]][[3]]) > 1 ) {
             fname <- as.character( flist[[i]][[3]][[1]] )
             if ( fname=="[" | fname=="+" | fname=="(" | fname=="*" | fname=="-" | fname=="/" | fname=="%*%" | fname %in% c('exp','inv_logit') ) {
@@ -1317,7 +1354,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     
     #model_code <- concat( m_data , m_pars , m_tpars1 , m_tpars2 , "model{\n" ,  m_model_declare , m_model_priors , m_model_lm , m_model_lik , "}\n" , m_gq )
     
-    model_code <- concat( m_data , m_pars , m_tpars1 , m_tpars2 , "model{\n" ,  m_model_declare , m_model_txt , "}\n" , m_gq )
+    model_code <- concat( m_data , m_pars , m_tpars1 , m_tpars2 , "model{\n" ,  m_model_declare , m_model_txt , "}\n" , m_gq , "\n" )
 
     # from rstan version 2.10.0: change all '<-' to '='
     model_code <- gsub( "<-" , "=" , model_code , fixed=TRUE )
@@ -1352,9 +1389,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         #for ( achain in 1:chains ) initlist[[achain]] <- start
         initlist <- start # should have one list for each chain
 
-        if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
-        if ( is.null(previous_stanfit) )
-            fit <- try(stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
+        if ( is.null(previous_stanfit) ) {
+            #fit <- try(stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
+            fit <- try(stan( model_code=model_code , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
+        }
         else
             fit <- try(stan( fit=previous_stanfit , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
 
@@ -1534,6 +1572,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             formula = flist.orig,
             formula_parsed = fp )
     }
+
+    if ( rawstanfit==TRUE ) return(fit)
     
     return( result )
     

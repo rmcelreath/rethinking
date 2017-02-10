@@ -294,7 +294,7 @@ setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=1
 #rethink_palette <- c("#5BBCD6","#F98400","#F2AD00","#00A08A","#FF0000")
 rethink_palette <- c("#8080FF","#F98400","#F2AD00","#00A08A","#FF0000")
 rethink_cmyk <- c(col.alpha("black",0.25),"cyan")
-tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , ... ) {
+tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , lwd=0.5 , ... ) {
     
     if ( !(class(object) %in% c("map2stan","stanfit")) ) stop( "requires map2stan or stanfit fit object" )
     
@@ -345,15 +345,16 @@ tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.a
         diff <- abs(ylim[1]-ylim[2])
         ylim <- ylim + c( -diff/2 , diff/2 )
         polygon( n_warm*c(-1,1,1,-1) , ylim[c(1,1,2,2)] , col=bg , border=NA )
-        mtext( paste("n_eff =",round(neff,0)) , 3 , adj=1 , cex=0.9 )
+        neff_use <- neff[ names(neff)==main ]
+        mtext( paste("n_eff =",round(neff_use,0)) , 3 , adj=1 , cex=0.9 )
         mtext( main , 3 , adj=0 , cex=1 )
     }
     plot_chain <- function( x , nc , ... ) {
-        lines( 1:n_iter , x , col=col.alpha(chain.cols[nc],alpha) , lwd=0.5 )
+        lines( 1:n_iter , x , col=col.alpha(chain.cols[nc],alpha) , lwd=lwd )
     }
     
     # fetch n_eff
-    n_eff <- summary(object)$summary[,'n_eff']
+    n_eff <- summary(object)$summary[ , 'n_eff' ]
     
     # make window
     #set_nice_margins()
@@ -374,7 +375,7 @@ tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.a
                         on.exit(devAskNewPage(ask = ask_old), add = TRUE)
                     }
                 }
-                plot_make( pars[pi] , pi , n_eff[pi] , ... )
+                plot_make( pars[pi] , pi , n_eff , ... )
                 for ( j in 1:length(chains) ) {
                     plot_chain( post[ , j , pi ] , j , ... )
                 }#j
@@ -383,4 +384,13 @@ tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.a
         
     }#k
     
+}
+
+stanergy <- function( x , colscheme="blue" , binwidth=1 , merge_chains=FALSE ) {
+    library(bayesplot)
+    if ( class(x)=="map2stan" ) x <- x@stanfit
+    if ( class(x)!="stanfit" ) stop("needs a stanfit or map2stan object")
+    np <- nuts_params(x)
+    color_scheme_set(colscheme) # we hates the ggplot
+    mcmc_nuts_energy( np , merge_chains = merge_chains , binwidth=binwidth )
 }

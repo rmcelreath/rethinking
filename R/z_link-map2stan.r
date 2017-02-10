@@ -104,9 +104,10 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         # make list of index variables in model
         idx_vars <- list()
         if ( !is.null(fit@formula_parsed$vprior) ) {
-            for ( i in 1:length(fit@formula_parsed$vprior) ) {
-                idx_vars[[i]] <- fit@formula_parsed$vprior[[i]]$group
-            }#i
+            if ( length(fit@formula_parsed$vprior)>0 )
+                for ( i in 1:length(fit@formula_parsed$vprior) ) {
+                    idx_vars[[i]] <- fit@formula_parsed$vprior[[i]]$group
+                }#i
         }
         if ( length(idx_vars)>0 ) {
             # check if any index variables are either missing from data or set to value zero

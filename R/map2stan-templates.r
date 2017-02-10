@@ -353,9 +353,12 @@ map2stan.templates <- list(
             # also prior for Rho needs to come after this prior,
             #   so is already in m_model_txt at this point,
             #   because parsing is bottom-to-top
+            Prior_string_old <- concat( Rho_name , " ~ lkj_corr(" )
+            Prior_string_new <- concat( L_name , " ~ lkj_corr_cholesky(" )
             m_model_txt <- get( "m_model_txt" , envir=parent.frame() )
-            m_model_txt <- gsub( Rho_name , L_name , m_model_txt , fixed=TRUE )
-            m_model_txt <- gsub( "lkj_corr(" , "lkj_corr_cholesky(" , m_model_txt , fixed=TRUE )
+            #m_model_txt <- gsub( Rho_name , L_name , m_model_txt , fixed=TRUE )
+            #m_model_txt <- gsub( "lkj_corr(" , "lkj_corr_cholesky(" , m_model_txt , fixed=TRUE )
+            m_model_txt <- gsub( Prior_string_old , Prior_string_new , m_model_txt , fixed=TRUE )
             assign( "m_model_txt" , m_model_txt , envir=parent.frame() )
             
             # remove Rho from parameters block 
