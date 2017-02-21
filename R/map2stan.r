@@ -13,7 +13,7 @@
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , add_unique_tag=TRUE , ... ) {
 
     if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
     set.seed(rng_seed)
@@ -1358,6 +1358,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
 
     # from rstan version 2.10.0: change all '<-' to '='
     model_code <- gsub( "<-" , "=" , model_code , fixed=TRUE )
+
+    # add unique tag to model code text so that stan must recompile?
+    if ( add_unique_tag==TRUE ) {
+        model_code <- concat( "//" , Sys.time() , "\n" , model_code )
+    }
     
     if ( debug==TRUE ) cat(model_code)
 
