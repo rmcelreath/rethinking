@@ -3,6 +3,8 @@ Statistical Rethinking book Errata
 
 page 42: Just below R code box 2.6, the text says that map requires a list of start values. It does not, as long as priors are provided for each parameter. And indeed the example in box 2.6 does not contain a list of start values.
 
+page 74: Just below R code box 4.2, the text says that the code samples random numbers between 1.0 and 1.1. This is incorrect, the code samples random numbers between 0 and 0.1.
+
 page 87: The marginal description of the model reads "mu ~ dnorm(156, 10)" but the model is Normal(178, 20). Same error on p 95 and in code 4.38. It is corrected in code 4.39.
 
 page 95-96: dnorm(156,100) should be dnorm(178,100) in both model presentation and then R code on top of page 96.
