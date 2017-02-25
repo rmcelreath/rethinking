@@ -8,8 +8,8 @@ function( fit , data , n=1000 , ... ) {
 
 setMethod("link", "map",
 function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
-    
-    if ( class(fit)!="map" ) stop("Requires map fit")
+
+    if ( ! inherits(fit, "map")) stop("Requires map fit")
     if ( missing(data) ) {
         data <- fit@data
     } else {
@@ -17,21 +17,21 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         # weird vectorization errors otherwise
         #data <- as.data.frame(data)
     }
-    
-    if ( missing(post) ) 
+
+    if ( missing(post) )
         post <- extract.samples(fit,n=n)
     else {
         n <- dim(post[[1]])[1]
         if ( is.null(n) ) n <- length(post[[1]])
     }
-    
+
     # replace with any elements of replace list
     if ( length( replace ) > 0 ) {
         for ( i in 1:length(replace) ) {
             post[[ names(replace)[i] ]] <- replace[[i]]
         }
     }
-    
+
     nlm <- length(fit@links)
     f_do_lm <- TRUE
     if ( nlm==0 ) {
@@ -40,14 +40,14 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         nlm <- 1
         f_do_lm <- FALSE
     }
-    
+
     link_out <- vector(mode="list",length=nlm)
-    
+
     # for each linear model, compute value for each sample
     for ( i in 1:nlm ) {
         ref_inc <- floor(n*refresh)
         ref_next <- ref_inc
-        
+
         if ( f_do_lm==TRUE ) {
             parout <- fit@links[[i]][[1]]
             lm <- fit@links[[i]][[2]]
@@ -76,7 +76,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
                     if ( ref_next > n ) ref_next <- n
                 }
             }
-        
+
             # make environment
             init <- list() # holds one row of samples across all params
             for ( j in 1:length(post) ) {
@@ -96,12 +96,12 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         link_out[[i]] <- value
         names(link_out)[i] <- parout
     }
-    
+
     if ( refresh>0 ) cat("\n")
-    
+
     if ( flatten==TRUE )
         if ( length(link_out)==1 ) link_out <- link_out[[1]]
-    
+
     return(link_out)
 }
 )
