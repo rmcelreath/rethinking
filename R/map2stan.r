@@ -71,7 +71,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         }
     }
     if ( missing(data) ) stop( "'data' required." )
-    if ( !( class(data) %in% c("list","data.frame") ) ) {
+    if ( ! ( ("data.frame" %in% class(data) ) || ("list" %in% class(data) ) ) ) {    
         stop( "'data' must be of class list or data.frame." )
     }
     
