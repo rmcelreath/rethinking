@@ -1,7 +1,7 @@
 ---
 title: "Problem Set ??"
 author: "Your Name Here"
-date: "Stat 341 -- Spring 2017"
+date: ""
 output:
   html_document:
     fig_height: 2.5
