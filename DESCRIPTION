@@ -8,7 +8,7 @@ Author: Richard McElreath
 Maintainer: Randall Pruim <rpruim@calvin.edu>
 Imports: coda, MASS, mvtnorm, loo
 Depends: rstan (>= 2.10.0), parallel, methods, stats, graphics
-Suggests: mosaic, ggformula
+Suggests: mosaic, ggformula, lattice
 License: GPL (>= 3)
 LazyLoad: yes
 LazyData: yes
