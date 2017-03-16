@@ -1,6 +1,8 @@
 Statistical Rethinking book Errata
 ==========
 
+page 5: 1.2.1, paragraph 2: "by" instead of "but": "Begininning in the 1960s, [...] are caused not by natural selection, ~~by~~ **but** rather by mutation"
+
 page 42: Just below R code box 2.6, the text says that map requires a list of start values. It does not, as long as priors are provided for each parameter. And indeed the example in box 2.6 does not contain a list of start values.
 
 page 87: The marginal description of the model reads "mu ~ dnorm(156, 10)" but the model is Normal(178, 20). Same error on p 95 and in code 4.38. It is corrected in code 4.39.
