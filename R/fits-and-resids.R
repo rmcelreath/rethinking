@@ -1,4 +1,4 @@
-fitted.map <- function(object, n = 1, data = NULL, post = NULL, ...,
+fitted.map <- function(object, n = 1L, data = NULL, post = NULL, ...,
                        na.rm = TRUE) {
   if (is.null(data)) data <- object@data
 
@@ -15,12 +15,19 @@ fitted.map <- function(object, n = 1, data = NULL, post = NULL, ...,
 }
 
 residuals.map <-
-  function(object, n = 1e3, data = NULL, fits = NULL, post = NULL, ..., na.rm = TRUE){
+  function(object, n = 1L, data = NULL, fits = NULL, post = NULL, ..., na.rm = TRUE,
+           silent = !verbose, verbose = TRUE){
+
+  if (is.null(data)) {
+    data <- object@data
+  }
 
   if (is.null(fits)) {
     fits <- fitted(object, n=n, data = data, post = post, ..., na.rm = na.rm)
   }
   outcome_name <- object@formula[[1]][[2]]
-  message("Residuals computed assuming outcome = ", as.character(outcome_name))
+  if (!silent) {
+    message("Residuals computed assuming outcome = ", as.character(outcome_name))
+  }
   eval(outcome_name, data) - fits
 }
