@@ -1,5 +1,13 @@
 # distributions
 
+# bernoulli convenience functions
+dbern <- function(x,prob,log=TRUE) {
+    dbinom(x,size=1,prob=prob,log=log)
+}
+rbern <- function(n,prob) {
+    rbinom(n,size=1,prob=prob)
+}
+
 # ordered categorical density functions
 logistic <- function( x ) {
     p <- 1 / ( 1 + exp( -x ) )

@@ -217,6 +217,32 @@ m5 <- map2stan( f5 , data=list(y=y,x=x) )
 ```
 What ``map2stan`` does is notice the missing values, see the distribution assigned to the variable with the missing values, build the Stan code that uses a mix of observed and estimated ``x`` values in the regression. See the ``stancode(m5)`` for details of the implementation.
 
+## Semi-automated marginalization for binary discrete missing values
+
+Binary (0/1) variables with missing values present a special obstacle, because Stan cannot sample discrete parameters. So instead of imputing binary missing values, ``map2stan`` can simply average (marginalize) over them. As in the above case, when ``map2stan`` detects missing values in a predictor variable, it will try to find a distribution for the variable containing them. If this variable is binary (0/1), then it will construct a mixture model in which each term is the log-likelihood conditional on the variables taking a particular combination of 0/1 values.
+
+Following the example in the previous section, we can simulate missingness in a binary predictor:
+```
+N <- 100
+N_miss <- 10
+x <- rbinom( N , size=1 , prob=0.5 )
+y <- rnorm( N , 2*x , 1 )
+x[ sample(1:N,size=N_miss) ] <- NA
+```
+The model definition is analogous to the previous, but also requires some care in specifying constraints for the hyperparameters that define the distribution for ``x``:
+```
+f6 <- alist(
+    y ~ dnorm( mu , sigma ),
+    mu <- a + b*x,
+    x ~ bernoulli( phi_x ),
+    a ~ dnorm( 0 , 100 ),
+    b ~ dnorm( 0  , 10 ),
+    phi_x ~ beta( 1 , 1 ),
+    sigma ~ dcauchy(0,2)
+)
+m6 <- map2stan( f6 , data=list(y=y,x=x) , constraints=list(phi_x="lower=0,upper=1") )
+```
+
 ## Gaussian process
 
 A basic Gaussian process can be specified with the ``GPL2`` distribution label. This implies a multivariate Gaussian with a covariance matrix defined by the ordinary L2 norm distance function:

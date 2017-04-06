@@ -13,7 +13,7 @@
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , add_unique_tag=TRUE , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , ... ) {
 
     if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
     set.seed(rng_seed)
@@ -41,6 +41,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     )
     
     suffix_merge <- "_merge"
+    suffix_margi <- "_mz" # discrete predictor to marginalize over when missing
     
     templates <- map2stan.templates
     
@@ -449,7 +450,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         used_predictors = list()
     )
     fp_order <- list()
-    impute_bank <- list()
+    impute_bank <- list() # holds info about continuous missing values to impute
+    discrete_miss_bank <- list() # holds info about discrete missing values to average over
     d <- as.list(data)
     
     # flag variable names that contain dots
@@ -546,34 +548,78 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             
             # check for missing values
             # if found, indicates predictor variable for imputation
+            # note that this is triggered for *predictors* because of defining a prior for them
+            #   which shows up as a 'likelihood' in the parsing
             if ( any(is.na(d[[undot(lik$outcome)]])) ) {
-                # overwrite with top 'N' name
-                fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
-                
-                # build info needed to perform imputation
-                var_missingness <- which(is.na(d[[undot(lik$outcome)]]))
-                var_temp <- ifelse( is.na(d[[undot(lik$outcome)]]) , -999 , d[[undot(lik$outcome)]] )
-                # add to impute bank
-                impute_bank[[ undot(lik$outcome) ]] <- list(
-                    N_miss = length(var_missingness),
-                    missingness = var_missingness,
-                    init = mean( d[[lik$outcome]] , na.rm=TRUE )
-                )
-                # add missingness to data list
-                missingness_name <- concat(undot(lik$outcome),"_missingness")
-                N_missing_name <- concat(lik$N_name,"_missing")
-                d[[ missingness_name ]] <- var_missingness
-                # flag as used
-                fp[['used_predictors']][[missingness_name]] <- list( var=missingness_name , N=N_missing_name , type="int" )
-                # trap for only 1 missing value and vectorization issues
-                if ( length(var_missingness)==1 )
-                    fp[['used_predictors']][[missingness_name]] <- list( var=missingness_name , type="index" )
-                # replace variable with missing values
-                d[[undot(lik$outcome)]] <- var_temp
-                
-                # message to user
-                message(concat("Imputing ",length(var_missingness)," missing values (NA) in variable '",undot(lik$outcome),"'."))
-            }
+
+                # must decide first whether discrete 0/1 or continuous
+                xcopy <- d[[undot(lik$outcome)]]
+                uxcopy <- unique(xcopy[!is.na(xcopy)])
+                if ( length(uxcopy)==2 & all(c(0,1) %in% uxcopy) ) {
+                    # is binary 0/1
+                    # binary missing values tracked globally in a set, because must be averaged over jointly
+                    idx <- which(is.na(xcopy))
+                    d[[undot(lik$outcome)]][idx] <- (-1)
+
+                    # overwrite with top 'N' name
+                    fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
+
+                    # make a copy of variable, with NAs omitted, to use in prior
+                    new_x_name <- concat( undot(lik$outcome) , "_whole" )
+                    d[[new_x_name]] <- d[[undot(lik$outcome)]][-idx]
+                    # add variables
+                    # new x
+                    N_nomiss_name <- concat( "N_" , new_x_name )
+                    fp[['used_predictors']][[new_x_name]] <- list( var=new_x_name , N=N_nomiss_name , type=lik$out_type )
+                    # N variable for new x
+                    d[[ N_nomiss_name ]] <- length(d[[new_x_name]])
+                    fp[['used_predictors']][[N_nomiss_name]] <- list( var=N_nomiss_name , type="index" )
+
+                    # change outcome name in parsed formula list
+                    fp[['likelihood']][[n+1]]$outcome <- new_x_name
+
+                    message(concat("Marginalizing over ",length(idx)," missing values (NA) in variable '",undot(lik$outcome),"'."))
+
+                    # store it all for later reference
+                    discrete_miss_bank[[ undot(lik$outcome) ]] <- list(
+                        N_miss = length(idx),
+                        whole = new_x_name,
+                        missingness = idx,
+                        model = as.character(lik$pars[[1]]),
+                        init = mean( xcopy , na.rm=TRUE )
+                    )
+
+                } else {
+                    # is continuous (hopefully)
+
+                    # overwrite with top 'N' name
+                    fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
+                    
+                    # build info needed to perform imputation
+                    var_missingness <- which(is.na(d[[undot(lik$outcome)]]))
+                    var_temp <- ifelse( is.na(d[[undot(lik$outcome)]]) , -999 , d[[undot(lik$outcome)]] )
+                    # add to impute bank
+                    impute_bank[[ undot(lik$outcome) ]] <- list(
+                        N_miss = length(var_missingness),
+                        missingness = var_missingness,
+                        init = mean( d[[lik$outcome]] , na.rm=TRUE )
+                    )
+                    # add missingness to data list
+                    missingness_name <- concat(undot(lik$outcome),"_missingness")
+                    N_missing_name <- concat(lik$N_name,"_missing")
+                    d[[ missingness_name ]] <- var_missingness
+                    # flag as used
+                    fp[['used_predictors']][[missingness_name]] <- list( var=missingness_name , N=N_missing_name , type="int" )
+                    # trap for only 1 missing value and vectorization issues
+                    if ( length(var_missingness)==1 )
+                        fp[['used_predictors']][[missingness_name]] <- list( var=missingness_name , type="index" )
+                    # replace variable with missing values
+                    d[[undot(lik$outcome)]] <- var_temp
+                    
+                    # message to user
+                    message(concat("Imputing ",length(var_missingness)," missing values (NA) in variable '",undot(lik$outcome),"'."))
+                }#continuous missing values
+            }# missing values
             
             # check for binomial size variable and mark used
             if ( lik$likelihood=='binomial' | lik$likelihood=='beta_binomial' ) {
@@ -704,7 +750,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # add index brackets in linear models
     # be careful to detect manual bracketing for parameter vectors -> only index the index variable itself
     # also need to replace names of variables 'x' with missing values for imputation with 'x_merge'
+    # variables 'x' with discrete missingness (in discrete_miss_bank) should be marked with 'x_mz' --- later when Stan code built, these are embedded in loops that build vectors of terms for marginalization
     # go through linear models
+    missmatrix_suffix <- "_missmatrix"
     n_lm <- length(fp[['lm']])
     if ( n_lm > 0 ) {
         for ( i in 1:n_lm ) {
@@ -715,6 +763,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             if ( n_lm > 1 ) {
                 for ( j in (1:n_lm)[-i] ) vnames <- c( vnames , fp[['lm']][[j]]$parameter )
             }
+            lm_rhs_copy <- fp[['lm']][[i]][['RHS']]
+            discrete_miss_list <- list()
             for ( v in vnames ) {
                 # tag if used
                 used <- detectvar( v , fp[['lm']][[i]][['RHS']] )
@@ -727,6 +777,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     if ( v %in% names(impute_bank) ) {
                         # use x_merge in linear model of imputed variable
                         v_name <- concat( v_name , suffix_merge )
+                    }
+                    # check for discrete missing values
+                    if ( v %in% names(discrete_miss_bank) ) {
+                        discrete_miss_list[[length(discrete_miss_list)+1]] <- v_name
+                        #v_name <- concat( v_name , suffix_margi )
                     }
                     if ( any(is.na(d[[v]])) ) {
                         # MISSING VALUES
@@ -748,6 +803,23 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     fp[['lm']][[i]][['RHS']] <- index_indicize( v , index , fp[['lm']][[i]][['RHS']] , replace=undot(v) )
                 }
             }#v
+            if ( length(discrete_miss_list)>0 ) {
+                # add to lm entry
+                fp[['lm']][[i]][['discrete_miss_list']] <- discrete_miss_list
+                # and build the matrix of missingness combinations
+                nvars <- length(discrete_miss_list)
+                ncombinations <- 2^nvars
+                dmm <- matrix(NA,nrow=ncombinations,ncol=nvars)
+                for ( col_var in 1:nvars ) {
+                    # fill rows with binary pattern
+                    dmm[,col_var] <- rep( 0:1 , each=2^(col_var-1) , length.out=ncombinations )
+                }
+                fp[['lm']][[i]][['discrete_miss_matrix']] <- dmm
+                # add to data and used variables
+                mmname <- concat( fp[['lm']][[i]][['parameter']] , missmatrix_suffix )
+                d[[mmname]] <- dmm
+                fp[['used_predictors']][[ mmname ]] <- list( var=mmname , type="matrix" )
+            }
             
             # for each varying effect parameter, add index with group
             # also rename parameter in linear model, so can use vector data type in Stan
@@ -789,6 +861,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # build Stan code
     
     indent <- "    " # 4 spaces
+    inden <- function(x) paste( rep(indent,times=x) , collapse="" )
     
     # holds any start values sampled from priors
     # need as many lists as chains to sample from, 
@@ -1017,9 +1090,93 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             txt1 <- concat( indent , "for ( i in 1:" , N_txt , " ) {\n" )
             m_model_txt <- concat( m_model_txt , txt1 )
             m_gq <- concat( m_gq , txt1 )
+
+            mixterms_lm_suffix <- "_mxtlm"
+            mixterms_suffix <- "_mxt"
+            mxtlm <- concat( linmod$parameter , mixterms_lm_suffix )
+            mxt <- concat( linmod$parameter , mixterms_suffix )
             
+            # are there any discrete missing variables here?
+            if ( !is.null(linmod$discrete_miss_list) ) {
+                # at least one discrete variable with missingness
+                # need to build terms for later mixing with likelihood
+                # this means going down rows in discrete_miss_matrix
+                # for ( j in 1:nrow(miss_matrix) )
+                #   for ( k in 1:ncol(miss_matrix) ) {
+                #     lm_term[j] = replace x[k] in RHS with miss_matrix[j,k];
+                #     if ( mm[j,k]==1 ) 
+                #       term[j] = term[j] + log(x_mu[k]);
+                #     else
+                #       term[j] = term[j] + log1m(x_mu[k]);
+                #   }
+                # should end up with lm_term and term vectors that hold proper linear predictor and leading factors for later mixture likelihood
+
+                nx <- length(linmod$discrete_miss_list)
+                nr <- 2^nx
+
+                # declare terms vectors
+                m_model_declare <- concat( m_model_declare , indent , "matrix[" , linmod$N_name , "," , nr , "] " , mxt , ";\n" )
+                m_model_declare <- concat( m_model_declare , indent , "matrix[" , linmod$N_name , "," , nr , "] " , mxtlm , ";\n" )
+
+                # build Stan code
+
+                misstestcode <- "if ( "
+                for ( j in 1:nx ) {
+                    misstestcode <- concat( misstestcode , linmod$discrete_miss_list[[j]] , "[i]<0" )
+                    if ( nx > 1 && j < nx ) # add logical OR
+                        misstestcode <- concat( misstestcode , " || " )
+                }
+                misstestcode <- concat( misstestcode , " ) {" )
+                # save for later --- we need this test again in likelihood loop
+                fp[['lm']][[i]][['misstestcode']] <- misstestcode
+
+                # make version of lm with x vars swapped out for values in row of miss matrix
+                lm_aliased <- linmod$RHS
+                for ( j in 1:nx ) lm_aliased <- gsub( 
+                    concat(linmod$discrete_miss_list[[j]],"[i]") , 
+                    concat(linmod$parameter,"_missmatrix[mmrow,",j,"]") , 
+                    lm_aliased , fixed=TRUE )
+                lm_replace_txt <- concat(inden(2),mxtlm,"[i,mmrow] = ",lm_aliased,";")
+
+                # link function
+                if ( linmod$link != "identity" & linmod$use_link==TRUE ) {
+                    # check for valid link function
+                    if ( is.null( inverse_links[[linmod$link]] ) ) {
+                        stop( paste("Link function '",linmod$link,"' not recognized in formula line:\n",deparse(flist[[f_num]]),sep="") )
+                    } else {
+                        # build it
+                        lm_replace_txt <- concat(lm_replace_txt,"\n",inden(2),mxtlm,"[i,mmrow] = ",inverse_links[[linmod$link]],"(",mxtlm,"[i,mmrow]);")
+                    }
+                }
+
+                # build code to add log prob factors to terms
+                terms_txt <- concat(inden(2),mxt,"[i,mmrow] = 0;\n")
+                for ( j in 1:nx ) {
+                    terms_txt <- concat(terms_txt,inden(4),"if ( ",linmod$parameter,"_missmatrix[mmrow,",j,"]==1 )\n")
+                    par_name <- discrete_miss_bank[[ linmod$discrete_miss_list[[j]] ]]$model
+                    terms_txt <- concat(terms_txt,inden(5),mxt,"[i,mmrow] = ",mxt,"[i,mmrow] + log(",par_name,");\n")
+                    terms_txt <- concat(terms_txt,inden(4),"else\n")
+                    terms_txt <- concat(terms_txt,inden(5),mxt,"[i,mmrow] = ",mxt,"[i,mmrow] + log1m(",par_name,");\n")
+                }
+
+                code_lines <- c(
+                misstestcode,
+                concat(indent,"for ( mmrow in 1:rows(",linmod$parameter,"_missmatrix) ) {"),
+                lm_replace_txt,
+                terms_txt,
+                concat(indent,"}//mmrow"),
+                "}//if\n"
+                )
+
+                code_lines <- paste( inden(2) , code_lines )
+                code_lines <- paste( code_lines , collapse="\n" )
+                m_model_txt <- concat( m_model_txt , code_lines )
+                m_gq <- concat( m_gq , code_lines )
+                
+            }
+
             # assignment
-            txt1 <- concat( indent,indent , linmod$parameter , "[i] <- " , linmod$RHS , ";\n" )
+            txt1 <- concat( inden(2) , linmod$parameter , "[i] <- " , linmod$RHS , ";\n" )
             m_model_txt <- concat( m_model_txt , txt1 )
             m_gq <- concat( m_gq , txt1 )
             
@@ -1061,21 +1218,49 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     parstxt_L[[j]] <- l$var # handles undotting
                 }
             }
-            
+
+            # check whether any symbols have variables with discrete missingness
+            # if so, must use [symbol]_mxt and [symbol]_mxtlm terms to marginalize over missingness
+            has_discrete_missingness <- FALSE
+            lms_with_dm <- list()
+            # loop over symbols
+            if ( length(fp[['lm']])>0 ) {
+                for ( asym in lik$pars ) {
+                    # is there a linear model with this name?
+                    s <- as.character(asym)
+                    for ( jj in 1:length(fp[['lm']]) ) {
+                        lmname <- fp[['lm']][[jj]]$parameter
+                        if ( lmname == s ) {
+                            # check for missingness
+                            if ( !is.null(fp[['lm']][[jj]]$discrete_miss_list) ) {
+                                # missingness in at least one variable
+                                has_discrete_missingness <- TRUE
+                                lms_with_dm[[lmname]] <- list(lmname,jj)
+                            }
+                        }
+                    }#jj
+                }#asym
+            }
+
             # add sampling statement to model block
             outcome <- lik$outcome
+
+            xindent <- "" # controls formatting
             
-            if ( tmplt$vectorized==FALSE ) {
+            # when function not vectorized OR a parameter has discrete missingness, must loop explicitly over [i] instead of vectorizing code
+            if ( tmplt$vectorized==FALSE || has_discrete_missingness==TRUE ) {
                 # add loop for non-vectorized distribution
-                txt1 <- concat( indent , "for ( i in 1:" , lik$N_name , " )\n" )
+                txt1 <- concat( indent , "for ( i in 1:" , lik$N_name , " ) {\n" )
                 m_model_txt <- concat( m_model_txt , txt1 )
-                m_gq <- concat( m_gq , txt1 )
+                #m_gq <- concat( m_gq , txt1 )
+
+                xindent <- indent
                 
                 # add [i] to outcome
                 outcome <- concat( outcome , "[i]" )
                 
                 # check for linear model names as parameters and add [i] to each
-                if ( length(fp[['lm']])>1 ) {
+                if ( length(fp[['lm']])>0 ) {
                     lm_names <- c()
                     for ( j in 1:length(fp[['lm']]) ) {
                         lm_names <- c( lm_names , fp[['lm']][[j]]$parameter )
@@ -1087,8 +1272,18 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     }
                 }
             }
-            
+
+            # collapse pars list to a convenient string
             parstxt <- paste( parstxt_L , collapse=" , " )
+            
+            # add branching logic for case [i] with missingness
+            if ( has_discrete_missingness==TRUE ) {
+                txt1 <- fp[['lm']][[ lms_with_dm[[1]][[2]] ]]$misstestcode # assume just one for now
+                txt1 <- concat( inden(2) , txt1 , "\n" )
+                m_model_txt <- concat( m_model_txt , txt1 )
+                #m_gq <- concat( m_gq , txt1 )
+                xindent <- concat( xindent , indent )
+            }
             
             if ( lik$likelihood=="increment_log_prob" ) {
                 
@@ -1138,13 +1333,32 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 }
                 
                 # ordinary sampling statement
-                m_model_txt <- concat( m_model_txt , indent , outcome , " ~ " , lik$likelihood , "( " , parstxt , " )" , lik$T_text , ";\n" )
+                if ( has_discrete_missingness==TRUE ) {
+                    # loop over rows in missmatrix and build the loglik terms for each case
+                    # edit pars string so it has [lm]_mxtlm in place of [lm]
+                    sym <- lms_with_dm[[1]][[1]]
+                    parstxt2 <- parstxt
+                    parname <- concat( sym , "[i]" )
+                    parreplace <- concat( sym , mixterms_lm_suffix ,"[i,mmrow]" )
+                    parstxt2 <- gsub( parname , parreplace , parstxt2 , fixed=TRUE )
+                    # build LL string
+                    the_suffix <- templates[[lik$template]]$stan_suffix
+                    LLtxt <- concat( lik$likelihood , the_suffix , "( " , outcome , " | " , parstxt2 , " )" , lik$T_text )
+                    # add model text for each mixture term
+                    m_model_txt <- concat( m_model_txt , inden(3) , "for ( mmrow in 1:rows(", sym , missmatrix_suffix ,") )\n" )
+                    m_model_txt <- concat( m_model_txt , inden(4) , sym , mixterms_suffix , "[i,mmrow] = " , sym , mixterms_suffix , "[i,mmrow] + " , LLtxt , ";\n" )
+                    # add mixture likelihood to target
+                    m_model_txt <- concat( m_model_txt , inden(3) , "target += log_sum_exp(" , sym , mixterms_suffix , "[i]);\n" )
+                    # close off discrete missing branch
+                    m_model_txt <- concat( m_model_txt , inden(2) , "} else \n" )
+                }
+                m_model_txt <- concat( m_model_txt , indent , xindent , outcome , " ~ " , lik$likelihood , "( " , parstxt , " )" , lik$T_text , ";\n" )
                 
                 # don't add deviance calc when imputed predictor
-                if ( !(lik$outcome %in% names(impute_bank)) ) {
+                if ( !(lik$outcome %in% names(impute_bank)) && has_discrete_missingness==FALSE ) {
                     # get stan suffix
                     the_suffix <- templates[[lik$template]]$stan_suffix
-                    m_gq <- concat( m_gq , indent , "dev <- dev + (-2)*" , lik$likelihood , the_suffix , "( " , outcome , " | " , parstxt , " )" , lik$T_text , ";\n" )
+                    m_gq <- concat( m_gq , indent , xindent , "dev <- dev + (-2)*" , lik$likelihood , the_suffix , "( " , outcome , " | " , parstxt , " )" , lik$T_text , ";\n" )
                 }
                 
             }
@@ -1162,6 +1376,20 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 fp[['used_predictors']][[the_N_name]] <- list( var=the_N_name , type="index" )
                 # warn about imputation on top-level outcome
                 
+            }
+
+            # close discrete missing branch
+            if ( has_discrete_missingness==TRUE ) {
+                txt1 <- concat( inden(2) , "}//if \n" )
+                #m_model_txt <- concat( m_model_txt , txt1 )
+                #m_gq <- concat( m_gq , txt1 )
+            }
+
+            # close i loop
+            if ( tmplt$vectorized==FALSE || has_discrete_missingness==TRUE ) {
+                txt1 <- concat( indent , "}//i \n" )
+                m_model_txt <- concat( m_model_txt , txt1 )
+                #m_gq <- concat( m_gq , txt1 )
             }
             
             # add number of cases to data list
@@ -1485,6 +1713,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     coef <- NULL
     varcov <- NULL
     fp$impute_bank <- impute_bank
+    fp$discrete_miss_bank <- discrete_miss_bank
     if ( sample==TRUE ) {
         # compute expected values of parameters
         s <- summary(fit)$summary

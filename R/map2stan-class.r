@@ -386,7 +386,7 @@ tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.a
     
 }
 
-stanergy <- function( x , colscheme="blue" , binwidth=1 , merge_chains=FALSE ) {
+stanergy <- function( x , colscheme="blue" , binwidth=NULL , merge_chains=FALSE ) {
     library(bayesplot)
     if ( class(x)=="map2stan" ) x <- x@stanfit
     if ( class(x)!="stanfit" ) stop("needs a stanfit or map2stan object")

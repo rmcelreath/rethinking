@@ -670,6 +670,22 @@ map2stan.templates <- list(
         },
         vectorized = TRUE
     ),
+    Bernoulli = list(
+        name = "Bernoulli",
+        R_name = "dbern",
+        stan_name = "bernoulli",
+        stan_suffix = "_lpmf",
+        nat_link = "logit",
+        num_pars = 1,
+        par_names = c("prob"),
+        par_bounds = c("<lower=0,upper=1>"),
+        par_types = c("real"),
+        out_type = "int",
+        par_map = function(k,e,...) {
+            return(k);
+        },
+        vectorized = TRUE
+    ),
     Geometric1 = list(
         name = "Geometric1",
         R_name = "dgeom",
@@ -698,7 +714,11 @@ map2stan.templates <- list(
         par_bounds = c("<lower=0>","<lower=0>"),
         par_types = c("real","real"),
         out_type = "real",
-        par_map = function(k,...) {
+        out_map = function(kout,kin,e,...) {
+            # need to insert constraits [0,1] for this parameter
+            return(kout)
+        },
+        par_map = function(k,e,...) {
             return(k);
         },
         vectorized = TRUE
