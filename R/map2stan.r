@@ -8,12 +8,12 @@
 # to-do:
 # (*) need to do p*theta and (1-p)*theta multiplication outside likelihood in betabinomial (similar story for gammapoisson) --- or is there an operator for pairwise vector multiplication?
 # (-) handle improper input more gracefully
-# (-) add "as is" formula type, with quoted text on RHS to dump into Stan code
+# (-) add "as is" formula type? with quoted text on RHS to dump into Stan code
 
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , ... ) {
 
     if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
     set.seed(rng_seed)
@@ -1565,6 +1565,119 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             }
         }#i
     }# transpars > 0
+
+    ##########
+    # final step in building code, add in any custom user code passed via 'code' argument
+    # code should be a list of lists
+    # each element should have structure: [ code , block , section , pos ]
+    # 'block','section','pos' must be named. index [[1]] assumed to be code.
+    # block one of: functions, data, transformed data, parameters, transformed parameters, model, generated quantities
+    # section one of: declare, body[default]
+    # pos one of: top, bottom[default], pattern
+    # when pos=="pattern", uses pattern slot for gsub replace in section
+    m_funcs <- ""
+    m_tdata1 <- ""
+    m_tdata2 <- ""
+    if ( !missing(code) ) {
+        for ( i in 1:length(code) ) {
+            chunk <- code[[i]]
+            if ( !is.null(chunk$block) ) {
+
+                # defaults
+                if (is.null(chunk$section)) chunk$section <- "body"
+                if (is.null(chunk$pos)) chunk$pos <- "top"
+
+                if (chunk$block=="functions") {
+                    m_funcs <- concat( indent , chunk[[1]] , "\n" , m_funcs )
+                }#functions
+
+                if (chunk$block=="data") {
+                    if (chunk$pos=="top") # put at top
+                        m_data <- concat( indent , chunk[[1]] , "\n" , m_data )
+                    if (chunk$pos=="bottom") # put at bottom
+                        m_data <- concat( m_data , indent , chunk[[1]] , "\n" )
+                    if (chunk$pos=="pattern") # pattern replace
+                        m_data <- gsub( chunk$pattern , chunk[[1]] , m_data , fixed=TRUE )
+                }#data
+
+                if (chunk$block=="transformed data") {
+                    if (chunk$section=="declare") {
+                        if (chunk$pos=="top")
+                            m_tdata1 <- concat( indent , chunk[[1]] , "\n" , m_tdata1 )
+                        if (chunk$pos=="bottom")
+                            m_tdata1 <- concat( m_tdata1 , indent , chunk[[1]] , "\n" )
+                        if (chunk$pos=="pattern") # pattern replace
+                            m_tdata1 <- gsub( chunk$pattern , chunk[[1]] , m_tdata1 , fixed=TRUE )
+                    }# declare
+                    if (chunk$section=="body") {
+                        if (chunk$pos=="top")
+                            m_tdata2 <- concat( indent , chunk[[1]] , "\n" , m_tdata2 )
+                        if (chunk$pos=="bottom")
+                            m_tdata2 <- concat( m_tdata2 , indent , chunk[[1]] , "\n" )
+                        if (chunk$pos=="pattern") # pattern replace
+                            m_tdata2 <- gsub( chunk$pattern , chunk[[1]] , m_tdata2 , fixed=TRUE )
+                    }# declare
+                }#transformed data
+
+                if (chunk$block=="parameters") {
+                    if (chunk$pos=="top")
+                        m_pars <- concat( indent , chunk[[1]] , "\n" , m_pars )
+                    if (chunk$pos=="bottom")
+                        m_pars <- concat( m_pars , indent , chunk[[1]] , "\n" )
+                    if (chunk$pos=="pattern") # pattern replace
+                        m_pars <- gsub( chunk$pattern , chunk[[1]] , m_pars , fixed=TRUE )
+                }#parameters
+
+                if (chunk$block=="transformed parameters") {
+                    if (chunk$section=="declare") {
+                        if (chunk$pos=="top")
+                            m_tpars1 <- concat( indent , chunk[[1]] , "\n" , m_tpars1 )
+                        if (chunk$pos=="bottom")
+                            m_tpars1 <- concat( m_tpars1 , indent , chunk[[1]] , "\n" )
+                        if (chunk$pos=="pattern") # pattern replace
+                            m_tpars1 <- gsub( chunk$pattern , chunk[[1]] , m_tpars1 , fixed=TRUE )
+                    }# declare
+                    if (chunk$section=="body") {
+                        if (chunk$pos=="top")
+                            m_tpars2 <- concat( indent , chunk[[1]] , "\n" , m_tpars2 )
+                        if (chunk$pos=="bottom")
+                            m_tpars2 <- concat( m_tpars2 , indent , chunk[[1]] , "\n" )
+                        if (chunk$pos=="pattern") # pattern replace
+                            m_tpars2 <- gsub( chunk$pattern , chunk[[1]] , m_tpars2 , fixed=TRUE )
+                    }# declare
+                }#transformed parameters
+
+                if (chunk$block=="model") {
+                    if (chunk$section=="declare") {
+                        if (chunk$pos=="top")
+                            m_model_declare <- concat( indent , chunk[[1]] , "\n" , m_model_declare )
+                        if (chunk$pos=="bottom")
+                            m_model_declare <- concat( m_model_declare , indent , chunk[[1]] , "\n" )
+                        if (chunk$pos=="pattern") # pattern replace
+                            m_model_declare <- gsub( chunk$pattern , chunk[[1]] , m_model_declare , fixed=TRUE )
+                    }# declare
+                    if (chunk$section=="body") {
+                        if (chunk$pos=="top")
+                            m_model_txt <- concat( indent , chunk[[1]] , "\n" , m_model_txt )
+                        if (chunk$pos=="bottom")
+                            m_model_txt <- concat( m_model_txt , indent , chunk[[1]] , "\n" )
+                        if (chunk$pos=="pattern") # pattern replace
+                            m_model_txt <- gsub( chunk$pattern , chunk[[1]] , m_model_txt , fixed=TRUE )
+                    }# declare
+                }#model
+
+                if (chunk$block=="generated quantities") {
+                    if (chunk$pos=="top")
+                        m_gq <- concat( indent , chunk[[1]] , "\n" , m_gq )
+                    if (chunk$pos=="bottom")
+                        m_gq <- concat( m_gq , indent , chunk[[1]] , "\n" )
+                    if (chunk$pos=="pattern") # pattern replace
+                        m_gq <- gsub( chunk$pattern , chunk[[1]] , m_gq , fixed=TRUE )
+                }#generated quantities
+
+            }#has block
+        }#i
+    }#user code
     
     # put it all together
     
@@ -1574,15 +1687,29 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         if ( x != "" ) x <- concat( header , x , footer )
         return(x)
     }
+    m_funcs <- blockify( m_funcs , "functions{\n" , "}\n" )
     m_data <- blockify( m_data , "data{\n" , "}\n" )
+    m_tdata1 <- blockify( m_tdata1 , "transformed data{\n" , "" )
+    m_tdata2 <- blockify( m_tdata2 , "" , "}\n" )
     m_pars <- blockify( m_pars , "parameters{\n" , "}\n" )
     m_tpars1 <- blockify( m_tpars1 , "transformed parameters{\n" , "" )
     m_tpars2 <- blockify( m_tpars2 , "" , "}\n" )
     m_gq <- blockify( m_gq , "generated quantities{\n" , "}\n" )
     
-    #model_code <- concat( m_data , m_pars , m_tpars1 , m_tpars2 , "model{\n" ,  m_model_declare , m_model_priors , m_model_lm , m_model_lik , "}\n" , m_gq )
-    
-    model_code <- concat( m_data , m_pars , m_tpars1 , m_tpars2 , "model{\n" ,  m_model_declare , m_model_txt , "}\n" , m_gq , "\n" )
+    model_code <- concat( 
+        m_funcs ,
+        m_data , 
+        m_tdata1 , 
+        m_tdata2 , 
+        m_pars , 
+        m_tpars1 , 
+        m_tpars2 , 
+        "model{\n" ,  
+        m_model_declare , 
+        m_model_txt , 
+        "}\n" , 
+        m_gq , 
+        "\n" )
 
     # from rstan version 2.10.0: change all '<-' to '='
     model_code <- gsub( "<-" , "=" , model_code , fixed=TRUE )

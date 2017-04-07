@@ -8,7 +8,8 @@
 \usage{
 map2stan( flist , data , start , pars , constraints=list() , types=list() , 
   sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , 
-  verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , ... )
+  verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , 
+  control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -26,6 +27,11 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   \item{verbose}{If \code{TRUE}, prints extra progress messages.}
   \item{WAIC}{When \code{TRUE}, computes WAIC after sampling, storing the result}
   \item{cores}{Number of processor cores to distribute chains over, using \code{\link{parallel}}.}
+  \item{rng_seed}{Optional explicit seed.}
+  \item{rawstanfit}{When \code{TRUE}, returns just the \code{stanfit} object, as if the model had been called using \code{\link{stan}}.}
+  \item{control}{Optional list of control parameters for \code{stan}. Default increases target acceptance rate (\code{adapt_delta}) to 0.95.}
+  \item{add_unique_tag}{When \code{TRUE}, adds a comment to the Stan model code with the date-time stamp. This makes each model unique and will force Stan to recompile. Useful for avoiding segfault bugs when reusing compiled objects.}
+  \item{code}{Optional list of custom Stan code to insert in model. See details and example.}
   \item{...}{Additional arguments to pass to \code{\link{stan}}}
 }
 \details{
@@ -42,8 +48,12 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   Linear models can be specified as formulas of the form \code{mu <- a + b*x} for a direct link. To use a link function, use the form \code{link(mu) <- a + b*x}. The name "link" must be recognized by \code{map2stan}. It currently recognizes \code{log} and \code{logit}.
   
   Imputation of missing values is available by specifying distributions for predictor variables that contain \code{NA} values. \code{map2stan} will split the variable into observed values and a vector of parameters used to estimate the missing values, assigning the same distribution to each. See the example.
+
+  When predictor variables are binary (0/1), \code{map2stan} will attempt to marginalize over any missing values. This is accomplished by building a mixture likelihood. Missingness in more than one binary variable can be accommodated this way, by building a list of all combinations of missingness among the variables and then a correspond vector of likelihood terms. The resulting Stan code contains a loop that computes the proper mixture and adds it to the target with \code{log_sum_exp}. The user may need to use the optional \code{constraints} list to bound hyperparameters. See the example.
   
   The \code{start} list is optional. When missing from the list, for each parameter with a defined prior, an initial value will be sampled from the prior. Sampled initial values will try to respect parameter constraints. For varying effect parameter vectors, initial values will always be set to zero. Specific initial values can be specified in the \code{start} list. See examples below. 
+
+  The optional \code{code} argument can be used to pass a list of custom Stan code to be inserted into specific parts of the model. The list should be a list of lists. Each list should have the format \code{list("code",block="block",section="section",pos="pos")}. The first argument is the code to insert, as a character string. The named \code{block} slot should be one of \code{functions}, \code{data}, \code{transformed data}, \code{parameters}, \code{transformed parameters}, \code{model}, or \code{generated quantities}. The named \code{section} slot should be one of \code{declare} or \code{body}, specifying whether the new code appears in the declared variables header or rather the code body of a block. The named \code{pos} slot should be one of \code{top}, \code{bottom}, or \code{pattern}. The position \code{pattern} uses the additional named slot \code{pattern} to search-and-replace, replacing the text in \code{pattern} with the text in the first argument. See the example at the end of this help page.
   
   The Stan model code includes a generated quantities block that computes the deviance for each iteration of parameter samples. When sampling completes, \code{map2stan} computes DIC, the deviance information criterion, from the samples. DIC information is available from \code{show} and \code{DIC}, as well as being attributes of the returned object. 
   
@@ -231,6 +241,66 @@ ci <- apply( v , 2 , PI )
 plot( y ~ mu )
 cicols <- ifelse( is.na(x1) | is.na(x2) , "red" , "gray" )
 for( i in 1:N ) lines( ci[,i] , rep(y[i],2) , col=cicols[i] )
+
+############
+# Binary marginalization example
+
+# Simulate data
+N <- 100
+N_miss <- 10
+x1 <- rbinom( N , 1 , 0.5 )
+x2 <- rbinom( N , 1 , 0.2 )
+y <- rnorm( N , 2*x1 - 0.5*x2 , 1 )
+x1[ sample(1:N,size=N_miss) ] <- NA
+x2[ sample(1:N,size=N_miss) ] <- NA
+
+# Formula with distributions assigned to both predictors
+f <- alist(
+    y ~ dnorm( mu , sigma ),
+    mu <- a + b1*x1 + b2*x2,
+    x1 ~ bernoulli( phi_x1 ),
+    x2 ~ bernoulli( phi_x2 ),
+    a ~ dnorm( 0 , 100 ),
+    c(b1,b2) ~ dnorm( 0  , 10 ),
+    c(phi_x1,phi_x2) ~ beta( 2 , 2 ),
+    sigma ~ dcauchy(0,2)
+)
+
+m <- map2stan( f , data=list(y=y,x1=x1,x2=x2) , 
+  constraints=list(phi_x1="lower=0,upper=1",phi_x2="lower=0,upper=1") )
+
+# Inspect model block of the Stan code to see how the mixture is built.
+stancode(m)
+
+# Note that the matrix mu_missmatrix is passed as data and contains the combinations of missingness. Columns are variables, and rows are combinations.
+m@data$mu_missmatrix
+
+###########
+# custom code insertion
+
+N <- 1000
+y <- rnorm( N )
+
+m <- map2stan(
+    alist(
+        y ~ normal(mu,sigma),
+        mu <- a,
+        a ~ normal(0,10),
+        sigma ~ exponential(1)
+    ),
+    data=list(y=y),
+    code=list(
+        list("//test",block="data",pos="top"),
+        list("//test2",block="parameters",pos="bottom"),
+        list("//test3",block="model",section="declare",pos="bottom"),
+        list("--test4--",block="model",section="declare",pos="pattern",pattern="test3"),
+        list("real asq;",block="transformed parameters",section="declare"),
+        list("asq = a*a;",block="transformed parameters",section="body")
+    ),
+    sample=FALSE )
+
+stancode(m)
+
 }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
