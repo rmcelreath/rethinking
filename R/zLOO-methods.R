@@ -4,7 +4,7 @@
 #' @rdname WAIC
 #' @export
 setGeneric("LOO",
-function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
+function(object, n = 1000 , refresh = 0.1, pointwise = FALSE, ... ) {
     message( concat("No LOO method for object of class '",class(object),"'. Returning AIC instead.") )
     AIC(object)
 }
