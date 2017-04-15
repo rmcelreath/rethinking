@@ -18,7 +18,7 @@
 Hinde and Milligan. 2011. Evolutionary Anthropology 20:9-23.
 }
 \usage{
-data(milk)
+milk
 }
 \description{
 Primate milk data

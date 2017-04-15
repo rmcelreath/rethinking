@@ -40,10 +40,6 @@ multiple vectors, contained within a data frame.
 Highest Posterior Density Intervals (HPDI) are calculated by
 \code{HPDinterval} in the \code{coda} package.
 }
-\examples{
-
-
-}
 \seealso{
 \code{\link{density}}, \code{\link{HPDinterval}}
 }

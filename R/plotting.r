@@ -39,8 +39,6 @@ set_nice_margins <- function() {
 #' @author Richard McElreath
 #' @seealso \code{\link{density}}, \code{\link{HPDinterval}}
 #' @export
-#' @examples
-#'
 #'
 dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , add=FALSE , ...) {
     if ( inherits(x, "data.frame") ) {
@@ -95,8 +93,6 @@ dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , sh
 #' @author Richard McElreath
 #' @seealso \code{\link{contour}}
 #' @export
-#' @examples
-#'
 #'
 contour_xyz <- function( x , y , z , ... ) {
     ux <- unique(x)
@@ -124,8 +120,6 @@ contour_xyz <- function( x , y , z , ... ) {
 #' @author Richard McElreath
 #' @seealso \code{\link{image}}
 #' @export
-#' @examples
-#'
 #'
 image_xyz <- function( x , y , z , ... ) {
     image( unique(x) , unique(y) , matrix(z, length(unique(x)), length(unique(y)) ) , ... )
@@ -246,8 +240,6 @@ show.naive.posterior <- function( est , se , model=NULL , level=0.95 , xlab="est
 #' @author Richard McElreath
 #' @seealso \code{\link{hist}}
 #' @export
-#' @examples
-#'
 #'
 simplehist <- function( x , round=TRUE , ylab="Frequency" , ... ) {
     if ( round==TRUE ) x <- round(x)

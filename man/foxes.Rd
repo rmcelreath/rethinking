@@ -14,7 +14,7 @@
 Modified from an example in Grafen and Hails.
 }
 \usage{
-data(foxes)
+foxes
 }
 \description{
 Data on urban fox groups in England.

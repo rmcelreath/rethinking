@@ -5,6 +5,7 @@
 #' @param x,y numerical vectors of equal length giving the (x, y) coordinates
 #'        of a kernel function \code{k} with \code{k(x) = y}.
 #' @return a rescaled version of \code{y} that turns the kernel into a pdf.
+#' @export
 #' @examples
 #' x <- seq(0, 1, by = 0.05)
 #' y1 <- (x - 0.5)^2

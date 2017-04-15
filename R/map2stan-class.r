@@ -1,3 +1,5 @@
+#' @importFrom rstan extract traceplot stan
+
 #' @export
 setClass("map2stan", representation( call = "language",
                                 model = "character",
@@ -18,7 +20,6 @@ setMethod("coef", "map2stan", function(object) {
 #' @export
 setMethod("extract.samples","map2stan",
 function(object,n,...) {
-    #require(rstan)
     p <- rstan::extract(object@stanfit,...)
     # get rid of dev and lp__
     p[['dev']] <- NULL
@@ -42,7 +43,6 @@ function(object,n,...) {
 #' @export
 setMethod("extract.samples","stanfit",
 function(object,...) {
-    #require(rstan)
     p <- rstan::extract(object,...)
     # get rid of dev and lp__
     #p[['dev']] <- NULL
@@ -274,7 +274,6 @@ resample_old <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 ,
             env0 <- list( fit=fit, data=data, pars=pars, rng_seed=rng_seed, iter=iter, warmup=warmup )
             clusterExport(cl = CL, c("iter","warmup","data", "fit", "pars", "rng_seed"), as.environment(env0))
             sflist <- parLapply(CL, 1:chains, fun = function(cid) {
-                #require(rstan)
                 stan(fit = fit, data = data, pars = pars, chains = 1,
                   iter = iter, warmup = warmup, seed = rng_seed,
                   chain_id = cid)
@@ -334,14 +333,12 @@ resample_old <- function( object , iter=1e4 , warmup=1000 , chains=1 , cores=1 ,
 
 #' @export
 setMethod("plot" , "map2stan" , function(x,y,...) {
-    #require(rstan)
     #rstan::traceplot( x@stanfit , ask=TRUE , pars=names(x@start) , ... )
     tracerplot(x,...)
 })
 
 #' @export
 setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=16 , adj=1 , pars , ...) {
-    #require(rstan)
     if ( missing(pars) )
         posterior <- extract.samples(x)
     else

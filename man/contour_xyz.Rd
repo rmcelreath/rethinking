@@ -23,10 +23,6 @@ vectors for x, y and z coordinates.
 This function merely constructs a matrix suitable for \code{contour}, using
 x, y and z coordinates.
 }
-\examples{
-
-
-}
 \seealso{
 \code{\link{contour}}
 }

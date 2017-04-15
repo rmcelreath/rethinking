@@ -417,8 +417,6 @@ rinvwishart <- function(s,df,Sigma,Prec) {
 #'
 #' @param x vector of values
 #' @author Richard McElreath
-#' @examples
-#'
 #'
 #' @export
 log_sum_exp <- function( x ) {
@@ -504,7 +502,6 @@ rzipois <- function(n,p,lambda) {
 #' @param log If \code{TRUE}, returns log-density instead of density
 #' @author Richard McElreath
 #' @export
-#' @examples
 #'
 dzagamma2 <- function(x,prob,mu,scale,log=FALSE) {
     K <- as.data.frame(cbind(x=x,prob=prob,mu=mu,scale=scale))

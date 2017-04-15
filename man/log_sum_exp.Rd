@@ -19,10 +19,6 @@ is passed to \code{log_sum_exp}, obviating the need to explicitly
 exponentiate. This helps to avoid rounding errors that occur when working
 with direct probabilities.
 }
-\examples{
-
-
-}
 \author{
 Richard McElreath
 }

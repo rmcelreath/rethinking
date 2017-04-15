@@ -23,10 +23,6 @@ This function constructs clean histograms for count data. Non-integer data
 can be rounded to nearest integer before plotting. Internally, this function
 is little more than \code{plot(table(x))}.
 }
-\examples{
-
-
-}
 \seealso{
 \code{\link{hist}}
 }

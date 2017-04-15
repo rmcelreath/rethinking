@@ -28,9 +28,6 @@ of the zeros. As such, the probability of a zero is \code{prob}, and the
 probability of a non-zero value \code{x} is \code{(1-prob)*dgamma( x ,
 mu/scale , scale )}.
 }
-\examples{
-
-}
 \author{
 Richard McElreath
 }
