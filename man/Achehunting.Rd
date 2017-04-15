@@ -18,7 +18,7 @@ if duration of trip known, 3 otherwise }}
 Hill and Kintigh. 2009. Current Anthropology 50:369-377.
 }
 \usage{
-data(Achehunting)
+Achehunting
 }
 \description{
 Hunting returns of individual Ache men, 1981 to 2007.

@@ -19,7 +19,7 @@
 Silk et al. 2005. Nature 437:1357-1359.
 }
 \usage{
-data(chimpanzees)
+chimpanzees
 }
 \description{
 Data from behavior trials in a captive group of chimpanzees, housed in

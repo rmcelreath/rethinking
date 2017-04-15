@@ -17,7 +17,7 @@
 Pollet et al. 2013. Animal Behaviour 86:839--843.
 }
 \usage{
-data(UFClefties)
+UFClefties
 }
 \description{
 Outcomes of televised Ultimate Fighting Championship (UFC) matches, as a

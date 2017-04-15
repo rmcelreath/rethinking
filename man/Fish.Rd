@@ -12,7 +12,7 @@
   \item child : Number of children in group
   \item hours : Number of hours group spent in park }}
 \usage{
-data(Fish)
+Fish
 }
 \description{
 Fishing data from visitors to a national park.

@@ -24,7 +24,7 @@ Marriage and divorce rates from 2009 American Community Survey (ACS). Waffle
 House density data from wafflehouse.com (retrieved January 2012).
 }
 \usage{
-data(WaffleDivorce)
+WaffleDivorce
 }
 \description{
 Data for the individual States of the United States, describing number of

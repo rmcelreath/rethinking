@@ -20,7 +20,7 @@ Jung et al. 2014. Female hurricanes are deadlier than male
 hurricanes. PNAS.
 }
 \usage{
-data(Hurricanes)
+Hurricanes
 }
 \description{
 Data used in Jung et al 2014 analysis of effect of gender of name on

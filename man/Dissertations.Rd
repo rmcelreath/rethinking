@@ -12,7 +12,7 @@
 Data originally parsed by...
 }
 \usage{
-data(Dissertations)
+Dissertations
 }
 \description{
 Page lengths of 3037 dissertations filed between 2006 and 2014 at the

@@ -33,7 +33,7 @@ Nicaragua: An application of the social relations model to count data.
 Social Networks.
 }
 \usage{
-data(KosterLeckie)
+KosterLeckie
 }
 \description{
 Data on household gift exchanges from Koster and Leckie. There are two data

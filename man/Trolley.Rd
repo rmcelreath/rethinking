@@ -24,7 +24,7 @@ story with action (1) or inaction (0)
 Cushman et al. 2006. Psychological Science 17:1082--1089.
 }
 \usage{
-data(Trolley)
+Trolley
 }
 \description{
 These data comprise outcomes of experimental ethical dilemmas that are often

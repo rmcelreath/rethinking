@@ -15,7 +15,7 @@
 Bangladesh Fertility Survey, 1989
 }
 \usage{
-data(bangladesh)
+bangladesh
 }
 \description{
 Contraceptive use data from 1934 Bangladeshi women.

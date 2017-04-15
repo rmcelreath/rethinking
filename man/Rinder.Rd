@@ -10,7 +10,7 @@
   \item n : number of animals at beginning of observation period
   \item mortality : number of animals that died in observation period }}
 \usage{
-data(Rinder)
+Rinder
 }
 \description{
 Mortality counts for 11 herds of large and small livestock. Large livestock

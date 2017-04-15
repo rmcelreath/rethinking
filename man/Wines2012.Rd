@@ -15,7 +15,7 @@
 Raw data from http://www.liquidasset.com/report161.html
 }
 \usage{
-data(Wines2012)
+Wines2012
 }
 \description{
 Numerical scores from 9 judges, both French and American, testing 20

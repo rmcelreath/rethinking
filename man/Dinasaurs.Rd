@@ -14,7 +14,7 @@ Erickson, Rogers, Yerby. 2001. Dinosaurian growth patterns and
 rapid avian growth rates. Nature 412:429-433.
 }
 \usage{
-data(Dinasaurs)
+Dinasaurs
 }
 \description{
 Mass by age data for 6 species of dinosaur.

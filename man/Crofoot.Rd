@@ -24,7 +24,7 @@ M.C. Crofoot, I.C. Gilby, M.C. Wikelski, and R.W. Kays. 2008.
 PNAS 105:577--581.
 }
 \usage{
-data(Crofoot)
+Crofoot
 }
 \description{
 Data on features and outcomes of intergroup contests among territorial

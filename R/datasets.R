@@ -5,7 +5,7 @@
 #'
 #' @docType data
 #' @name Achehunting
-#' @usage data(Achehunting)
+#' @usage Achehunting
 #' @format \enumerate{
 #'   \item month : Month of record
 #'   \item day : Day of record
@@ -29,7 +29,7 @@ NULL
 #'
 #' @docType data
 #' @name bangladesh
-#' @usage data(bangladesh)
+#' @usage bangladesh
 #' @format \enumerate{
 #'   \item woman : ID number for each woman in sample
 #'   \item district : Number for each district
@@ -51,7 +51,7 @@ NULL
 #'
 #' @docType data
 #' @name chimpanzees
-#' @usage data(chimpanzees)
+#' @usage chimpanzees
 #' @format \enumerate{
 #'   \item actor : name of actor
 #'   \item recipient : name of recipient (NA for partner absent condition)
@@ -81,7 +81,7 @@ NULL
 #'
 #' @docType data
 #' @name Crofoot
-#' @usage data(Crofoot)
+#' @usage Crofoot
 #' @format \enumerate{
 #'   \item focal : ID of focal group
 #'   \item other : ID of other group
@@ -112,7 +112,7 @@ NULL
 #'
 #' @docType data
 #' @name Dinasaurs
-#' @usage data(Dinasaurs)
+#' @usage Dinasaurs
 #' @format \enumerate{
 #'   \item age : Estimated age of specimen at death, in years
 #'   \item mass : Estimated body mass at death, in kilograms
@@ -135,7 +135,7 @@ NULL
 #'
 #' @docType data
 #' @name Dissertations
-#' @usage data(Dissertations)
+#' @usage Dissertations
 #' @format \enumerate{
 #'   \item pages: number of pages
 #'   \item major: department/program of dissertation
@@ -157,7 +157,7 @@ NULL
 #'
 #' @docType data
 #' @name Fish
-#' @usage data(Fish)
+#' @usage Fish
 #' @format \enumerate{
 #'   \item fish_caught : Number of fish caught during visit
 #'   \item livebait : Whether or not group used livebait to fish
@@ -179,7 +179,7 @@ NULL
 #'
 #' @docType data
 #' @name foxes
-#' @usage data(foxes)
+#' @usage foxes
 #' @format \enumerate{
 #'   \item group : ID of group
 #'   \item avgfood : Average available food in group's territory
@@ -203,7 +203,7 @@ NULL
 #'
 #' @docType data
 #' @name Hoogland
-#' @usage data(Hoogland)
+#' @usage Hoogland
 #' @format \enumerate{
 #'   \item Species : 1 = black-tailed, 2 = Gunnison's, 3 = Utah
 #'   \item Year : Year of case record
@@ -235,7 +235,7 @@ NULL
 #'
 #' @docType data
 #' @name Hurricanes
-#' @usage data(Hurricanes)
+#' @usage Hurricanes
 #' @format \enumerate{
 #'   \item name : Given name of hurricane
 #'   \item year : Year of hurricane
@@ -269,7 +269,7 @@ NULL
 #' @aliases Kline Kline2 islandsDistMatrix islands
 #' @docType data
 #' @name Kline
-#' @usage data(Kline)
+#' @usage Kline
 #' @format \enumerate{
 #'   \item culture : Name of island culture
 #'   \item population : Historical population size
@@ -291,7 +291,7 @@ NULL
 #'
 #' @docType data
 #' @name KosterLeckie
-#' @usage data(KosterLeckie)
+#' @usage KosterLeckie
 #' @format \code{kl_dyads}: \enumerate{
 #'
 #'   \item hidA : household ID for A in dyad
@@ -332,7 +332,7 @@ NULL
 #'
 #' @docType data
 #' @name milk
-#' @usage data(milk)
+#' @usage milk
 #' @format Returns a data frame containing 29 rows and 8 columns.  \enumerate{
 #'
 #'   \item clade: Broad taxonomic group
@@ -365,7 +365,7 @@ NULL
 #'
 #' @docType data
 #' @name Rinder
-#' @usage data(Rinder)
+#' @usage Rinder
 #' @format \enumerate{
 #'   \item herd : identifier for individual herd
 #'   \item stock : categorical small or large stock
@@ -384,7 +384,7 @@ NULL
 #'
 #' @docType data
 #' @name Trolley
-#' @usage data(Trolley)
+#' @usage Trolley
 #' @format \enumerate{
 #'   \item case: a code that combines treatment and story labels
 #'   \item response: participant's rating of appropriateness of action in
@@ -416,7 +416,7 @@ NULL
 #'
 #' @docType data
 #' @name UFClefties
-#' @usage data(UFClefties)
+#' @usage UFClefties
 #' @format \enumerate{
 #'   \item fight : Unique identifier for match
 #'   \item episode : Identifier for UFC episode
@@ -437,7 +437,7 @@ NULL
 #'
 #' @docType data
 #' @name WaffleDivorce
-#' @usage data(WaffleDivorce)
+#' @usage WaffleDivorce
 #' @format \enumerate{
 #'   \item Location : State name
 #'   \item Loc : State abbreviation
@@ -466,7 +466,7 @@ NULL
 #'
 #' @docType data
 #' @name Wines2012
-#' @usage data(Wines2012)
+#' @usage Wines2012
 #' @format \enumerate{
 #'   \item judge : Name of judge
 #'   \item flight : white or red group of 10 wines

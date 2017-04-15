@@ -22,7 +22,7 @@
 Hoogland 2013. Science 339:1205--1207.
 }
 \usage{
-data(Hoogland)
+Hoogland
 }
 \description{
 Dispersal and kin residence data for three species of prairie dog, from 1976

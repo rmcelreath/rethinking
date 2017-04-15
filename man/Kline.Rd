@@ -21,7 +21,7 @@
 Kline, M.A. and R. Boyd. 2010. Proc R Soc B 277:2559--2564.
 }
 \usage{
-data(Kline)
+Kline
 }
 \description{
 Data on historic tool complexity and demography in various Oceanic islands
