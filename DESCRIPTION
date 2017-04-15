@@ -2,7 +2,7 @@ Package: rethinking
 Type: Package
 Title: Statistical Rethinking book package
 Description: Utilities for fitting and comparing models
-Version: 1.59.9002
+Version: 1.59.9003
 Date: 2017-4-15
 Author: Richard McElreath
 Maintainer: Randall Pruim <rpruim@calvin.edu>
