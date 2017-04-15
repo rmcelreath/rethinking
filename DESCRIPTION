@@ -6,8 +6,7 @@ Version: 1.59.9002
 Date: 2017-4-15
 Author: Richard McElreath
 Maintainer: Randall Pruim <rpruim@calvin.edu>
-Imports: coda, MASS, mvtnorm, loo
-Depends: rstan (>= 2.10.0), parallel, methods, stats, graphics
+Imports: coda, MASS, mvtnorm, loo, rstan (>= 2.10.0), stats, graphics, parallel, methods
 Suggests: mosaic, ggformula, lattice
 License: GPL (>= 3)
 LazyLoad: yes
