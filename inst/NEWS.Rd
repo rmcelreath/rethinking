@@ -9,5 +9,3 @@
      \item See github.com/rmcelreath/rethinking for a complete list of changes.
    }
 }
-
-}
