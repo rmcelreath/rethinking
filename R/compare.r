@@ -1,38 +1,73 @@
-# compare
 
 # compare class definition and show method
+#' @rdname compare
+#' @export
+
 setClass( "compareIC" , representation( output="data.frame" , dSE="matrix" ) )
 
 #compare.show <- function( object ) {
 #    r <- format_show( object@output , #digits=c('default__'=1,'weight'=2,'SE'=2,'dSE'=2) )
 #    print( r )
 #}
+
+#' @rdname compare
+#' @export
 setMethod( "show" , "compareIC" , function(object) {
-    r <- format_show( object@output , 
+    r <- format_show( object@output ,
                       digits=c('default__'=1,'weight'=2,'SE'=2,'dSE'=2) )
     print( r )
 } )
 
 # new compare function, defaulting to WAIC
+
+
+#' Compare fit models using WAIC or DIC
+#'
+#' Returns a table of model comparison statistics, by default focused on WAIC.
+#'
+#' This function computes WAIC and optionally DIC values for fit models and
+#' returns a table sorted by ascending values. Each row in this table is a
+#' model, and the various columns provide WAIC, effective numbers of
+#' parameters, model weights, and standard errors.
+#'
+#' A \code{plot} method is supported, for graphic display of the information
+#' criteria.
+#'
+#' @aliases compare ICweights
+#' @param ... A series of fit models, separated by commas
+#' @param n Number of samples from posterior to use in computing WAIC/DIC
+#' @param sort Sort table by ascending values in named column
+#' @param func Function to use in computing criteria for comparison
+#' @param WAIC Deprecated: If \code{TRUE}, uses \code{func} for comparison. If
+#' \code{FALSE}, uses DIC.
+#' @param refresh Progress display update interval. 0 suppresses display.
+#' @param dev Vector of values to use in computing model weights
+#' @return An object of class \code{compareIC} with slots \code{output} (table
+#' of results) and \code{dSE} (matrix of standard errors of differences in IC
+#' between pairs of models).
+#' @author Richard McElreath
+#' @rdname compare
+#' @export
+#'
 compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh=0 ) {
     # retrieve list of models
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 )
         L <- L[[1]]
-    
+
     # retrieve model names from function call
     mnames <- match.call()
     mnames <- as.character(mnames)[2:(length(L)+1)]
 
     # use substitute to deparse the func argument
     the_func <- deparse(substitute(func))
-    
+
     # check class of fit models and warn when more than one class represented
     classes <- as.character(sapply( L , class ))
     if ( any(classes!=classes[1]) ) {
         warning("Not all model fits of same class.\nThis is usually a bad idea, because it implies they were fit by different algorithms.\nCheck yourself, before you wreck yourself.")
     }
-    
+
     # check nobs for all models
     # if different, warn
     nobs_list <- try( sapply( L , nobs ) )
@@ -42,7 +77,7 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
         warning(concat(
             "Different numbers of observations found for at least two models.\nInformation criteria only valid for comparing models fit to exactly same observations.\nNumber of observations for each model:\n",nobs_out))
     }
-    
+
     dSE.matrix <- matrix( NA , nrow=length(L) , ncol=length(L) )
     # deprecate WAIC==TRUE/FALSE flag
     # catch it and convert to func intent
@@ -92,44 +127,46 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
         # unrecognized IC function; just wing it
         IC.list <- lapply( L , function(z) func( z ) )
     }
-    
+
     IC.list <- unlist(IC.list)
-    
+
     dIC <- IC.list - min( IC.list )
     w.IC <- ICweights( IC.list )
-    
+
     if ( the_func=="DIC" )
         result <- data.frame( DIC=IC.list , pD=p.list , dDIC=dIC , weight=w.IC )
     if ( the_func=="WAIC" ) {
         # find out which model has dWAIC==0
         topm <- which( dIC==0 )
         dSEcol <- dSE.matrix[,topm]
-        result <- data.frame( WAIC=IC.list , pWAIC=p.list , dWAIC=dIC , 
+        result <- data.frame( WAIC=IC.list , pWAIC=p.list , dWAIC=dIC ,
                               weight=w.IC , SE=se.list , dSE=dSEcol )
     }
     if ( the_func=="LOO" ) {
         topm <- which( dIC==0 )
         dSEcol <- dSE.matrix[,topm]
-        result <- data.frame( LOO=IC.list , pLOO=p.list , dLOO=dIC , 
+        result <- data.frame( LOO=IC.list , pLOO=p.list , dLOO=dIC ,
                               weight=w.IC , SE=se.list , dSE=dSEcol )
     }
     if ( !(the_func %in% c("DIC","WAIC","LOO")) ) {
         result <- data.frame( IC=IC.list , dIC=dIC , weight=w.IC )
     }
-    
+
     rownames(result) <- mnames
-    
+
     if ( !is.null(sort) ) {
         if ( sort!=FALSE ) {
             if ( sort=="WAIC" ) sort <- the_func
             result <- result[ order( result[[sort]] ) , ]
         }
     }
-    
+
     new( "compareIC" , output=result , dSE=dSE.matrix )
 }
 
 # plot method for compareIC results shows deviance in and expected deviance out of sample, for each model, ordered top-to-bottom by rank
+#' @rdname compare
+#' @export
 setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALSE,...) {
     dev_in <- x@output[[1]] - x@output[[2]]*2
     dev_out <- x@output[[1]]
@@ -181,33 +218,33 @@ if ( FALSE ) {
 # AICc/BIC model comparison table
 compare_old <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE , delta=TRUE , DICsamples=1e4 ) {
     require(bbmle)
-    
+
     if ( is.null(nobs) ) {
         stop( "Must specify number of observations (nobs)." )
     }
-    
+
     getdf <- function(x) {
-        if (!is.null(df <- attr(x, "df"))) 
+        if (!is.null(df <- attr(x, "df")))
             return(df)
-        else if (!is.null(df <- attr(logLik(x), "df"))) 
+        else if (!is.null(df <- attr(logLik(x), "df")))
             return(df)
     }
-    
+
     # need own BIC, as one in stats doesn't allow nobs
     myBIC <- function(x,nobs) {
         k <- getdf(x)
         as.numeric( -2*logLik(x) + log(nobs)*k )
     }
-    
+
     # retrieve list of models
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 )
         L <- L[[1]]
-    
+
     # retrieve model names from function call
     mnames <- match.call()
     mnames <- as.character(mnames)[2:(length(L)+1)]
-    
+
     AICc.list <- sapply( L , function(z) AICc( z , nobs=nobs ) )
     dAICc <- AICc.list - min( AICc.list )
     post.AICc <- exp( -0.5*dAICc ) / sum( exp(-0.5*dAICc) )
@@ -216,11 +253,11 @@ compare_old <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE ,
         dBIC <- BIC.list - min( BIC.list )
         post.BIC <- exp( -0.5*dBIC ) / sum( exp(-0.5*dBIC) )
     }
-    
+
     k <- sapply( L , getdf )
-    
+
     result <- data.frame( k=k , AICc=AICc.list , w.AICc=post.AICc )
-    if ( BIC==TRUE ) 
+    if ( BIC==TRUE )
         result <- data.frame( k=k , AICc=AICc.list , BIC=BIC.list , w.AICc=post.AICc , w.BIC=post.BIC )
 
     if ( delta==TRUE ) {
@@ -238,11 +275,11 @@ compare_old <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE ,
             if ( class(m)=="map" ) {
                 post <- sample.qa.posterior( m , n=DICsamples )
                 message( paste("Computing DIC for model",mnames[i]) )
-                dev <- sapply( 1:nrow(post) , 
+                dev <- sapply( 1:nrow(post) ,
                     function(i) {
                         p <- post[i,]
                         names(p) <- names(post)
-                        2*m@fminuslogl( p ) 
+                        2*m@fminuslogl( p )
                     }
                 )
                 dev.hat <- deviance(m)
@@ -258,11 +295,11 @@ compare_old <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE ,
 
     # add model names to rows
     rownames( result ) <- mnames
-    
+
     if ( !is.null(sort) ) {
         result <- result[ order( result[[sort]] ) , ]
     }
-    
+
     new( "compareIC" , output=result )
 }
 }#FALSE
@@ -281,7 +318,7 @@ if (FALSE) {
 library(rethinking)
 data(chimpanzees)
 
-d <- list( 
+d <- list(
     pulled_left = chimpanzees$pulled.left ,
     prosoc_left = chimpanzees$prosoc.left ,
     condition = chimpanzees$condition ,

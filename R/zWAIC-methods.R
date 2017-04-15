@@ -2,6 +2,115 @@
 # compute WAIC from map2stan fit
 # (*) needs to work with models without linear models in them
 
+
+
+#' Information Criteria and Pareto-Smoothed Importance Sampling
+#' Cross-Validation
+#'
+#' Computes WAIC, DIC, and PSIS-LOO for \code{map} and \code{map2stan} model
+#' fits. In addition, WAIC and PSIS-LOO can be calculated for Stan model fits
+#' (see details).
+#'
+#' These functions use the samples and model definition from a \code{map} or
+#' \code{map2stan} fit to compute the Widely Applicable Information Criterion
+#' (WAIC), Deviance Information Criterion (DIC), or Pareto-smoothed
+#' importance-sampling leave-one-out cross-validation estimate (PSIS-LOO).
+#'
+#' WAIC is an estimate of out-of-sample relative K-L divergence (KLD), and it
+#' is defined as:
+#'
+#' \deqn{WAIC = -2(lppd - pWAIC)}
+#'
+#' Components \code{lppd} (log pointwise predictive density) and \code{pWAIC}
+#' (the effective number of parameters) are reported as attributes. See Gelman
+#' et al 2013 for definitions and formulas. This function uses the variance
+#' definition for \code{pWAIC}.
+#'
+#' PSIS-LOO is another estimate of out-of-sample relative K-L divergence. It is
+#' computed by the \code{loo} package. See Vehtari et al 2015 for definitions
+#' and computation.
+#'
+#' In practice, WAIC and PSIS-LOO are extremely similar estimates of KLD.
+#'
+#' Both WAIC and LOO have methods for \code{stanfit} models, provided the
+#' posterior contains a log-likelihood matrix (samples on rows, observations on
+#' columns) named \code{log_lik}. See example.
+#'
+#' @aliases WAIC DIC LOO
+#' @param object Object of class \code{map} or \code{map2stan}
+#' @param n Number of samples to use in computing WAIC. Set to \code{n=0} to
+#' use all samples in \code{map2stan} fit
+#' @param refresh Refresh interval for progress display. Set to
+#' \code{refresh=0} to suppress display.
+#' @param pointwise If \code{TRUE}, return a vector of WAIC values for each
+#' observation. Useful for computing standard errors.
+#' @param ... Other parameters to pass to specific methods
+#' @author Richard McElreath
+#' @seealso \code{\link{map}}, \code{\link{map2stan}}, \code{\link{link}},
+#' \code{\link{loo}}
+#' @references Watanabe, S. 2010. Asymptotic equivalence of Bayes cross
+#' validation and Widely Applicable Information Criterion in singular learning
+#' theory. Journal of Machine Learning Research 11:3571-3594.
+#'
+#' Gelman, A., J. Hwang, and A. Vehtari. 2013. Understanding predictive
+#' information criteria for Bayesian models.
+#'
+#' Vehtari, A., A. Gelman, and J. Gabry. 2015. Efficient implementation of
+#' leave-one-out cross-validation and WAIC for evaluating fitted Bayesian
+#' models.
+#' @rdname WAIC
+#' @examples
+#' \dontrun{
+#' library(rethinking)
+#' data(chimpanzees)
+#' d <- chimpanzees
+#' dat <- list(
+#'     y = d$pulled_left,
+#'     prosoc = d$prosoc_left,
+#'     condition = d$condition,
+#'     N = nrow(d)
+#' )
+#'
+#' m1s_code <- '
+#' data{
+#'     int<lower=1> N;
+#'     int y[N];
+#'     int prosoc[N];
+#' }
+#' parameters{
+#'     real a;
+#'     real bP;
+#' }
+#' model{
+#'     vector[N] p;
+#'     bP ~ normal( 0 , 1 );
+#'     a ~ normal( 0 , 10 );
+#'     for ( i in 1:N ) {
+#'         p[i] <- a + bP * prosoc[i];
+#'     }
+#'     y ~ binomial_logit( 1 , p );
+#' }
+#' generated quantities{
+#'     vector[N] p;
+#'     vector[N] log_lik;
+#'     for ( i in 1:N ) {
+#'         p[i] <- a + bP * prosoc[i];
+#'         log_lik[i] <- binomial_logit_log( y[i] , 1 , p[i] );
+#'     }
+#' }
+#' '
+#'
+#' m1s <- stan( model_code=m1s_code , data=dat , chains=2 , iter=2000 )
+#'
+#' WAIC(m1s)
+#'
+#' LOO(m1s)
+#' }
+#'
+
+
+#' @rdname WAIC
+#' @export
 setGeneric("WAIC",
 function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     message( concat("No WAIC method for object of class '",class(object),"'. Returning AIC instead.") )
@@ -9,12 +118,14 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
 }
 )
 
+#' @rdname WAIC
+#' @export
 # extracts log_lik matrix from stanfit and computes WAIC
 setMethod("WAIC", "stanfit",
 function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
-    
+
     ll_matrix <- extract.samples(object,pars=log_lik)[[1]]
-    
+
     # stop(concat("Log-likelihood matrix '",log_lik,"'' not found."))
 
     n_obs <- ncol(ll_matrix)
@@ -38,10 +149,12 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
     attr(waic,"lppd") = lpd
     attr(waic,"pWAIC") = pD
     attr(waic,"se") = try(sqrt( n_obs*var2(waic_vec) ))
-    
+
     return(waic)
 })
 
+#' @rdname WAIC
+#' @export
 setMethod("nobs","stanfit",
 function( object , log_lik="log_lik" , ... ) {
     # try to get number of observations from Stan model fit
@@ -54,12 +167,14 @@ function( object , log_lik="log_lik" , ... ) {
     return(nobs)
 })
 
+#' @rdname WAIC
+#' @export
 # by default uses all samples returned by Stan; indicated by n=0
 setMethod("WAIC", "map2stan",
 function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
-    
+
     if ( !(class(object)%in%c("map2stan")) ) stop("Requires map2stan fit")
-    
+
     if ( !is.null(attr(object,"WAIC")) & loglik==FALSE ) {
         # already have it stored in object, so just return it
         old_waic <- attr(object,"WAIC")
@@ -82,15 +197,15 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
 
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
     post <- extract.samples( object )
-    
+
     n_samples <- dim( post[[1]] )[1]
     if ( n == 0 ) n <- n_samples # special flag for all samples in fit
     #if ( n_samples < n ) n <- n_samples
-    
+
     # compute linear model values at each sample
     if ( refresh > 0 ) message("Constructing posterior predictions")
     lm_vals <- link( object , n=n , refresh=refresh , flatten=FALSE )
-    
+
     # compute log-lik at each sample
     liks <- object@formula_parsed$likelihood
     n_lik <- length( liks )
@@ -103,14 +218,14 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
     flag_aggregated_binomial <- FALSE
     for ( k in 1:n_lik ) {
         outcome <- liks[[k]]$outcome
-        
+
         # check for predictor imputation definition
         #   if so, skip this likelihood, because not really an outcome to predict
         if ( outcome %in% names(object@formula_parsed$impute_bank) ) {
             # message( concat("skipping ",outcome) )
             next
         }
-        
+
         template <- map2stan.templates[[ liks[[k]]$template ]]
         dname <- template$R_name
         pars <- liks[[k]]$pars
@@ -128,7 +243,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
                 if ( partxt %in% names(lm_vals) ) pars_type[[j]] <- "lm"
             }
         }
-        
+
         if ( liks[[k]]$template %in% c("Binomial") ) {
             if ( pars_type[[1]]=="data" ) flag_aggregated_binomial <- TRUE
             if ( is.numeric(pars[[1]]) )
@@ -138,7 +253,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
             if ( refresh > 0 )
                 message("Aggregated binomial counts detected. Splitting to 0/1 outcome for WAIC calculation.")
         }
-        
+
         #ignition
         n_obs <- liks[[k]]$N_cases
         # vector of components so can compute std err later
@@ -147,15 +262,15 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
             pD_vec[[k]] <- rep(NA,n_obs)
         } else {
             # need longer vector to hold expanded binomial
-            if ( is.numeric(pars[[1]]) ) 
+            if ( is.numeric(pars[[1]]) )
                 size <- rep( pars[[1]] , n_obs )
-            if ( pars_type[[1]]=="data" ) 
+            if ( pars_type[[1]]=="data" )
                 size <- as.numeric(object@data[[as.character(pars[[1]])]])
             lppd_vec[[k]] <- rep( NA, sum(size) )
             pD_vec[[k]] <- rep( NA, sum(size) )
         }
         lm_now <- list()
-        
+
         i_pointwise <- 1
         ll_matrix[[k]] <- matrix(NA,nrow=n,ncol=n_obs)
         for ( i in 1:n_obs ) {
@@ -169,7 +284,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
                     lm_now[[j]] <- lm_vals[[j]][,i_use,]
             }
             names(lm_now) <- names(lm_vals)
-            
+
             # ready environment
             outvar <- object@data[[outcome]][i]
             # trick to get dzipois to vectorize correctly over samples
@@ -218,7 +333,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
             for ( j in 1:length(e) ) {
                 assign( names(e)[j] , e[[j]] , envir=e1 )
             }
-            
+
             if ( flag_aggregated_binomial==FALSE ) {
                 args_list <- list( as.symbol(outcome) , pars , log=TRUE )
                 args_list <- unlist( args_list , recursive=FALSE )
@@ -246,9 +361,9 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
             } else {
                 # aggregated binomial
                 # split into 'size' 0/1 observations
-                if ( is.numeric(pars[[1]]) ) 
+                if ( is.numeric(pars[[1]]) )
                     size <- pars[[1]]
-                if ( pars_type[[1]]=="data" ) 
+                if ( pars_type[[1]]=="data" )
                     size <- as.numeric(object@data[[as.character(pars[[1]])]][i])
                 newpars <- pars
                 newpars[[1]] <- 1 # bernoulli now
@@ -271,10 +386,10 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
 
             # store log lik vector
             if ( loglik==TRUE ) ll_matrix[[k]][,i] <- ll
-            
+
         }#i - cases
     }#k - linear models
-    
+
     waic_vec <- (-2)*( unlist(lppd_vec) - unlist(pD_vec) )
     if ( pointwise==TRUE ) {
         waic <- unlist(waic_vec)
@@ -285,10 +400,10 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
     }
     attr(waic,"lppd") = lppd
     attr(waic,"pWAIC") = pD
-    
+
     n_tot <- length(waic_vec)
     attr(waic,"se") = try(sqrt( n_tot*var2(waic_vec) ))
-    
+
     if ( loglik==FALSE )
         return(waic)
     else {
@@ -299,11 +414,12 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
 }
 )
 
+#' @export
 setMethod("WAIC", "map",
 function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
-    
+
     if ( !(class(object)%in%c("map")) ) stop("Requires map fit")
-    
+
     if ( !is.null(attr(object,"WAIC")) ) {
         # already have it stored in object, so just return it
         old_waic <- attr(object,"WAIC")
@@ -325,14 +441,14 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
             }
         }
     }
-    
+
     # compute linear model values at each sample
     if ( refresh > 0 ) message("Constructing posterior predictions")
     #lm_vals <- link( object , n=n , refresh=refresh , flatten=FALSE )
-    
+
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
     post <- extract.samples( object , n=n )
-    
+
     # compute log-lik at each sample
     #lik <- flist_untag(object@formula)[[1]]
     s <- sim(object,post=post,ll=TRUE,refresh=refresh)
@@ -344,7 +460,7 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     lppd_vec <- rep(NA,n_cases)
     pD_vec <- rep(NA,n_cases)
     for ( i in 1:n_cases ) {# for each case
-        
+
         vll <- var2(s[,i])
         pD <- pD + vll
         lpd <- log_sum_exp(s[,i]) - log(n_samples)
@@ -352,7 +468,7 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
         lppd_vec[i] <- lpd
         pD_vec[i] <- vll
     }#i - cases
-    
+
     waic_vec <- (-2)*( lppd_vec - pD_vec )
     if ( pointwise==TRUE ) {
         # return decomposed as WAIC for each observation i --- can sum to get total WAIC
@@ -366,35 +482,37 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     attr(waic,"lppd") = lppd
     attr(waic,"pWAIC") = pD
     attr(waic,"se") = try(sqrt( n_cases*var2(waic_vec) ))
-    
+
     return(waic)
-    
+
 }
 )
 
 # lm
+#' @rdname WAIC
+#' @export
 setMethod("WAIC", "lm",
 function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
-    
+
     if ( refresh > 0 ) message("Constructing posterior predictions")
-    
+
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
     post <- extract.samples( object , n=n )
     # get sigma
     sigma <- sd(resid(object))
-    
+
     # compute log-lik at each sample
     # can hijack predict.lm() to do this by inserting samples into object$coefficients
     m_temp <- object
     out_var <- object$model[[1]] # should be outcome variable
     n_coefs <- length(coef(object))
-    s <- sapply( 1:n , 
+    s <- sapply( 1:n ,
         function(i) {
-            for ( j in 1:n_coefs ) m_temp$coefficients[[j]] <- post[i,j]             
+            for ( j in 1:n_coefs ) m_temp$coefficients[[j]] <- post[i,j]
             mu <- as.numeric(predict(m_temp)) # as.numeric strips names
             dnorm( out_var , mu , sigma , log=TRUE )
         } )
-    
+
     pD <- 0
     lppd <- 0
     n_cases <- length(out_var)
@@ -402,7 +520,7 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     lppd_vec <- rep(NA,n_cases)
     pD_vec <- rep(NA,n_cases)
     for ( i in 1:n_cases ) {# for each case
-        
+
         vll <- var2(s[i,])
         pD <- pD + vll
         lpd <- log_sum_exp(s[i,]) - log(n_samples)
@@ -410,7 +528,7 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
         lppd_vec[i] <- lpd
         pD_vec[i] <- vll
     }#i - cases
-    
+
     waic_vec <- (-2)*( lppd_vec - pD_vec )
     if ( pointwise==TRUE ) {
         # return decomposed as WAIC for each observation i --- can sum to get total WAIC
@@ -424,7 +542,7 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     attr(waic,"lppd") = lppd
     attr(waic,"pWAIC") = pD
     attr(waic,"se") = try(sqrt( n_cases*var2(waic_vec) ))
-    
+
     return(waic)
 } )
 

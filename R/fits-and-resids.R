@@ -1,3 +1,5 @@
+
+#' @export
 fitted.map <- function(object, n = 1L, data = NULL, post = NULL, ...,
                        na.rm = TRUE) {
   if (is.null(data)) data <- object@data
@@ -14,6 +16,7 @@ fitted.map <- function(object, n = 1L, data = NULL, post = NULL, ...,
   }
 }
 
+#' @export
 residuals.map <-
   function(object, n = 1L, data = NULL, fits = NULL, post = NULL, ..., na.rm = TRUE,
            silent = !verbose, verbose = TRUE){

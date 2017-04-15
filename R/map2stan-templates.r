@@ -2,10 +2,12 @@
 ########################################
 # distribution function templates
 
+#' @export
 concat <- function( ... ) {
     paste( ... , collapse="" , sep="" )
 }
 
+#' @export
 map2stan.templates <- list(
     Gaussian = list(
         name = "Gaussian",
@@ -80,15 +82,15 @@ map2stan.templates <- list(
             # k is list of input parameters
             # n is dimension of multi_normal
             kout <- k
-            
+
             # make sure Mu matches length
             if ( class(k[[1]])=="numeric" ) {
                 # numeric means -- make sure match dimension
                 kout[[1]] <- concat( "rep_vector(" , k[[1]] , "," , n , ")" )
             }
-            
+
             indent <- "    "
-            
+
             # check for vector of parameters in Mu
             if ( class(k[[1]])=="call" ) {
                 fname <- as.character(k[[1]][[1]])
@@ -99,11 +101,11 @@ map2stan.templates <- list(
                     n <- length(k[[1]])-1
                     for ( i in 2:(n+1) ) pars[[i-1]] <- as.character(k[[1]][[i]])
                     vname <- concat( "Mu_" , paste(pars,collapse="") )
-                    
+
                     # get tpars from parent
                     m_tpars1 <- get( "m_tpars1" , envir=parenvir )
                     m_tpars2 <- get( "m_tpars2" , envir=parenvir )
-                    
+
                     # add declaration to transformed parameters
                     m_tpars1 <- concat( m_tpars1 , indent , "vector[" , n , "] " , vname , ";\n" )
                     # add transformation
@@ -112,16 +114,16 @@ map2stan.templates <- list(
                         m_tpars2 <- concat( m_tpars2 , indent,indent , vname , "[" , i , "] <- " , pars[[i]] , ";\n" )
                     }
                     m_tpars2 <- concat( m_tpars2 , indent , "}\n" )
-                    
+
                     # assign tpars text to parent environment?
                     assign( "m_tpars1" , m_tpars1 , envir=parenvir )
                     assign( "m_tpars2" , m_tpars2 , envir=parenvir )
-                    
+
                     # finally, replace k[[1]] with vector name
                     kout[[1]] <- vname
                 }
             }
-            
+
             # result
             return(kout);
         },
@@ -142,16 +144,16 @@ map2stan.templates <- list(
             # k is list of input parameters
             # n is dimension of multi_normal
             # e is calling environment
-            
+
             # only going to need two slots in result
             kout <- k
             kout[[3]] <- NULL
-            
+
             ###########
             # Mu
-            
+
             indent <- "    "
-            
+
             # make sure Mu matches length
             if ( class(k[[1]])=="numeric" ) {
                 # numeric means -- make sure match dimension
@@ -166,11 +168,11 @@ map2stan.templates <- list(
                     pars <- list()
                     for ( i in 2:(n+1) ) pars[[i-1]] <- as.character(k[[1]][[i]])
                     vname <- concat( "Mu_" , paste(pars,collapse="") )
-                    
+
                     # get tpars from parent
                     m_tpars1 <- get( "m_tpars1" , envir=e )
                     m_tpars2 <- get( "m_tpars2" , envir=e )
-                    
+
                     # add declaration to transformed parameters
                     m_tpars1 <- concat( m_tpars1 , indent , "vector[" , n , "] " , vname , ";\n" )
                     # add transformation
@@ -179,61 +181,61 @@ map2stan.templates <- list(
                         m_tpars2 <- concat( m_tpars2 , indent,indent , vname , "[" , i , "] <- " , pars[[i]] , ";\n" )
                     }
                     m_tpars2 <- concat( m_tpars2 , indent , "}\n" )
-                    
+
                     # assign tpars text to parent environment
                     assign( "m_tpars1" , m_tpars1 , envir=e )
                     assign( "m_tpars2" , m_tpars2 , envir=e )
-                    
+
                     # finally, replace k[[1]] with vector name
                     kout[[1]] <- vname
                 }
             }
-            
+
             ###########
             # Sigma and Rho
             # construct covariance matrix from
             #   diag_matrix(Sigma)*Rho*diag_matrix(Sigma)
             # Then can specify separate priors on Sigma and Rho
-            # need to use transformed parameter for construction, 
+            # need to use transformed parameter for construction,
             #   so calc not repeated in loop
             # Naming convention for cov_matrix: SRS_SigmaRho
-            
+
             Sigma_name <- as.character(k[[2]])
             Rho_name <- as.character(k[[3]])
             Cov_name <- concat( "SRS_" , Sigma_name , Rho_name )
-            
+
             # get tpars from parent
             m_tpars1 <- get( "m_tpars1" , envir=e )
             m_tpars2 <- get( "m_tpars2" , envir=e )
-            
+
             # build transformed parameter
             m_tpars1 <- concat( m_tpars1 , indent , "cov_matrix[" , n , "] " , Cov_name , ";\n" )
             m_tpars2 <- concat( m_tpars2 , indent , Cov_name , " <- quad_form_diag(" , Rho_name , "," , Sigma_name , ");\n" )
-            
+
             # now replace name
             kout[[2]] <- Cov_name
-            
+
             # assign tpars text to parent environment
             assign( "m_tpars1" , m_tpars1 , envir=e )
             assign( "m_tpars2" , m_tpars2 , envir=e )
-            
+
             # get types list and add corr_matrix
             types_list <- get( "types" , envir=e )
             types_list[[Rho_name]] <- concat("corr_matrix")
             assign( "types" , types_list , envir=e )
-            
+
             # get constraints and add <lower=0> for sigma vector
             constr_list <- get( "constraints" , envir=e )
             isnum <- function(x) {
                 xn <- suppressWarnings(as.numeric(x))
-                return( ifelse(is.na(xn),FALSE,TRUE) ) 
+                return( ifelse(is.na(xn),FALSE,TRUE) )
             }
             if ( !isnum(Sigma_name) )
                 if ( is.null(constr_list[[Sigma_name]]) ) {
                     constr_list[[Sigma_name]] <- "lower=0"
                     assign( "constraints" , constr_list , envir=e )
                 }
-            
+
             # result
             return(kout);
         },
@@ -259,33 +261,33 @@ map2stan.templates <- list(
             # this function converts c(a,b) style parameters
             # need : to_vector(z) as output
             # but also add transformed parameters to convert back from z
-            
+
             Sigma_name <- as.character(kin[[1]])
             Rho_name <- as.character(kin[[2]])
             L_name <- concat( "L_" , Rho_name )
-            
+
             # build name of z-score matrix
             # dims will be [ num_effects , num_clusters ]
             #z_name <- paste( kout , collapse="" )
             z_name <- concat( "z_" , N_txt )
-            
+
             # add z matrix to parameters
             start <- get( "start" , envir=e )
             start[[z_name]] <- matrix(0,nrow=length(kout),ncol=N)
             assign( "start" , start , envir=e )
-            
+
             # hide z matrix from pars returned in samples
             #pars_hide <- get( "pars_hide" , envir=parent.frame() )
             #pars_hide[[z_name]] <- 1
             #assign( "pars_hide" , pars_hide , envir=parent.frame() )
-            
+
             # coerce type to plain matrix
             types <- get( "types" , envir=parent.frame() )
             types[[z_name]] <- c( "matrix" , concat("[",length(kout),",",N_txt,"]") )
             assign( "types" , types , envir=parent.frame() )
-            
+
             # add v matrix to transformed parameters
-            # matrix[N_groups,N_effects] v; 
+            # matrix[N_groups,N_effects] v;
             # v <- (diag_pre_multiply(sigma,L_Rho) * z)';
             transpars <- get( "transpars" , envir=parent.frame() )
             start <- get( "start" , envir=parent.frame() )
@@ -296,7 +298,7 @@ map2stan.templates <- list(
                 concat(v_name," <- (diag_pre_multiply(",Sigma_name,",",L_name,")*",z_name,")'")
             )
             assign( "transpars" , transpars , envir=parent.frame() )
-            
+
             # add conversion v -> c(a,b) in transformed parameters
             # can use transpars list in parent environment to signal
             #   to place parameters in transformed parameters,
@@ -308,7 +310,7 @@ map2stan.templates <- list(
                 start[[apar]] <- NULL
                 for ( ch in 1:length(startp) ) startp[[ch]][[apar]] <- NULL
                 # pattern:
-                # apar <- col(v,i) 
+                # apar <- col(v,i)
                 trans_txt <- c(
                     concat( "vector[" , N_txt , "] " , apar ) ,
                     concat( apar , " <- col(" , v_name , "," , i , ")" ) )
@@ -319,7 +321,7 @@ map2stan.templates <- list(
             assign( "start" , start , envir=parent.frame() )
             assign( "start_prior" , startp , envir=parent.frame() )
             assign( "pars_elect" , pars_elect , envir=parent.frame() )
-            
+
             # return left hand text for sampling statement
             return( concat("to_vector(",z_name,")") );
         },
@@ -327,27 +329,27 @@ map2stan.templates <- list(
             # k is list of input parameters
             # n is dimension of multi_normal
             # e is calling environment
-            
+
             kout <- list('0','1') # z ~ normal(0,1)
             indent <- "    "
-            
+
             ###########
             # Sigma and Rho
-            
+
             Sigma_name <- as.character(k[[1]])
             Rho_name <- as.character(k[[2]])
             L_name <- concat( "L_" , Rho_name )
-            
+
             # add Cholesky factor to parameters block
             # use start and types lists
             start <- get( "start" , envir=parent.frame() )
             start[[L_name]] <- diag(n_clusters)
             assign( "start" , start , envir=parent.frame() )
-            
+
             types <- get( "types" , envir=parent.frame() )
             types[[L_name]] <- c("cholesky_factor_corr" , concat("[",n_clusters,"]") )
             assign( "types" , types , envir=parent.frame() )
-            
+
             # convert prior for Rho to Cholesky prior
             # assume using lkj_corr prior, otherwise going to explode
             # also prior for Rho needs to come after this prior,
@@ -357,15 +359,15 @@ map2stan.templates <- list(
             m_model_txt <- gsub( Rho_name , L_name , m_model_txt , fixed=TRUE )
             m_model_txt <- gsub( "lkj_corr(" , "lkj_corr_cholesky(" , m_model_txt , fixed=TRUE )
             assign( "m_model_txt" , m_model_txt , envir=parent.frame() )
-            
-            # remove Rho from parameters block 
+
+            # remove Rho from parameters block
             start[[Rho_name]] <- NULL
             assign( "start" , start , envir=parent.frame() )
             # have to check start_prior too
             startp <- get( "start_prior" , envir=parent.frame() )
             for ( ch in 1:length(startp) ) startp[[ch]][[Rho_name]] <- NULL
             assign( "start_prior" , startp , envir=parent.frame() )
-            
+
             # need to change this from transpars to GQ
             # intent: add Rho to GENERATED QUANTITITIES
             # do not want it in transformed pars, bc less efficient
@@ -377,24 +379,24 @@ map2stan.templates <- list(
                 concat(Rho_name," <- ",L_name," * ",L_name,"'")
             )
             assign( "transpars" , transpars , envir=parent.frame() )
-            
+
             # and make sure Rho is returned in samples
             pars_elect <- get( "pars_elect" , envir=parent.frame() )
             pars_elect[[Rho_name]] <- 1
             assign( "pars_elect" , pars_elect , envir=parent.frame() )
-            
+
             # get constraints and add <lower=0> for sigma vector
             constr_list <- get( "constraints" , envir=parent.frame() )
             isnum <- function(x) {
                 xn <- suppressWarnings(as.numeric(x))
-                return( ifelse(is.na(xn),FALSE,TRUE) ) 
+                return( ifelse(is.na(xn),FALSE,TRUE) )
             }
             if ( !isnum(Sigma_name) )
                 if ( is.null(constr_list[[Sigma_name]]) ) {
                     constr_list[[Sigma_name]] <- "lower=0"
                     assign( "constraints" , constr_list , envir=e )
                 }
-            
+
             # result
             return(kout);
         },
@@ -416,11 +418,11 @@ map2stan.templates <- list(
             # need to fill Mu with zeros
             # make sure Mu matches length
             kout[[1]] <- concat( "rep_vector(0," , N_txt , ")" )
-            
+
             # need to construct Sigma
             Cov_name <- concat( "SIGMA_" , k[[1]] )
             kout[[2]] <- Cov_name
-            
+
             ## handle temp cov matrix declaration
             # get model declarations from parent
             m_tmp <- get( "m_model_declare" , envir=e )
@@ -429,7 +431,7 @@ map2stan.templates <- list(
             m_tmp <- concat( m_tmp , indent , "matrix[",N_txt,",",N_txt,"] " , Cov_name , ";\n" )
             # assign declarations text to parent environment
             assign( "m_model_declare" , m_tmp , envir=e )
-            
+
             ## handle loop to construct cov matrix in model block
             # do this in 'm_model_txt' so is just before the ~ statement
             m_tmp <- get( "m_model_txt" , envir=e )
@@ -441,7 +443,7 @@ map2stan.templates <- list(
             m_tmp <- concat( m_tmp , indent , "for ( k in 1:" , N_txt , " )\n" )
             m_tmp <- concat( m_tmp , indent , indent , Cov_name ,"[k,k] <- " , k[[2]] , " + " , k[[4]] , ";\n" )
             assign( "m_model_txt" , m_tmp , envir=e )
-            
+
             # have to make sure the distance matrix is declared in the data block
             # so add it to used_predictors master list
             # this also let's us keep text dimension declaration
@@ -449,27 +451,27 @@ map2stan.templates <- list(
             var_name <- as.character(k[[1]])
             fp_tmp[['used_predictors']][[ var_name ]] <- list( var=var_name , N=c(N_txt,N_txt) , type="matrix" )
             assign( "fp" , fp_tmp , envir=e )
-            
+
             # make sure parameters have positive contraint
             constr_list <- get( "constraints" , envir=e )
             isnum <- function(x) {
                 xn <- suppressWarnings(as.numeric(x))
-                return( ifelse(is.na(xn),FALSE,TRUE) ) 
+                return( ifelse(is.na(xn),FALSE,TRUE) )
             }
             eta_name <- as.character( k[[2]] )
             rho_name <- as.character( k[[3]] )
             sig_name <- as.character( k[[4]] )
             if ( !isnum(eta_name) )
-                if ( is.null(constr_list[[ eta_name ]]) ) 
+                if ( is.null(constr_list[[ eta_name ]]) )
                     constr_list[[eta_name]] <- "lower=0"
             if ( !isnum(rho_name) )
-                if ( is.null(constr_list[[ rho_name ]]) ) 
+                if ( is.null(constr_list[[ rho_name ]]) )
                     constr_list[[rho_name]] <- "lower=0"
             if ( !isnum(sig_name) )
-                if ( is.null(constr_list[[ sig_name ]]) ) 
+                if ( is.null(constr_list[[ sig_name ]]) )
                     constr_list[[sig_name]] <- "lower=0"
             assign( "constraints" , constr_list , envir=e )
-            
+
             # return 2 element parameter vector for multi_normal
             return(kout);
         },
@@ -512,7 +514,7 @@ map2stan.templates <- list(
             # the cutpoints need to be declared as type ordered with length K-1,
             #   where K is number of levels in outcome
             # try to do as much here as we can
-            
+
             # make sure cutpoints are not in R vector form
             cuts <- k[[2]]
             if ( class(cuts)=="call" ) {
@@ -549,12 +551,12 @@ map2stan.templates <- list(
                 }
                 k[[2]] <- cuts_name
             }
-            
+
             # add [i] to eta -- ordered not vectorized
             # this should work for both linear models and variables
             eta <- as.character(k[[1]])
             k[[1]] <- concat( eta , "[i]" )
-            
+
             # result
             return(k);
         },
@@ -671,9 +673,9 @@ map2stan.templates <- list(
         name = "Geometric1",
         R_name = "dgeom",
         stan_name = "increment_log_prob",
-        stan_code = 
+        stan_code =
 "target += (bernoulli_lpmf(1|PAR1) + OUTCOME*bernoulli_lpmf(0|PAR1));",
-        stan_dev = 
+        stan_dev =
 "dev <- dev + (-2)*(bernoulli_lpmf(1|PAR1) + OUTCOME*bernoulli_lpmf(0|PAR1));",
         num_pars = 3,
         par_names = c("prob"),
@@ -828,7 +830,7 @@ map2stan.templates <- list(
                 constr_list[[scale]] <- "lower=0"
                 assign( "constraints" , constr_list , envir=parent.frame() )
             }
-            
+
             return(k);
         },
         vectorized = TRUE
@@ -864,12 +866,12 @@ map2stan.templates <- list(
         name = "ZeroAugmentedGamma2",
         R_name = "dzagamma2",
         stan_name = "increment_log_prob",
-        stan_code = 
+        stan_code =
 "if (OUTCOME == 0)
 target += (bernoulli_lpmf(1|PAR1));
 else
 target += (bernoulli_lpmf(0|PAR1) + gamma_lpdf(OUTCOME|PAR2,PAR3));",
-        stan_dev = 
+        stan_dev =
 "if (OUTCOME == 0)
 dev <- dev + (-2)*(bernoulli_lpmf(1|PAR1));
 else
@@ -907,13 +909,13 @@ dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + gamma_lpdf(OUTCOME|PAR2,PAR3));",
         name = "ZeroInflatedPoisson",
         R_name = "dzipois",
         stan_name = "increment_log_prob",
-        stan_code = 
+        stan_code =
 "if (OUTCOME == 0)
       target += (log_sum_exp(bernoulli_lpmf(1|PAR1),
         bernoulli_lpmf(0|PAR1) + poisson_lpmf(OUTCOME|PAR2)));
     else
       target += (bernoulli_lpmf(0|PAR1) + poisson_lpmf(OUTCOME|PAR2));",
-        stan_dev = 
+        stan_dev =
 "if (OUTCOME == 0)
       dev <- dev + (-2)*(log_sum_exp(bernoulli_lpmf(1|PAR1),
         bernoulli_lpmf(0|PAR1) + poisson_lpmf(OUTCOME|PAR2)));
@@ -936,13 +938,13 @@ dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + gamma_lpdf(OUTCOME|PAR2,PAR3));",
         name = "ZeroInflatedBinomial",
         R_name = "dzibinom",
         stan_name = "increment_log_prob",
-        stan_code = 
+        stan_code =
 "if (OUTCOME == 0)
 target += (log_sum_exp(bernoulli_lpmf(1|PAR1),
     bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3)));
 else
 target += (bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3));",
-        stan_dev = 
+        stan_dev =
 "if (OUTCOME == 0)
 dev <- dev + (-2)*(log_sum_exp(bernoulli_lpmf(1|PAR1),
     bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3)));
@@ -962,16 +964,16 @@ dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3));",
         name = "Categorical1",
         R_name = "dcategorical",
         stan_name = "increment_log_prob",
-        stan_code = 
+        stan_code =
 "{
         vector[PAR1] theta;
-        PAR2 
+        PAR2
         OUTCOME ~ categorical( softmax(theta) );
     }",
-        stan_dev = 
+        stan_dev =
 "{
         vector[PAR1] theta;
-        PAR2 
+        PAR2
         dev <- dev + (-2)*categorical_lpmf( OUTCOME | softmax(theta) );
     }",
         num_pars = 1,

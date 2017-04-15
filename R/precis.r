@@ -8,12 +8,16 @@ precis.whitelist <- data.frame(stringsAsFactors = FALSE,
 )
 
 # precis class definition and show method
+#' @export
 setClass( "precis" , representation( output="data.frame" , digits="numeric" ) )
+
 precis_show <- function( object ) {
     #print( round( object@output , object@digits ) )
     r <- format_show( object@output , digits=c('default__'=object@digits,'n_eff'=0) )
     print(r)
 }
+
+#' @export
 setMethod( "show" , "precis" , function(object) precis_show(object) )
 
 precis_plot <- function( x , y , pars , col.ci="black" , xlab="Value" , ... ) {
@@ -30,6 +34,8 @@ precis_plot <- function( x , y , pars , col.ci="black" , xlab="Value" , ... ) {
     for ( i in 1:length(mu) ) lines( c(left[i],right[i]) , c(i,i) , lwd=2 , col=col.ci )
     abline( v=0 , lty=1 , col=col.alpha("black",0.15) )
 }
+
+#' @export
 setMethod( "plot" , "precis" , function(x,y,...) precis_plot(x,y,...) )
 
 # function to process a list of posterior samples from extract.samples into a summary table
@@ -73,6 +79,33 @@ postlistprecis <- function( post , prob=0.95 ) {
     result
 }
 
+
+
+#' Precis of model fit
+#'
+#' Displays concise parameter estimate information for an existing model fit.
+#'
+#' Creates a table of estimates and standard errors, with optional confidence
+#' intervals and parameter correlations. Posterior intervals are quadratic
+#' estimates, derived from standard deviations, unless the model uses samples
+#' from the posterior distribution, in which case \code{\link{HPDI}} is used
+#' instead.
+#'
+#' Can also provide expected value, standard deviation, and HPDI columns for a
+#' data frame.
+#'
+#' @param model Fit model object
+#' @param depth If \code{1}, suppresses vectors and matrices of parameters. If
+#' \code{2}, displays all parameters
+#' @param pars Optional character vector of parameter names to display
+#' @param ci Show quadratic estimate confidence intervals
+#' @param prob Width of posterior intervals
+#' @param corr If \code{TRUE}, show correlations among parameters in output
+#' @param digits Number of decimal places to display in output
+#' @param warn If \code{TRUE}, warns about various things
+#' @return A data frame with a row for each parameter.
+#' @author Richard McElreath
+#' @export
 precis <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , digits=2 , warn=TRUE ) {
     the.class <- class(model)[1]
     found.class <- FALSE
@@ -139,7 +172,7 @@ precis <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , 
         # check divergent iterations
         nd <- divergent(model)
         if ( nd > 0 & warn==TRUE ) {
-            warning( concat("There were ",nd," divergent iterations during sampling.\nCheck the chains (trace plots, n_eff, Rhat) carefully to ensure they are valid.") )
+            warning( concat("There were ",nd," divergent iterations during sampling.\nCheck the chains (trace plots, n_eff, Rhat) carefully to ensure they are valid.\n") )
         }
     }
     if ( corr ) {
@@ -361,6 +394,7 @@ xnobs <- function( model ) {
 }
 
 # row-by-row matrix formatting function
+#' @export
 rrformat <- function( matrix , digits=2 , width=7 ) {
     if ( length(digits)==1 ) digits <- rep(digits,nrow(matrix))
     result <- matrix

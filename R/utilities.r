@@ -3,6 +3,7 @@
 # various utility functions
 
 # set help to html
+#' @export
 htmlhelp <- function() options(help_type="html")
 
 # set CRAN mirror
@@ -41,6 +42,23 @@ make.grid <- function( n ) {
 }
 
 # timing functions
+
+
+#' Progress display
+#'
+#' Provides a progress display with estimated time remaining, assuming rate
+#' constant process.
+#'
+#' This function provides useful progress information and estimated time until
+#' completion for long looped operations, like sampling from MCMC.
+#'
+#' @param current Current loop index of process
+#' @param min Minimum loop index, usually 0 or 1
+#' @param max Maximum loop index
+#' @param starttime Time stamp when process began, from \code{Sys.time}
+#' @param update.interval How often to display progress
+#' @author Richard McElreath
+#' @export
 progbar <- function( current , min=0 , max=100 , starttime , update.interval=100 , show.rate=FALSE ) {
     z <- current/update.interval
     if ( floor(z)!=z ) return()
@@ -101,6 +119,19 @@ Rho <- function( model , digits=2 ) {
 }
 
 # finds mode of a continuous density
+
+
+#' Find mode of a continuous density estimate
+#'
+#' Returns estimated mode of a density computed from samples.
+#'
+#' This function just finds the x value that maximizes the y density in the
+#' density estimate.
+#'
+#' @param chain Values, e.g. sampled from a posterior via MCMC
+#' @param ... Optional arguments passed to density calculation
+#' @author Richard McElreath
+#' @export
 chainmode <- function( chain , ... ) {
     dd <- density(chain , ...)
     dd$x[which.max(dd$y)]
@@ -109,6 +140,25 @@ chainmode <- function( chain , ... ) {
 # highest posterior density interval, sensu Box and Tiao
 # requires coda library
 PIprimes <- c(0.67,0.89,0.97) # my snarky prime valued percentiles
+
+
+#' Confidence/credible intervals from samples
+#'
+#' These functions compute highest posterior density (HPDI) and percentile (PI)
+#' intervals, using samples from a posterior density or simulated outcomes.
+#'
+#' Highest Posterior Density Intervals (HPDI) are calculated by
+#' \code{\link{HPDinterval}} in the \code{coda} package.
+#'
+#' Percentile intervals (PI) use \code{\link{quantile}} and assign equal mass
+#' to each tail.
+#'
+#' @aliases PI HPDI PCI
+#' @param samples Vector of parameter values
+#' @param prob interval probability mass
+#' @author Richard McElreath
+#' @seealso \code{\link{HPDinterval}}
+#' @export
 HPDI <- function( samples , prob=0.89 ) {
     # require(coda)
     ## class.samples <- class(samples)[1]  # not needed now that we are using inherits()
@@ -136,6 +186,7 @@ HPDI <- function( samples , prob=0.89 ) {
 }
 
 # percentile confidence/credible interval
+#' @export
 PCI <- function( samples , prob=0.89 ) {
     x <- sapply( prob , function(p) {
         a <- (1-p)/2
@@ -158,9 +209,11 @@ PCI <- function( samples , prob=0.89 ) {
     }
     return(result)
 }
+#' @export
 PI <- PCI
 
 
+#' @export
 se <- function( model ) {
     sqrt( diag( vcov(model) ) )
 }
@@ -196,6 +249,7 @@ confint_quad <- function( model=NULL , est , se , prob=0.89 ) {
 }
 
 # replicate with progress display
+#' @export
 replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
     show_progress <- function(i) {
         intervaln <- floor( n * interval )
@@ -211,6 +265,23 @@ replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
 }
 
 # multi-core replicate
+
+
+#' Multi-core version of replicate
+#'
+#' Uses the \code{parallel} library to distribute \code{\link{replicate}}
+#' processing across cores.
+#'
+#' This function uses \code{\link{mclapply}} to distribute replications across
+#' cores. It then simplifies the result to an array.
+#'
+#' @param n Number of replications
+#' @param expr Code to replicate
+#' @param refresh Status update refresh interval
+#' @param mc.cores Number of cores to use
+#' @author Richard McElreath
+#' @seealso \code{\link{mclapply}}, \code{\link{replicate}}
+#' @export
 mcreplicate <- function (n, expr, refresh = 0.1, mc.cores=2 ) {
     #require(parallel)
     show_progress <- function(i) {
@@ -229,6 +300,7 @@ mcreplicate <- function (n, expr, refresh = 0.1, mc.cores=2 ) {
 }
 
 # check index vector
+#' @export
 check_index <- function( x ) {
     y <- sort(unique(x))
     n <- length(y)
@@ -244,6 +316,50 @@ check_index <- function( x ) {
 
 # new coerce_index that can take multiple vectors
 # ensures labels in all are part of same index set
+
+
+#' Build and check integer index variables
+#'
+#' These functions assist with building (\code{coerce_index}) and checking
+#' (\code{check_index}) integer index variables of the kind needed to define
+#' varying effect models.
+#'
+#' Varying effect models often require index variables that begin at 1 and
+#' comprise only integers. These variables are used to lookup specific
+#' parameter values inside of the model. For example, it is common to define
+#' varying intercepts with a linear model like \code{a0 + a_id[id[i]]}. Here
+#' the variable \code{id} is an index variable. It has one value for each case,
+#' defining which individual applies to that case.
+#'
+#' When raw data exist as factors, these index variables much be converted to
+#' integers. This is trickier than it sounds, because R uses an internal
+#' integer represntation for factors, \code{levels}, that can conflict with
+#' ordinary integer representations.
+#'
+#' The function \code{coerce_index} deals with that complication. When the
+#' input is a single vector of factors, it returns an integer vector beginning
+#' at 1 and with contiguous values.
+#'
+#' When the input is instead a comma-separated list of factors, it returns a
+#' list in which each factor has been converted to integers, but all levels in
+#' all factors were merged so that the same labels across factors always have
+#' the same integer values in the result. For example, suppose cases refer to
+#' dyads and there are two factors, \code{id1} and \code{id2}, that indicate
+#' which pair of individuals are present in each dyad. The labels in these
+#' variables should refer to the same individuals. Passing both simultaneously
+#' to \code{coerce_index} ensures that the results respect that fact.
+#'
+#' The function \code{check_index} merely checks an integer vector to see if it
+#' is contiguous.
+#'
+#' @aliases coerce_index check_index
+#' @param ... A comma-separted list of variables. See details.
+#' @param x A vector of integers to check for contiguity
+#' @return For \code{coerce_index}, the result is either a single vector of
+#' integers (if the input was a single vector) or rather a list of vectors of
+#' integers (if the input was a list of vectors).
+#' @author Richard McElreath
+#' @export
 coerce_index <- function( ... ) {
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 ) L <- L[[1]]

@@ -1,4 +1,26 @@
-
+#' Simulate in-sample and out-of-sample deviance
+#'
+#' Simulates posterior observations for \code{map} and \code{map2stan} model
+#' fits.
+#'
+#' This function simulates Gaussian data and then fits linear regression models
+#' to it, returning the deviance of the fit (training, in-sample) and the
+#' deviance on a new sample, computed using the MAP estimates from the training
+#' sample.
+#'
+#' @param N Number of cases in simulated data
+#' @param k Number of parameters in model to fit to data
+#' @param rho Vector of correlations between predictors and outcome, in
+#' simulated data
+#' @param b_sigma Standard deviation of beta-coefficient priors
+#' @param DIC If \code{TRUE}, returns DIC
+#' @param WAIC If \code{TRUE}, returns WAIC
+#' @param devbar If \code{TRUE}, returns the average deviance in-sample
+#' @param devbarout If \code{TRUE}, returns average deviance out-of-sample
+#' @author Richard McElreath
+#' @export
+#'
+#'
 sim.train.test <- function( N=20 , k=3 , rho=c(0.15,-0.4) , b_sigma=100 , DIC=FALSE , WAIC=FALSE, devbar=FALSE , devbarout=FALSE ) {
     #require(MASS)
     n_dim <- 1+length(rho)
@@ -55,14 +77,14 @@ sim.train.test <- function( N=20 , k=3 , rho=c(0.15,-0.4) , b_sigma=100 , DIC=FA
     }
     if ( devbar==TRUE ) {
         post <- extract.samples( m , n=1e3 )
-        dev <- sapply( 1:nrow(post) , function(i) 
+        dev <- sapply( 1:nrow(post) , function(i)
             (-2)*sum( dnorm( X.train[,1] , mm.train %*% as.numeric(post[i,]) , 1 , TRUE ) )
         )
         result <- c( result , mean(dev) )
     }
     if ( devbarout==TRUE ) {
         post <- extract.samples( m , n=1e3 )
-        dev <- sapply( 1:nrow(post) , function(i) 
+        dev <- sapply( 1:nrow(post) , function(i)
             (-2)*sum( dnorm( X.test[,1] , mm.test %*% as.numeric(post[i,]) , 1 , TRUE ) )
         )
         result <- c( result , mean(dev) )

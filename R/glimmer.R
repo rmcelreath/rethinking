@@ -46,7 +46,7 @@ xparse_glimmer_formula <- function( formula , data ) {
     hasintercept <- function(term) {
         attr( terms(term) , "intercept" )==1
     }
-    
+
     # find fixed effects list by deleting random effects and expanding
     f_nobars <- nobars( formula )
     # catch implied intercept error -- happens when right side of formula is only () blocks
@@ -55,7 +55,7 @@ xparse_glimmer_formula <- function( formula , data ) {
     }
     #fixef <- make.names( colnames( model.matrix( f_nobars , data ) ) )
     fixef <- colnames( model.matrix( f_nobars , data ) )
-    
+
     # convert to all fixed effects and build needed model matrix
     mdat <- model.matrix( subbars( formula ) , data )
     outcome_name <- deparse( f_nobars[[2]] )
@@ -66,7 +66,7 @@ xparse_glimmer_formula <- function( formula , data ) {
         # fix outcome name
         outcome_name <- colnames( outcome )[1]
     }
-    
+
     # check for any varying effects
     if ( formula == nobars(formula) ) {
         # no varying effects
@@ -85,7 +85,7 @@ xparse_glimmer_formula <- function( formula , data ) {
                         stop( paste( "Grouping variables must be integer type. '" , name , "' is instead of type: " , class( data[[name]] ) , "." , sep="" ) )
                     }
                     # check that values are contiguous
-                    if ( min(data[[name]]) != 1 ) 
+                    if ( min(data[[name]]) != 1 )
                         stop( paste( "Group variable '" , name , "' doesn't start at index 1." , sep="" ) )
                     ulist <- unique( data[[name]] )
                     diffs <- ulist[2:length(ulist)] - ulist[1:(length(ulist)-1)]
@@ -99,7 +99,7 @@ xparse_glimmer_formula <- function( formula , data ) {
                     mdat[,name] <- as.integer( as.factor( mdat[,name] ) )
                 }
             }
-            
+
             # parse formula
             v <- var[[i]][[2]]
             if ( class(v)=="numeric" ) {
@@ -113,14 +113,62 @@ xparse_glimmer_formula <- function( formula , data ) {
             }
         }
     }
-    
+
     # result sufficient information to build Stan model code
     list( y=outcome , yname=outcome_name , fixef=fixef , ranef=ranef , dat=as.data.frame(mdat) )
 }
 
 
+
+
+#' glm/glmer formulas to map/map2stan formulas
+#'
+#' Converts a \code{glm} or \code{glmer} model formula into a formula list of
+#' the kind used by \code{map} and \code{map2stan}
+#'
+#' This function parses and converts a \code{glmer}-style mixed model formula
+#' into a list of formulas appropriate for \code{map2stan} input. Interactions
+#' are pre-multiplied, and factors are automatically converted into a series of
+#' dummy variables. In the absence of varying effects in the input formula, the
+#' resulting formula list will also be suitable for \code{map} input in most
+#' cases.
+#'
+#' The function \code{glmer} is provided by package \code{lme4}, but it is not
+#' required for \code{glimmer} to work.
+#'
+#' @param formula A formula of the sort used by \code{\link{glm}} or
+#' \code{glmer}
+#' @param data A data frame or list containing the data
+#' @param family Name of family, as in \code{glm}/\code{glmer}. Recognizes
+#' \code{gaussian}, \code{binomial}, and \code{poisson} with arbitrary links
+#' @param prefix Text prefixes for fixed and varying effects parameters
+#' @param default_prior Text of default prior for regression parameters
+#' @param ... Additional parameters to pass to \code{map2stan}
+#' @return Returns an invisible list with two slots: \item{f}{list of formulas,
+#' suitable for passing to \code{map2stan}} \item{d}{list of data, suitable for
+#' passing to \code{map2stan}}
+#' @author Richard McElreath
+#' @seealso \code{\link{map2stan}}
+#' @export
+#' @examples
+#'
+#' \dontrun{
+#' library(rethinking)
+#' data(UCBadmit)
+#'
+#' # varying intercepts
+#' f3 <- cbind(admit,reject) ~ (1|dept) + applicant.gender
+#' m3 <- glimmer( f3 , UCBadmit , binomial )
+#' m3s <- map2stan( m3$f , data=m3$d )
+#'
+#' # varying intercepts and slopes
+#' f4 <- cbind(admit,reject) ~ (1+applicant.gender|dept) + applicant.gender
+#' m4 <- glimmer( f4 , UCBadmit , binomial )
+#' m4s <- map2stan( m4$f , data=m4$d )
+#' }
+#'
 glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , default_prior="dnorm(0,10)" , ... ) {
-    
+
     undot <- function( astring ) {
         astring <- gsub( "." , "_" , astring , fixed=TRUE )
         astring <- gsub( ":" , "_X_" , astring , fixed=TRUE )
@@ -128,7 +176,7 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
         astring <- gsub( ")" , "" , astring , fixed=TRUE )
         astring
     }
-    
+
     # convert family to text
     family.orig <- family
     if ( class(family)=="function" ) {
@@ -136,7 +184,7 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
     }
     link <- family$link
     family <- family$family
-    
+
     # templates
     family_liks <- list(
         gaussian = "dnorm( mu , sigma )",
@@ -153,19 +201,19 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
         binomial = "logit",
         poisson = "log"
     )
-    
+
     # check input
     if ( class(formula)!="formula" ) stop( "Input must be a glmer-style formula." )
     if ( missing(data) ) stop( "Need data" )
-    
+
     f <- formula
     flist <- alist()
     prior_list <- alist()
-    
+
     # parse
     pf <- xparse_glimmer_formula( formula , data )
     pf$yname <- undot(pf$yname)
-    
+
     # build likelihood
     # check for size variable in Binomial
     dtext <- family_liks[[family]]
@@ -184,7 +232,7 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
         pf$dat[[pf$yname]] <- pf$y
     }
     flist[[1]] <- concat( as.character(pf$yname) , " ~ " , dtext )
-    
+
     # build fixed linear model
     flm <- ""
     for ( i in 1:length(pf$fixef) ) {
@@ -202,7 +250,7 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
         if ( i > 1 ) flm <- concat( flm , " +\n        " )
         flm <- concat( flm , newterm )
     }
-    
+
     vlm <- ""
     num_group_vars <- length(pf$ranef)
     if ( num_group_vars > 0 ) {
@@ -243,12 +291,12 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
         pf$dat[[group_var]] <- coerce_index( data[[group_var]] )
     }#i
     }# ranef processing
-    
+
     # any special priors for likelihood function
     if ( family=="gaussian" ) {
         prior_list[["sigma"]] <- "dcauchy(0,2)"
     }
-    
+
     # insert linear model
     lm_name <- lm_names[[family]]
     #link_func <- link_names[[family]]
@@ -259,14 +307,14 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
     lm_left <- concat( link , "(" , lm_name , ")" )
     if ( link=="identity" ) lm_left <- lm_name
     flist[[2]] <- concat( lm_left , " <- " , lm_txt )
-    
+
     # build priors
     for ( i in 1:length(prior_list) ) {
         pname <- names(prior_list)[i]
         p_txt <- prior_list[[i]]
         flist[[i+2]] <- concat( pname , " ~ " , p_txt )
     }
-    
+
     # build formula text and parse into alist object
     flist_txt <- "alist(\n"
     for ( i in 1:length(flist) ) {
@@ -275,17 +323,17 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
     }
     flist_txt <- concat( flist_txt , "\n)" )
     flist2 <- eval(parse(text=flist_txt))
-    
+
     # clean variable names
     names(pf$dat) <- sapply( names(pf$dat) , undot )
     # remove Intercept from dat
     pf$dat[['Intercept']] <- NULL
-    
+
     # result
     cat(flist_txt)
     cat("\n")
     invisible(list(f=flist2,d=pf$dat))
-    
+
 }
 
 
