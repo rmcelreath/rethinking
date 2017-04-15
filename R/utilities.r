@@ -1,3 +1,5 @@
+#' @importFrom parallel mclapply
+#'
 # misc utilities
 
 # various utility functions
@@ -283,18 +285,17 @@ replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
 #' @seealso \code{\link{mclapply}}, \code{\link{replicate}}
 #' @export
 mcreplicate <- function (n, expr, refresh = 0.1, mc.cores=2 ) {
-    #require(parallel)
     show_progress <- function(i) {
         intervaln <- floor(n * refresh)
         if (floor(i/intervaln) == i/intervaln) {
             cat(paste("[", i, "/", n, "]\r"))
         }
     }
-    result <- simplify2array(mclapply(1:n, eval.parent(substitute(function(i,
-        ...) {
+    result <-
+      simplify2array(parallel::mclapply(1:n, eval.parent(substitute(function(i, ...) {
         if (refresh>0) show_progress(i)
         expr
-    })),mc.cores=mc.cores))
+    })), mc.cores = mc.cores))
     if (refresh>0) cat("\n")
     result
 }

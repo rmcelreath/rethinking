@@ -1,12 +1,13 @@
 # plotting
+#' @importFrom graphics par
 
 #' @export
 set_nice_margins <- function() {
-    par_mf <- par("mfrow","mfcol")
+    par_mf <- graphics::par("mfrow","mfcol")
     if ( all(unlist(par_mf)==1) ) {
-        #par_old <- par(no.readonly = TRUE)
-        #on.exit(par(par_old))
-        par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
+        #par_old <- graphics::par(no.readonly = TRUE)
+        #on.exit(graphics::par(par_old))
+        graphics::par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
     }
 }
 
@@ -46,7 +47,7 @@ dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , sh
         n <- ncol(x)
         cnames <- colnames(x)
         set_nice_margins()
-        par( mfrow=make.grid(n) )
+        graphics::par( mfrow=make.grid(n) )
         for ( i in 1:n ) {
             dens( x[,i] , adj=adj , norm.comp=norm.comp , show.HPDI=show.HPDI , show.zero=TRUE , xlab=cnames[i] , ... )
         }
@@ -129,8 +130,8 @@ image_xyz <- function( x , y , z , ... ) {
 #' @export
 plot2y <- function( ... , y2lab="2nd axis" , y2col=NULL ) {
     if ( is.null(y2col) ) y2col <- "black"
-    par(new=TRUE)
-    par(mar=c(5,4,4,5)+.1)
+    graphics::par(new=TRUE)
+    graphics::par(mar=c(5,4,4,5)+.1)
     plot( xaxt="n" , yaxt="n" , xlab="" , ylab="" , ... )
     axis( 4 , col=y2col , col.axis=y2col )
     mtext( y2lab , side=4 , line=3 , col=y2col )
@@ -424,8 +425,8 @@ shade <- function( object , lim , label=NULL , col=col.alpha("black",0.15) , bor
 #' @export
 mcmcpairs <- function( posterior , cex=0.3 , pch=16 , col=col.alpha("slateblue",0.2) , n=1000 , adj=1 , ... ) {
     panel.dens <- function(x, ...) {
-        usr <- par("usr"); on.exit(par(usr))
-        par(usr = c(usr[1:2], 0, 1.5) )
+        usr <- graphics::par("usr"); on.exit(graphics::par(usr))
+        graphics::par(usr = c(usr[1:2], 0, 1.5) )
         h <- density(x,adj=adj)
         y <- h$y
         y <- y/max(y)

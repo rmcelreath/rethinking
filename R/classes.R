@@ -1,3 +1,6 @@
+#' @import methods
+NULL
+
 #' Class \code{map2stan}: fitted map2stan Stan model
 #'
 #' This object contains an object of class \code{stanfit}, return by

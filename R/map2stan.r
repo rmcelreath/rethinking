@@ -1,3 +1,6 @@
+#' @importFrom rstan sflist2stanfit stan
+NULL
+
 # map2stan2 - rewrite of compilation algorithm
 # use templates this time
 # build all parts of stan code at same time, as pass through formulas
@@ -1627,9 +1630,13 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
 
         if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
         if ( is.null(previous_stanfit) )
-            fit <- try(stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
+            fit <- try(rstan::stan( model_code=model_code , model_name=modname ,
+                             data=d , init=initlist , iter=iter , warmup=warmup ,
+                             chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
         else
-            fit <- try(stan( fit=previous_stanfit , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
+            fit <- try(rstan::stan( fit=previous_stanfit , model_name=modname ,
+                             data=d , init=initlist , iter=iter , warmup=warmup ,
+                             chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
 
         if ( class(fit)=="try-error" ) {
                 # something went wrong in at least one chain
@@ -1648,9 +1655,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             # so just run the model
             if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
             if ( is.null(previous_stanfit) )
-                fit <- stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , pars=pars , seed=rng_seed , ... )
+                fit <- rstan::stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , pars=pars , seed=rng_seed , ... )
             else
-                fit <- stan( fit=previous_stanfit , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , pars=pars , seed=rng_seed , ... )
+                fit <- rstan::stan( fit=previous_stanfit , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , pars=pars , seed=rng_seed , ... )
 
         } else {
 
@@ -1660,7 +1667,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             # not sure inits are used at all, given chains=0
             if ( is.null(previous_stanfit) ) {
                 message("Precompiling model...")
-                fit_prep <- stan( model_code=model_code , model_name=modname , data=d , init=start[[1]] , iter=1 , chains=0 , pars=pars , test_grad=FALSE , refresh=-1 , ... )
+                fit_prep <- rstan::stan( model_code=model_code , model_name=modname , data=d , init=start[[1]] , iter=1 , chains=0 , pars=pars , test_grad=FALSE , refresh=-1 , ... )
             } else {
                 # reuse compiled model
                 fit_prep <- previous_stanfit
@@ -1676,7 +1683,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # hand off to mclapply
                 sflist <- mclapply( 1:chains , mc.cores=cores ,
                     function(chainid)
-                        stan( fit=fit_prep , data=d , init=list(start[[chainid]]) , pars=pars , iter=iter , warmup=warmup , chains=1 , seed=rng_seed , chain_id=chainid , ... )
+                        rstan::stan( fit=fit_prep , data=d , init=list(start[[chainid]]) , pars=pars , iter=iter , warmup=warmup , chains=1 , seed=rng_seed , chain_id=chainid , ... )
                 )
             } else {
                 # Windows
@@ -1687,14 +1694,14 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 clusterExport(cl = CL,
                     c("fit_prep","d","pars","iter","warmup","rng_seed","start") , as.environment(env0) )
                 sflist <- parLapply(CL, 1:chains, fun = function(cid) {
-					require(rstan) # will CRAN tolerate this?
-                    stan( fit=fit_prep , data = d, pars = pars, chains = 1,
+					# require(rstan) # will CRAN tolerate this?  NO!
+                    rstan::stan( fit=fit_prep , data = d, pars = pars, chains = 1,
                       iter = iter, warmup = warmup, seed = rng_seed,
                       chain_id = cid, init=list(start[[cid]]) )
                 })
             }
             # merge result
-            fit <- try( sflist2stanfit(sflist) )
+            fit <- try( rstan::sflist2stanfit(sflist) )
             if ( class(fit)=="try-error" ) {
                 # something went wrong in at least one chain
                 stop("Something went wrong in at least one chain. Debug your model while setting chains=1. Once the model is working with a single chain, try using multiple chains again.")
@@ -1753,7 +1760,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
 
         # push expected values back through model and fetch deviance
         #message("Taking one more sample now, at expected values of parameters, in order to compute DIC")
-        #fit2 <- stan( fit=fit , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=2 , refresh=-1 , cores=1 )
+        #fit2 <- rstan::stan( fit=fit , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=2 , refresh=-1 , cores=1 )
         fit2 <- sampling( fit@stanmodel , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=1 , cores=1 )
         dhat <- as.numeric( extract(fit2,"dev") )
         pD <- dbar - dhat
