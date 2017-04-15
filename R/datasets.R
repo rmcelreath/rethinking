@@ -383,8 +383,8 @@ NULL
 #'
 #'
 #' @docType data
-#' @name Trolly
-#' @usage data(Trolly)
+#' @name Trolley
+#' @usage data(Trolley)
 #' @format \enumerate{
 #'   \item case: a code that combines treatment and story labels
 #'   \item response: participant's rating of appropriateness of action in
