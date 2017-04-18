@@ -13,7 +13,7 @@ setcran <- function(themirror="http://cran.stat.ucla.edu/") options(repos=struct
 
 # default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
 blank <- function(ex=1,w=1,h=1) {
-    quartz("myquartz",width=3.5*ex*w,height=3.5*ex*h)
+    dev.new("myquartz",width=3.5*ex*w,height=3.5*ex*h)  # was quartz()
     par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
 }
 
@@ -109,7 +109,7 @@ covmat <- function( m , digits=4 ) {
     # upper diag is covariances
     # lower diag is correlations
     mcov <- if ( inherits(m, "data.frame") ) cov(m) else vcov(m)
-    mcor <- cov2cor( mcov )
+    mcor <- stats::cov2cor( mcov )
     mcov[ lower.tri(mcov) ] <- NA
     mcor[ lower.tri(mcor) ] <- NA
     result <- list( vcov=round(mcov,digits=digits) , cor=round(mcor,digits=digits) )
@@ -152,7 +152,7 @@ PIprimes <- c(0.67,0.89,0.97) # my snarky prime valued percentiles
 #' Highest Posterior Density Intervals (HPDI) are calculated by
 #' \code{\link{HPDinterval}} in the \code{coda} package.
 #'
-#' Percentile intervals (PI) use \code{\link{quantile}} and assign equal mass
+#' Percentile intervals (PI) use \code{\link{quantile}()} and assign equal mass
 #' to each tail.
 #'
 #' @aliases PI HPDI PCI
@@ -192,7 +192,7 @@ HPDI <- function( samples , prob=0.89 ) {
 PCI <- function( samples , prob=0.89 ) {
     x <- sapply( prob , function(p) {
         a <- (1-p)/2
-        quantile( samples , probs=c(a,1-a) )
+        stats::quantile( samples , probs=c(a,1-a) )
     } )
     # now order inside-out in pairs
     n <- length(prob)
