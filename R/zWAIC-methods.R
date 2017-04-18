@@ -2,8 +2,6 @@
 # compute WAIC from map2stan fit
 # (*) needs to work with models without linear models in them
 
-
-
 #' Information Criteria and Pareto-Smoothed Importance Sampling
 #' Cross-Validation
 #'
@@ -168,6 +166,7 @@ function( object , log_lik="log_lik" , ... ) {
 })
 
 #' @rdname WAIC
+#' @param loglik logical
 #' @export
 # by default uses all samples returned by Stan; indicated by n=0
 setMethod("WAIC", "map2stan",
