@@ -53,6 +53,10 @@ use all samples in \code{map2stan} fit}
 observation. Useful for computing standard errors.}
 
 \item{...}{Other parameters to pass to specific methods}
+
+\item{log_lik}{character}
+
+\item{loglik}{logical}
 }
 \description{
 Computes WAIC, DIC, and PSIS-LOO for \code{map} and \code{map2stan} model
