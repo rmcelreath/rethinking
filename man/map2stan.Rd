@@ -48,15 +48,7 @@ result}
 \item{...}{Additional arguments to pass to \code{\link{stan}}}
 }
 \value{
-Returns an object of class \code{map2stan} with the following slots.
-\item{call}{The function call} \item{model}{Stan model code}
-\item{stanfit}{\code{stanfit} object returned by \code{\link{stan}}}
-\item{coef}{The posterior means} \item{vcov}{Minimal variance-covariance
-matrix, just holding diagonal variances} \item{data}{The data}
-\item{start}{List of starting values that were used in sampling}
-\item{pars}{Parameter names monitored in samples} \item{formula}{Formula
-list from call} \item{formula_parsed}{List of parsed formula information.
-Useful mainly for debugging.}
+An object of class \code{map2stan}
 }
 \description{
 Compiles lists of formulas, like those used in \code{map}, into Stan model

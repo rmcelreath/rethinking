@@ -5,7 +5,6 @@
 \alias{sim,map-method}
 \alias{sim}
 \alias{sim-methods}
-\alias{sim,map2stan-method}
 \alias{sim,lm-method}
 \alias{sim,map2stan-method}
 \title{Simulate posterior observations}

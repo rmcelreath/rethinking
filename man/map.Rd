@@ -26,12 +26,7 @@ debugging}
 \item{...}{Additional arguments to pass to \code{optim}}
 }
 \value{
-Returns an object of class \code{map} with the following slots.
-\item{call}{The function call} \item{coef}{The estimated posterior modes}
-\item{vcov}{Variance-covariance matrix} \item{optim}{List returned by
-\code{optim}} \item{data}{The data} \item{formula}{Formula list}
-\item{fminuslogl}{Minus log-likelihood function that accepts a vector of
-parameter values}
+Returns an object of class \code{map}.
 }
 \description{
 Find mode of posterior distribution for arbitrary fixed effect models.

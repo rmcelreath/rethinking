@@ -29,7 +29,6 @@
 \alias{precis.show}
 \alias{precis.whitelist}
 \alias{predict_ordlogit}
-\alias{rangi2}
 \alias{replicate2}
 \alias{rrformat}
 \alias{sd2}
@@ -39,7 +38,6 @@
 \alias{setcran}
 \alias{show.naive.posterior}
 \alias{softmax}
-\alias{tracerplot}
 \alias{var2}
 \alias{AIC,ANY-method}
 \alias{DIC,ANY-method}
