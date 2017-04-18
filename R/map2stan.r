@@ -1,5 +1,4 @@
-#' @importFrom rstan sflist2stanfit stan
-NULL
+
 
 # map2stan2 - rewrite of compilation algorithm
 # use templates this time
@@ -110,15 +109,7 @@ NULL
 #' @param cores Number of processor cores to distribute chains over, using
 #' \code{\link{parallel}}.
 #' @param ... Additional arguments to pass to \code{\link{stan}}
-#' @return Returns an object of class \code{map2stan} with the following slots.
-#' \item{call}{The function call} \item{model}{Stan model code}
-#' \item{stanfit}{\code{stanfit} object returned by \code{\link{stan}}}
-#' \item{coef}{The posterior means} \item{vcov}{Minimal variance-covariance
-#' matrix, just holding diagonal variances} \item{data}{The data}
-#' \item{start}{List of starting values that were used in sampling}
-#' \item{pars}{Parameter names monitored in samples} \item{formula}{Formula
-#' list from call} \item{formula_parsed}{List of parsed formula information.
-#' Useful mainly for debugging.}
+#' @return An object of class \code{map2stan}
 #' @author Richard McElreath
 #' @seealso \code{\link{resample}}, \code{\link{map}}, \code{\link{stan}},
 #' \code{\link{link}}, \code{\link{sim}}, \code{\link{glimmer}}

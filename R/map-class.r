@@ -1,4 +1,18 @@
-
+#' An S4 class to represent a MAP fit by quadratic approximation using \code{\link{map}()}
+#'
+#' @slot call The original call to \code{\link{map}()}
+#' @slot coef The estimated posterior modes
+#' @slot vcov Variance-covariance matrix
+#' @slot optim List returned by \code{\link{optim}()}
+#' @slot data The data
+#' @slot formula Formula list
+#' @slot formula_parsed Parsed version of \code{formula} as a list
+#' of character.
+#' @slot fminuslogl Negative log-likelihood function that accepts a vector of
+#' parameter values
+#' @slot links List of links
+#' @slot start List of starting values for search algorithm
+#'
 #' @export
 setClass("map", representation( call = "language",
                                 coef = "numeric",
@@ -115,6 +129,7 @@ setMethod("summary", "map", function(object){
 #' containing samples for each parameter in the posterior distribution.
 #' @author Richard McElreath
 #' @seealso \code{\link{mvrnorm}}
+
 #' @export
 
 setGeneric("extract.samples",
@@ -126,7 +141,7 @@ function( object , n=10000 , clean.names=TRUE , ... ) {
     } else {
         mu <- xcoef(object)
     }
-    result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
+    result <- as.data.frame( MASS::mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
     if ( clean.names==TRUE ) {
         # convert (Intercept) to Intercept
         for ( i in 1:ncol(result) ) {
@@ -144,7 +159,7 @@ setMethod("extract.samples", "map",
 function(object,n=1e4,...){
     # require(MASS) # import now, so no need to require?
     mu <- object@coef
-    result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
+    result <- as.data.frame( MASS::mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
     # convert vector parameters to vectors in list
     veclist <- attr(object,"veclist")
     name_head <- function(aname) strsplit( aname , "[" , fixed=TRUE )[[1]][1]

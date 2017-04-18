@@ -1,16 +1,31 @@
-#' @importFrom rstan extract traceplot stan
 
+#' An S4 class to represent a fit using \code{\link{map2stan}()}
+#'
+#' @include a_import-export.R
+#' @slot call The function call
+#' @slot model Stan model code
+#' @slot stanfit \code{stanfit} object returned by \code{\link{stan}()}
+#' @slot coef The posterior means
+#' @slot vcov Minimal variance-covariance matrix, just holding diagonal variances
+#' @slot data The data
+#' @slot start List of starting values that were used in sampling
+#' @slot pars Parameter names monitored in samples
+#' @slot formula Formula list from call
+#' @slot formula_parsed List of parsed formula information.  Useful mainly for debugging.
 #' @export
-setClass("map2stan", representation( call = "language",
-                                model = "character",
-                                stanfit = "stanfit",
-                                coef = "numeric",
-                                vcov = "matrix",
-                                data = "list",
-                                start = "list",
-                                pars = "character" ,
-                                formula = "list" ,
-                                formula_parsed = "list" ))
+setClass(
+  "map2stan",
+  representation(
+    call = "language",
+    model = "character",
+    stanfit = "stanfit",
+    coef = "numeric",
+    vcov = "matrix",
+    data = "list",
+    start = "list",
+    pars = "character" ,
+    formula = "list" ,
+    formula_parsed = "list" ))
 
 #' @export
 setMethod("coef", "map2stan", function(object) {

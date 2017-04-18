@@ -73,12 +73,7 @@ flist_untag <- function(flist) {
 #' @param debug If \code{TRUE}, prints various internal steps to help with
 #' debugging
 #' @param ... Additional arguments to pass to \code{optim}
-#' @return Returns an object of class \code{map} with the following slots.
-#' \item{call}{The function call} \item{coef}{The estimated posterior modes}
-#' \item{vcov}{Variance-covariance matrix} \item{optim}{List returned by
-#' \code{optim}} \item{data}{The data} \item{formula}{Formula list}
-#' \item{fminuslogl}{Minus log-likelihood function that accepts a vector of
-#' parameter values}
+#' @return Returns an object of class \code{map}.
 #' @author Richard McElreath
 #' @seealso \code{\link{optim}}
 #' @export
