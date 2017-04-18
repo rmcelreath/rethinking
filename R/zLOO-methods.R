@@ -41,6 +41,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , ... ) {
 
 # extracts log_lik matrix from stanfit and computes LOO
 #' @rdname WAIC
+#' @param log_lik character
 #' @export
 setMethod("LOO", "stanfit",
 function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
