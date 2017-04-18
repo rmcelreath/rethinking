@@ -668,13 +668,13 @@ softmax <- function( ... ) {
 dmvnorm2 <- function( x , Mu , sigma , Rho , log=FALSE ) {
     DS <- diag(sigma)
     SIGMA <- DS %*% Rho %*% DS
-    dmvnorm(x, Mu, SIGMA, log=log )
+    mvtnorm::dmvnorm(x, Mu, SIGMA, log=log )
 }
 
 #' @export
 rmvnorm2 <- function( n , Mu=rep(0,length(sigma)) , sigma=rep(1,length(Mu)) , Rho=diag(length(Mu)) , method="chol" ) {
     DS <- diag(sigma)
     SIGMA <- DS %*% Rho %*% DS
-    rmvnorm( n=n , mean=Mu , sigma=SIGMA , method=method )
+    mvtnorm::rmvnorm( n=n , mean=Mu , sigma=SIGMA , method=method )
 }
 
