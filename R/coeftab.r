@@ -1,6 +1,14 @@
 
 # coeftab class definition and show method
+#' An S4 class for storing a coefficient table
 
+#' @slot coefs A matrix of coefficients
+#' @slot se A matrix of standard errors
+#' @slot nobs Number of observations
+#' @slot AIC AIC
+#' @slot digits A numeric indicating how many digits to display
+#' @slot width a numberic indicating width for formatting output
+#'
 setClass("coeftab",
          representation(coefs="matrix", se="matrix", nobs="numeric", AIC="numeric",
                         digits="numeric", width="numeric" ) )
@@ -167,7 +175,7 @@ coeftab <-
                     d[i,][ paste(names(kse)[j],".se",sep="") ] <- as.numeric( round(kse[j],digits) )
                 else
                     # combine with estimate
-                    d[i,][ names(kse)[j] ] <- paste( formatC( (d[i,][ names(kse)[j] ]) , digits=digits ) , " (" , formatC( as.real( kse[j] ) , digits=digits ) , ")" , sep="" )
+                    d[i,][ names(kse)[j] ] <- paste( formatC( (d[i,][ names(kse)[j] ]) , digits=digits ) , " (" , formatC( as.double( kse[j] ) , digits=digits ) , ")" , sep="" )
             }
         }
     }
@@ -199,4 +207,15 @@ coeftab <-
         dse <- t(dse)
     }
     new( "coeftab" , coefs=as.matrix(d) , se=as.matrix(dse) , nobs=nobs , digits=digits , width=width )
+  }
+
+#' Extract rows/columns from coeftab
+#'
+#' Extract rows/columns from coeftab
+#'
+#' @param x a coeftab
+#' @param ... arguments passe to extractor for a matrix.
+#' @export
+`[.coeftab` <- function(x, ...) {
+  (x @ coefs)[...]
 }
