@@ -1,14 +1,51 @@
 Package: rethinking
 Type: Package
 Title: Statistical Rethinking book package
-Description: Utilities for fitting and comparing models
-Version: 1.59.9003
-Date: 2017-4-15
+Description: Utilities for fitting and comparing models.
+Version: 1.59.9004
+Date: 2017-4-18
 Author: Richard McElreath
 Maintainer: Randall Pruim <rpruim@calvin.edu>
-Imports: coda, MASS, mvtnorm, loo, rstan (>= 2.10.0), stats, graphics, parallel, methods
+Imports: coda, MASS, mvtnorm, loo, rstan (>= 2.10.0), stats, graphics, parallel, methods, grDevices
 Suggests: mosaic, ggformula, lattice
 License: GPL (>= 3)
 LazyLoad: yes
 LazyData: yes
 RoxygenNote: 6.0.1
+Collate: 
+    'a_import-export.R'
+    'aa_generics.r'
+    'classes.R'
+    'coeftab.r'
+    'colors.r'
+    'compare.r'
+    'datasets.R'
+    'densify.R'
+    'distributions.r'
+    'ensemble.R'
+    'fits-and-resids.R'
+    'glimmer.R'
+    'map-class.r'
+    'map.r'
+    'map2stan-class.r'
+    'map2stan-divergent.r'
+    'map2stan-templates.r'
+    'map2stan.r'
+    'plotting.r'
+    'plp_plots.r'
+    'postcheck.r'
+    'precis.r'
+    'rethinking-internals.R'
+    'rethinking-package.R'
+    'sample.naive.posterior.r'
+    'sim.r'
+    'sim_train_test.R'
+    'trace-plots.R'
+    'utilities.r'
+    'zDIC-methods.R'
+    'zLOO-methods.R'
+    'zWAIC-methods.R'
+    'z_link-map.r'
+    'z_link-map2stan.r'
+    'z_link_sim_methods.R'
+    'zzz.R'
