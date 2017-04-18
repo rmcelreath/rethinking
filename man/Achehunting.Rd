@@ -12,8 +12,7 @@
   \item age : Man's age at time of record
   \item kg.meat : Kilograms of meat returned from hunt
   \item hours : Duration in hours of hunting trip
-  \item datatype : 1
-if duration of trip known, 3 otherwise }}
+  \item datatype : 1 if duration of trip known, 3 otherwise }}
 \source{
 Hill and Kintigh. 2009. Current Anthropology 50:369-377.
 }
