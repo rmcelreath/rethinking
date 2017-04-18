@@ -23,7 +23,7 @@ setGeneric("sim",
 #' methods can be defined for other model fit classes. I might eventually build
 #' methods for \code{lm} and \code{glm}.
 #'
-#' @aliases sim sim-methods sim,map2stan-method sim,map-method sim,lm-method
+#' @aliases sim sim-methods sim,map-method sim,lm-method
 #' @param fit Object of class \code{map} or \code{map2stan}
 #' @param data Optional list of data to compute predictions over
 #' @param n Number of samples to use
