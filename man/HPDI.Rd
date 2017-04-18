@@ -21,7 +21,7 @@ intervals, using samples from a posterior density or simulated outcomes.
 Highest Posterior Density Intervals (HPDI) are calculated by
 \code{\link{HPDinterval}} in the \code{coda} package.
 
-Percentile intervals (PI) use \code{\link{quantile}} and assign equal mass
+Percentile intervals (PI) use \code{\link{quantile}()} and assign equal mass
 to each tail.
 }
 \seealso{
