@@ -8,8 +8,11 @@
 #' @importFrom MASS mvrnorm
 #' @importClassesFrom rstan stanfit
 #' @importFrom rstan sflist2stanfit stan
-#' @importFrom rstan extract traceplot
+#' @importFrom rstan extract traceplot sampling
 #' @importFrom mvtnorm dmvnorm rmvnorm
 #' @importFrom grDevices dev.new
+#' @import Rcpp
+#' @export
+rstan::sampling
 
 NULL

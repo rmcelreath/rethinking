@@ -2,11 +2,11 @@ Package: rethinking
 Type: Package
 Title: Statistical Rethinking book package
 Description: Utilities for fitting and comparing models.
-Version: 1.59.9004
-Date: 2017-4-18
+Version: 1.59.9005
+Date: 2017-4-19
 Author: Richard McElreath
 Maintainer: Randall Pruim <rpruim@calvin.edu>
-Imports: coda, MASS, mvtnorm, loo, rstan (>= 2.10.0), stats, graphics, parallel, methods, grDevices
+Imports: coda, MASS, mvtnorm, loo, rstan (>= 2.10.0), stats, graphics, parallel, methods, grDevices, Rcpp
 Suggests: mosaic, ggformula, lattice
 License: GPL (>= 3)
 LazyLoad: yes

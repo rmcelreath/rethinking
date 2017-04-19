@@ -16,6 +16,7 @@ output:
 
 ```{r, setup, include=FALSE}
 # Load packages here 
+require(rstan)
 require(rethinking)
 require(mosaic)   
 require(ggformula)
