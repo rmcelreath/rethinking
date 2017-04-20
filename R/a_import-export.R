@@ -11,6 +11,7 @@
 #' @importFrom rstan extract traceplot sampling
 #' @importFrom mvtnorm dmvnorm rmvnorm
 #' @importFrom grDevices dev.new
+#' @importFrom graphics par
 #' @import Rcpp
 #' @export
 rstan::sampling

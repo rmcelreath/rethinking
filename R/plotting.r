@@ -1,5 +1,4 @@
 # plotting
-#' @importFrom graphics par
 
 #' @export
 set_nice_margins <- function() {

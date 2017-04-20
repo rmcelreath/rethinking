@@ -35,6 +35,43 @@ precis_plot <- function( x , y , pars , col.ci="black" , xlab="Value" , ... ) {
     abline( v=0 , lty=1 , col=col.alpha("black",0.15) )
 }
 
+#' ggplot2 plot of precis of models fit with rethinking package
+#'
+#' @param x a precis object
+#' @param params character vectro of parameters to include
+#' @param col_ci color of interval
+#' @param dot_size size of dots
+#' @param line_size size of lines
+#' @param flip logical indicating whther x- and y- axes should be swapped.  If TRUE (the default),
+#'   then parameters will be listed along the y-axis.
+#' @param ... additional arguments (currently ignored)
+#' @export
+#'
+ggplot.precis <- function( x, params, col_ci = "black", lab = "value", flip = TRUE,
+                           dot_size = 1, line_size = 0.5, ...) {
+  x <- x@output
+  if ( !missing(pars) ) {
+    x <- x[pars,]
+  }
+  n <- nrow(x)
+  PlotData <- data_frame(
+    mu = x[n:1,1],
+    left = x[[3]][n:1],
+    right = x[[4]][n:1],
+    param_name = factor(rownames(x)[n:1], labels = rownames(x)[n:1])
+  )
+  p <-
+    ggplot(PlotData) +
+    geom_hline(yintercept = 0, color = "red", alpha = 0.2) +
+    geom_linerange(
+      aes(y = mu, x = param_name, ymin = left, ymax = right),
+      size = line_size) +
+    geom_point(aes(y = mu, x = param_name), size = dot_size) +
+    labs(y = lab, x = "parameter")
+
+  if (flip) p <- p + coord_flip()
+  p
+}
 #' @export
 setMethod( "plot" , "precis" , function(x,y,...) precis_plot(x,y,...) )
 
