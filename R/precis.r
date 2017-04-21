@@ -55,16 +55,17 @@ ggplot.precis <- function( x, params, col_ci = "black", lab = "value", flip = TR
   }
   n <- nrow(x)
   PlotData <- data_frame(
-    mu = x[n:1,1],
-    left = x[[3]][n:1],
-    right = x[[4]][n:1],
-    param_name = factor(rownames(x)[n:1], labels = rownames(x)[n:1])
+    mu = x[,1],
+    left = x[,3],
+    right = x[,4],
+    param_name = factor(rownames(x), levels = rev(rownames(x)))
+                        # factor(rownames(x), labels = rev(rownames(x)))
   )
   p <-
     ggplot(PlotData) +
     geom_hline(yintercept = 0, color = "red", alpha = 0.2) +
     geom_linerange(
-      aes(y = mu, x = param_name, ymin = left, ymax = right),
+      aes(x = param_name, ymin = left, ymax = right),
       size = line_size) +
     geom_point(aes(y = mu, x = param_name), size = dot_size) +
     labs(y = lab, x = "parameter")
@@ -72,6 +73,7 @@ ggplot.precis <- function( x, params, col_ci = "black", lab = "value", flip = TR
   if (flip) p <- p + coord_flip()
   p
 }
+
 #' @export
 setMethod( "plot" , "precis" , function(x,y,...) precis_plot(x,y,...) )
 
