@@ -13,7 +13,11 @@
 #' @importFrom grDevices dev.new
 #' @importFrom graphics par
 #' @import Rcpp
+
 #' @export
 rstan::sampling
+
+#' @export
+Rcpp::cpp_object_initializer
 
 NULL

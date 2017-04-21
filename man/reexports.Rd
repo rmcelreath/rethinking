@@ -4,6 +4,8 @@
 \name{reexports}
 \alias{reexports}
 \alias{sampling}
+\alias{reexports}
+\alias{cpp_object_initializer}
 \title{Objects exported from other packages}
 \keyword{internal}
 \description{
@@ -11,6 +13,8 @@ These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
+  \item{Rcpp}{\code{\link[Rcpp]{cpp_object_initializer}}}
+
   \item{rstan}{\code{\link[rstan]{sampling}}}
 }}
 
