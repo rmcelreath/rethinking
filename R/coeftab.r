@@ -1,7 +1,17 @@
-# coeftab
 
 # coeftab class definition and show method
-setClass( "coeftab" , representation( coefs="matrix" , se="matrix" , nobs="numeric" , AIC="numeric" , digits="numeric" , width="numeric" ) )
+#' An S4 class for storing a coefficient table
+
+#' @slot coefs A matrix of coefficients
+#' @slot se A matrix of standard errors
+#' @slot nobs Number of observations
+#' @slot AIC AIC
+#' @slot digits A numeric indicating how many digits to display
+#' @slot width a numberic indicating width for formatting output
+#'
+setClass("coeftab",
+         representation(coefs="matrix", se="matrix", nobs="numeric", AIC="numeric",
+                        digits="numeric", width="numeric" ) )
 
 coeftab_show <- function( object ) {
     result <- object@coefs
@@ -12,7 +22,10 @@ coeftab_show <- function( object ) {
     coefs <- rrformat( result , digits=object@digits , width=object@width )
     print( coefs , quote=FALSE , justify="right" )
 }
+
+#' @export
 setMethod( "show" , "coeftab" , function(object) coeftab_show(object) )
+
 
 coeftab_plot <- function( x , y , pars , col.ci="black" , by.model=FALSE , prob=0.95 , ... ) {
     x.orig <- x
@@ -28,7 +41,7 @@ coeftab_plot <- function( x , y , pars , col.ci="black" , by.model=FALSE , prob=
     }
 
     z <- qnorm( 1-(1-prob)/2 )
-    
+
     left <- x
     right <- x
     for ( k in 1:nrow(x) ) {
@@ -42,7 +55,7 @@ coeftab_plot <- function( x , y , pars , col.ci="black" , by.model=FALSE , prob=
     llim <- min(left,na.rm=TRUE)
     rlim <- max(right,na.rm=TRUE)
     dotchart( x , xlab="Estimate" , xlim=c(llim,rlim) , ... )
-    
+
     for ( k in 1:nrow(x) ) {
         for ( m in 1:ncol(x) ) {
             if ( !is.na(left[k,m]) ) {
@@ -59,24 +72,68 @@ coeftab_plot <- function( x , y , pars , col.ci="black" , by.model=FALSE , prob=
     }
     abline( v=0 , lty=1 , col=col.alpha("black",0.15) )
 }
+
+
+#' Plots of coefficient tables
+#'
+#' Plots coefficient tables produced by \code{coeftab}, clustered either by
+#' models or by parameter names.
+#'
+#' This function plots the tabular output of \code{\link{coeftab}}, using a
+#' \code{\link{dotchart}}. By default, estimates are grouped by parameter, with
+#' a row for each model. Model's without a parameter still appear as a row, but
+#' with no estimate. By setting \code{by.model=TRUE}, the dotchart will instead
+#' be grouped by model, with each row being a parameter.
+#'
+#' MAP estimates are displayed with percentile confidence (credible) intervals.
+#' Default is 95\% intervals. Use \code{prob} to change the interval mass.
+#'
+#' @param x Object produced by \code{coeftab}
+#' @param y \code{NULL} and unused. Required for compatibility with base
+#' \code{plot}
+#' @param pars Optional vector of parameter names or indexes to display. If
+#' missing, all parameters shown.
+#' @param col.ci Color to draw confidence intervals
+#' @param by.model Cluster estimates by model instead of by parameter (default)
+#' @param prob Probability mass for confidence intervals. Default is 0.95.
+#' @author Richard McElreath
+#' @seealso \code{\link{coeftab}}, \code{\link{dotchart}}
+
 setMethod( "plot" , "coeftab" , function(x,y,...) coeftab_plot(x,y,...) )
 
-coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , width=7 , rotate=FALSE ) {
-    
+#' Coefficient tables
+#'
+#' Returns a table of model coefficients in rows and models in columns.
+#'
+#' This function provides a way to compare estimates across models.
+#'
+#' @param ... A series of fit models, separated by commas
+#' @param se Include standard errors in table?
+#' @param se.inside Print standard errors in same cell as estimates
+#' @param nobs Print number of observations for each model?
+#' @param digits Number of digits to round numbers to
+#' @param rotate If TRUE, rows are models and columns are coefficients
+#' @author Richard McElreath
+#' @export
+
+coeftab <-
+  function( ..., se = FALSE, se.inside = FALSE, nobs = TRUE, digits = 2,
+            width = 7, rotate = FALSE) {
+
     # se=TRUE outputs standard errors
     # se.inside=TRUE prints standard errors in parentheses in same column as estimates
-    
+
     if ( se.inside==TRUE ) se <- TRUE
-    
+
     # retrieve list of models
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 )
         L <- L[[1]]
-    
+
     # retrieve model names from function call
     mnames <- match.call()
     mnames <- as.character(mnames)[2:(length(L)+1)]
-    
+
     # count number of unique parameters
     param.names <- {}
     for ( i in 1:length(L) ) {
@@ -90,14 +147,14 @@ coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , w
             param.names <- unique( c( param.names , kse.names ) )
         }
     }
-    
+
     # make empty table
     nk <- length(param.names)
     d <- matrix( NA , ncol=nk )
     d <- data.frame(d)
     colnames(d) <- c( param.names )
     dse <- d
-    
+
     # loop over models and insert values
     for ( i in 1:length(L) ) {
         klist <- xcoef( L[[i]] )
@@ -118,14 +175,14 @@ coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , w
                     d[i,][ paste(names(kse)[j],".se",sep="") ] <- as.numeric( round(kse[j],digits) )
                 else
                     # combine with estimate
-                    d[i,][ names(kse)[j] ] <- paste( formatC( (d[i,][ names(kse)[j] ]) , digits=digits ) , " (" , formatC( as.real( kse[j] ) , digits=digits ) , ")" , sep="" )
+                    d[i,][ names(kse)[j] ] <- paste( formatC( (d[i,][ names(kse)[j] ]) , digits=digits ) , " (" , formatC( as.double( kse[j] ) , digits=digits ) , ")" , sep="" )
             }
         }
     }
-    
+
     # add model names to rows
     rownames(d) <- mnames
-    
+
     # formatting for parenthetical standard errors
     if ( se.inside==TRUE && se==TRUE ) {
         comment(d) <- "Values in parentheses are quadratic estimate standard errors."
@@ -136,18 +193,29 @@ coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , w
             }
         }
     }
-    
+
     # add nobs
     if ( nobs==TRUE ) {
         nobs <- sapply( L , xnobs )
     } else {
         nobs <- 0
     }
-    
+
     # return table
     if ( rotate==FALSE ) {
         d <- t(d) # models along top is default
         dse <- t(dse)
     }
     new( "coeftab" , coefs=as.matrix(d) , se=as.matrix(dse) , nobs=nobs , digits=digits , width=width )
+  }
+
+#' Extract rows/columns from coeftab
+#'
+#' Extract rows/columns from coeftab
+#'
+#' @param x a coeftab
+#' @param ... arguments passe to extractor for a matrix.
+#' @export
+`[.coeftab` <- function(x, ...) {
+  (x @ coefs)[...]
 }

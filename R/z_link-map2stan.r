@@ -5,6 +5,7 @@
 # (*) fix dzipois vectorization hack --- need to fix dzipois itself
 
 # new link function that doesn't invoke Stan
+#' @export
 setMethod("link", "map2stan",
 function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
 
@@ -16,21 +17,21 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         # weird vectorization errors otherwise
         #data <- as.data.frame(data)
     }
-    
+
     # get samples from Stan fit
     if ( missing(post) )
         post <- extract.samples(fit,n=n)
-    
+
     # check n and truncate accordingly
     # if ( n==0 )
-    
+
     # replace with any elements of replace list
     if ( length( replace ) > 0 ) {
         for ( i in 1:length(replace) ) {
             post[[ names(replace)[i] ]] <- replace[[i]]
         }
     }
-    
+
     lm <- fit@formula_parsed$lm
     lik <- fit@formula_parsed$lik
     n_lm <- length(lm)
@@ -57,12 +58,12 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         n_lm <- 1
         f_do_lm <- FALSE
     }
-    
+
     # number of samples
     n_samples <- dim( post[[1]] )[1]
     if ( n == 0 ) n <- n_samples # special flag for all samples in fit
     if ( n_samples < n ) n <- n_samples
-    
+
     lm_out <- list()
     liks <- fit@formula_parsed$likelihood
     n_cases_list <- list()
@@ -89,23 +90,23 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         n_cases_list[[i]] <- n_cases
         # empty array with right dims
         lm_out[[ lm_names[i] ]] <- array( 0 , dim=c( n , n_cases ) )
-        
+
         if ( lm_lik[[i]]=="ordered_logistic" ) {
             # need another dimension in result, because outcome is a vector
             lm_out[[ lm_names[i] ]] <- array( 0 , dim=c( n , n_cases , K ) )
         }
     }
-    
+
     #init <- fit@start
     init <- list()
-    
+
     ###################
     # loop over samples and compute each case for each linear model
-    
+
     # initialize refresh counter
     ref_inc <- floor(n*refresh)
     ref_next <- ref_inc
-    
+
     # prep reused objects
     rhs <- list()
     for ( k in 1:n_lm ) {
@@ -165,10 +166,10 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         # store
         rhs[[k]] <- rhs0
     }#k
-    
+
     # loop over samples
     for ( i in 1:n ) {
-    
+
         # refresh progress display
         if ( refresh > 0 ) {
             if ( i == ref_next ) {
@@ -178,7 +179,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
                 if ( ref_next > n ) ref_next <- n
             }
         }
-        
+
         # build inits
         for ( j in 1:length(post) ) {
             par_name <- names(post)[ j ]
@@ -190,11 +191,11 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
             # matrix
             if ( length(dims)==3 ) init[[par_name]] <- post[[par_name]][i,,]
         }#j
-        
+
         # loop over linear models and compute by pushing samples through stanfit
         # pass through linear models in reverse order, so lower models can be available for higher ones
         for ( k in n_lm:1 ) {
-        
+
             # ready environment
             e <- list( as.list(data) , as.list(init) )
             e <- unlist( e , recursive=FALSE )
@@ -204,7 +205,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
             flink <- fit@formula_parsed$lm[[k]]$link
             if ( flink=="log" ) r <- exp(r)
             if ( flink=="logit" ) r <- logistic(r)
-            
+
             # special processing for ordered logit
             # this needs to be sped up
             if ( !is.null(lm_lik) ) {
@@ -216,26 +217,26 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
                     r <- v
                 }
             }
-            
+
             # store
             if ( lm_lik[k] == "ordered_logistic" ) {
                 lm_out[[ lm_names[k] ]][i,,] <- r
             } else {
                 lm_out[[ lm_names[k] ]][i,] <- r
             }
-            
+
             # make linear models values available for next linear models
             init[[ lm_names[k] ]] <- r
-            
+
         }#k
-        
+
     }#i
-    
+
     if ( refresh>0 ) cat("\n")
-    
+
     if ( flatten==TRUE )
         if ( length(lm_out)==1 ) lm_out <- lm_out[[1]]
-    
+
     return( lm_out )
 }
 )

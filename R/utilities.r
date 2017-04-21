@@ -1,8 +1,11 @@
+#' @importFrom parallel mclapply
+#'
 # misc utilities
 
 # various utility functions
 
 # set help to html
+#' @export
 htmlhelp <- function() options(help_type="html")
 
 # set CRAN mirror
@@ -10,17 +13,17 @@ setcran <- function(themirror="http://cran.stat.ucla.edu/") options(repos=struct
 
 # default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
 blank <- function(ex=1,w=1,h=1) {
-    quartz("myquartz",width=3.5*ex*w,height=3.5*ex*h)
+    dev.new("myquartz",width=3.5*ex*w,height=3.5*ex*h)  # was quartz()
     par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
 }
 
 # default pdf plot size, for making cmyk figures
 # close file with dev.off() as usual
-pdfblank <- function (ex = 1, w = 1, h = 1, colormodel="cmyk" , ... ) 
+pdfblank <- function (ex = 1, w = 1, h = 1, colormodel="cmyk" , ... )
 {
-    pdf("mypdf.pdf", width = 3.5 * ex * w, height = 3.5 * ex * 
+    pdf("mypdf.pdf", width = 3.5 * ex * w, height = 3.5 * ex *
         h , colormodel=colormodel , ...)
-    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, 
+    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1,
         tck = -0.02)
 }
 
@@ -41,6 +44,23 @@ make.grid <- function( n ) {
 }
 
 # timing functions
+
+
+#' Progress display
+#'
+#' Provides a progress display with estimated time remaining, assuming rate
+#' constant process.
+#'
+#' This function provides useful progress information and estimated time until
+#' completion for long looped operations, like sampling from MCMC.
+#'
+#' @param current Current loop index of process
+#' @param min Minimum loop index, usually 0 or 1
+#' @param max Maximum loop index
+#' @param starttime Time stamp when process began, from \code{Sys.time}
+#' @param update.interval How often to display progress
+#' @author Richard McElreath
+#' @export
 progbar <- function( current , min=0 , max=100 , starttime , update.interval=100 , show.rate=FALSE ) {
     z <- current/update.interval
     if ( floor(z)!=z ) return()
@@ -88,8 +108,8 @@ progbar <- function( current , min=0 , max=100 , starttime , update.interval=100
 covmat <- function( m , digits=4 ) {
     # upper diag is covariances
     # lower diag is correlations
-    if ( class(m)[1]=="data.frame" ) mcov <- cov( m ) else mcov <- vcov(m)
-    mcor <- cov2cor( mcov )
+    mcov <- if ( inherits(m, "data.frame") ) cov(m) else vcov(m)
+    mcor <- stats::cov2cor( mcov )
     mcov[ lower.tri(mcov) ] <- NA
     mcor[ lower.tri(mcor) ] <- NA
     result <- list( vcov=round(mcov,digits=digits) , cor=round(mcor,digits=digits) )
@@ -101,6 +121,19 @@ Rho <- function( model , digits=2 ) {
 }
 
 # finds mode of a continuous density
+
+
+#' Find mode of a continuous density estimate
+#'
+#' Returns estimated mode of a density computed from samples.
+#'
+#' This function just finds the x value that maximizes the y density in the
+#' density estimate.
+#'
+#' @param chain Values, e.g. sampled from a posterior via MCMC
+#' @param ... Optional arguments passed to density calculation
+#' @author Richard McElreath
+#' @export
 chainmode <- function( chain , ... ) {
     dd <- density(chain , ...)
     dd$x[which.max(dd$y)]
@@ -109,11 +142,30 @@ chainmode <- function( chain , ... ) {
 # highest posterior density interval, sensu Box and Tiao
 # requires coda library
 PIprimes <- c(0.67,0.89,0.97) # my snarky prime valued percentiles
+
+
+#' Confidence/credible intervals from samples
+#'
+#' These functions compute highest posterior density (HPDI) and percentile (PI)
+#' intervals, using samples from a posterior density or simulated outcomes.
+#'
+#' Highest Posterior Density Intervals (HPDI) are calculated by
+#' \code{\link{HPDinterval}} in the \code{coda} package.
+#'
+#' Percentile intervals (PI) use \code{\link{quantile}()} and assign equal mass
+#' to each tail.
+#'
+#' @aliases PI HPDI PCI
+#' @param samples Vector of parameter values
+#' @param prob interval probability mass
+#' @author Richard McElreath
+#' @seealso \code{\link{HPDinterval}}
+#' @export
 HPDI <- function( samples , prob=0.89 ) {
     # require(coda)
-    class.samples <- class(samples)[1]
+    ## class.samples <- class(samples)[1]  # not needed now that we are using inherits()
     coerce.list <- c( "numeric" , "matrix" , "data.frame" , "integer" , "array" )
-    if ( class.samples %in% coerce.list ) {
+    if ( inherits(samples, coerce.list) ) {
         # single chain for single variable
         samples <- coda::as.mcmc( samples )
     }
@@ -136,10 +188,11 @@ HPDI <- function( samples , prob=0.89 ) {
 }
 
 # percentile confidence/credible interval
+#' @export
 PCI <- function( samples , prob=0.89 ) {
     x <- sapply( prob , function(p) {
         a <- (1-p)/2
-        quantile( samples , probs=c(a,1-a) )
+        stats::quantile( samples , probs=c(a,1-a) )
     } )
     # now order inside-out in pairs
     n <- length(prob)
@@ -158,9 +211,11 @@ PCI <- function( samples , prob=0.89 ) {
     }
     return(result)
 }
+#' @export
 PI <- PCI
 
 
+#' @export
 se <- function( model ) {
     sqrt( diag( vcov(model) ) )
 }
@@ -196,6 +251,7 @@ confint_quad <- function( model=NULL , est , se , prob=0.89 ) {
 }
 
 # replicate with progress display
+#' @export
 replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
     show_progress <- function(i) {
         intervaln <- floor( n * interval )
@@ -203,32 +259,49 @@ replicate2 <- function (n, expr, interval=0.1, simplify = "array") {
             cat( paste( "[" , i , "/" , n , "]\r" ) )
         }
     }
-    result <- sapply(1:n, 
-        eval.parent(substitute(function(i,...) { show_progress(i); expr })), 
+    result <- sapply(1:n,
+        eval.parent(substitute(function(i,...) { show_progress(i); expr })),
         simplify = simplify)
     cat("\n")
     result
 }
 
 # multi-core replicate
+
+
+#' Multi-core version of replicate
+#'
+#' Uses the \code{parallel} library to distribute \code{\link{replicate}}
+#' processing across cores.
+#'
+#' This function uses \code{\link{mclapply}} to distribute replications across
+#' cores. It then simplifies the result to an array.
+#'
+#' @param n Number of replications
+#' @param expr Code to replicate
+#' @param refresh Status update refresh interval
+#' @param mc.cores Number of cores to use
+#' @author Richard McElreath
+#' @seealso \code{\link{mclapply}}, \code{\link{replicate}}
+#' @export
 mcreplicate <- function (n, expr, refresh = 0.1, mc.cores=2 ) {
-    #require(parallel)
     show_progress <- function(i) {
         intervaln <- floor(n * refresh)
         if (floor(i/intervaln) == i/intervaln) {
             cat(paste("[", i, "/", n, "]\r"))
         }
     }
-    result <- simplify2array(mclapply(1:n, eval.parent(substitute(function(i, 
-        ...) {
+    result <-
+      simplify2array(parallel::mclapply(1:n, eval.parent(substitute(function(i, ...) {
         if (refresh>0) show_progress(i)
         expr
-    })),mc.cores=mc.cores))
+    })), mc.cores = mc.cores))
     if (refresh>0) cat("\n")
     result
 }
 
 # check index vector
+#' @export
 check_index <- function( x ) {
     y <- sort(unique(x))
     n <- length(y)
@@ -244,6 +317,50 @@ check_index <- function( x ) {
 
 # new coerce_index that can take multiple vectors
 # ensures labels in all are part of same index set
+
+
+#' Build and check integer index variables
+#'
+#' These functions assist with building (\code{coerce_index}) and checking
+#' (\code{check_index}) integer index variables of the kind needed to define
+#' varying effect models.
+#'
+#' Varying effect models often require index variables that begin at 1 and
+#' comprise only integers. These variables are used to lookup specific
+#' parameter values inside of the model. For example, it is common to define
+#' varying intercepts with a linear model like \code{a0 + a_id[id[i]]}. Here
+#' the variable \code{id} is an index variable. It has one value for each case,
+#' defining which individual applies to that case.
+#'
+#' When raw data exist as factors, these index variables much be converted to
+#' integers. This is trickier than it sounds, because R uses an internal
+#' integer represntation for factors, \code{levels}, that can conflict with
+#' ordinary integer representations.
+#'
+#' The function \code{coerce_index} deals with that complication. When the
+#' input is a single vector of factors, it returns an integer vector beginning
+#' at 1 and with contiguous values.
+#'
+#' When the input is instead a comma-separated list of factors, it returns a
+#' list in which each factor has been converted to integers, but all levels in
+#' all factors were merged so that the same labels across factors always have
+#' the same integer values in the result. For example, suppose cases refer to
+#' dyads and there are two factors, \code{id1} and \code{id2}, that indicate
+#' which pair of individuals are present in each dyad. The labels in these
+#' variables should refer to the same individuals. Passing both simultaneously
+#' to \code{coerce_index} ensures that the results respect that fact.
+#'
+#' The function \code{check_index} merely checks an integer vector to see if it
+#' is contiguous.
+#'
+#' @aliases coerce_index check_index
+#' @param ... A comma-separted list of variables. See details.
+#' @param x A vector of integers to check for contiguity
+#' @return For \code{coerce_index}, the result is either a single vector of
+#' integers (if the input was a single vector) or rather a list of vectors of
+#' integers (if the input was a list of vectors).
+#' @author Richard McElreath
+#' @export
 coerce_index <- function( ... ) {
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 ) L <- L[[1]]
@@ -266,7 +383,7 @@ coerce_index <- function( ... ) {
         }
         names(M) <- paste( vnames , "_idx" , sep="" )
         return(M)
-    } 
+    }
 }
 
 # sd and var functions that don't use n-1 denominator
@@ -285,11 +402,11 @@ var2 <- function( x , na.rm=TRUE ) {
 # name 'default__' is default digits
 # so can pass e.g. digits=c( 'default__'=2 , n_eff=0 )
 format_show <- function( x , digits ) {
-    r <- as.data.frame(lapply( 1:length(x) , 
-        function(i) { 
-            if ( names(x)[i] %in% names(digits) ) 
-                round( x[[i]] , digits[names(x)[i]] ) 
-            else 
+    r <- as.data.frame(lapply( 1:length(x) ,
+        function(i) {
+            if ( names(x)[i] %in% names(digits) )
+                round( x[[i]] , digits[names(x)[i]] )
+            else
                 round(x[[i]], digits['default__'] );
         } ) )
     names(r) <- names(x)

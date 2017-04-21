@@ -1,0 +1,33 @@
+---
+title: "Problem Set ??"
+author: "Your Name Here"
+date: ""
+output:
+  html_document:
+    fig_height: 2.5
+    fig_width: 3.5
+  pdf_document:
+    fig_height: 2.5
+    fig_width: 3.5
+  word_document:
+    fig_height: 2.5
+    fig_width: 3.5
+---
+
+```{r, setup, include=FALSE}
+# Load packages here 
+require(rstan)
+require(rethinking)
+require(mosaic)   
+require(ggformula)
+
+# Some customization.  You can alter or delete as desired (if you know what you are doing).
+trellis.par.set(theme=theme.mosaic()) # change default color scheme for lattice
+knitr::opts_chunk$set(
+  tidy=FALSE,     # display code as typed
+  size="small",   # slightly smaller font for code
+  fig.show = "hold")   # all plots at end of chunk
+theme_set(theme_minimal())
+```
+
+Delete this sentence and enter your text here.

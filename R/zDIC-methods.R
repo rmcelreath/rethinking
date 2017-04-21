@@ -1,5 +1,6 @@
 # DIC generic and methods
 
+#' @export
 setGeneric("DIC",
 function( object , ... ) {
     warning(paste("No specific DIC method for object of class ",class(object),". Returning AIC instead.\n",collapse="",sep=""))
@@ -10,11 +11,12 @@ function( object , ... ) {
 }
 )
 
+#' @export
 setMethod("DIC", "map",
 function( object , n=1000 , ... ) {
     idx_marker_string <- "_._"
     post <- extract.samples( object , n=n )
-    dev <- sapply( 1:n , 
+    dev <- sapply( 1:n ,
         function(i) {
             p <- list()
             for ( k in 1:length(post) ) {
@@ -24,7 +26,7 @@ function( object , n=1000 , ... ) {
                 if ( ldims==0 ) {
                     p[[ name ]] <- post[[k]][i]
                 } else {
-                    # vector of parameters, 
+                    # vector of parameters,
                     # so need to explode to scalars and rename
                     for ( j in 1:dims[2] ) {
                         new_name <- concat( name , idx_marker_string , j )
@@ -32,7 +34,7 @@ function( object , n=1000 , ... ) {
                     }#j
                 }
             }#i
-            2*object@fminuslogl( p ) 
+            2*object@fminuslogl( p )
         }
     )
     dev.hat <- deviance(object)
@@ -42,6 +44,7 @@ function( object , n=1000 , ... ) {
 }
 )
 
+#' @export
 setMethod("DIC", "map2stan",
 function( object , ... ) {
     doDICmap2stan <- function(object) {
@@ -63,7 +66,7 @@ function( object , ... ) {
                 }
             }
         }#i
-        
+
         # push expected values back through model and fetch deviance
         #message("Taking one more sample now, at expected values of parameters, in order to compute DIC")
         fit2 <- stan( fit=fit , init=list(Epost) , data=object@data , pars="dev" , chains=1 , iter=1 , refresh=-1 )
@@ -72,7 +75,7 @@ function( object , ... ) {
         dic <- dbar + pD
         return( c( dic , pD ) )
     }
-    
+
     # main
     if ( !is.null(attr(object,"DIC")) ) {
         val <- attr(object,"DIC")

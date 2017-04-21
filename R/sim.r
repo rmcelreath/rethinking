@@ -1,16 +1,45 @@
 # sim -- simulates observations from fit map and map2stan models
 
+#' @export
 setGeneric("sim",
-function( fit , data , n=1000 , ... ) {
-    predict(fit)
-}
+           function( fit , data , n=1000 , ... ) {
+             predict(fit)
+           }
 )
+
+
+#' Simulate posterior observations
+#'
+#' Simulates posterior observations for \code{map} and \code{map2stan} model
+#' fits.
+#'
+#' This function uses the model definition from a \code{map} or \code{map2stan}
+#' fit to simulate outcomes that average over the posterior distribution. It
+#' uses \code{\link{link}} internally to process any linear models. Then the
+#' correspond random number function is used, as defined by the model's
+#' likelihood.
+#'
+#' The \code{rethinking} package defines a generic function \code{sim}, so
+#' methods can be defined for other model fit classes. I might eventually build
+#' methods for \code{lm} and \code{glm}.
+#'
+#' @aliases sim sim-methods sim,map-method sim,lm-method
+#' @param fit Object of class \code{map} or \code{map2stan}
+#' @param data Optional list of data to compute predictions over
+#' @param n Number of samples to use
+#' @param post Samples from posterior. If missing, \code{sim} samples using
+#' \code{n}
+#' @param ... Other parameters to pass to someone
+#' @author Richard McElreath
+#' @seealso \code{\link{link}},\code{\link{map}},\code{\link{map2stan}}
+#' @rdname sim
+#' @export
 
 setMethod("sim", "map",
 function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() , ... ) {
     # when ll=FALSE, simulates sampling, one sample for each sample in posterior
     # when ll=TRUE, computes loglik of each observation, for each sample in posterior
-    
+
     ########################################
     # check arguments
     if ( class(fit)!="map" ) stop("Requires map fit")
@@ -21,19 +50,19 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() ,
         # weird vectorization errors otherwise
         #data <- as.data.frame(data)
     }
-    
-    if ( missing(post) ) 
+
+    if ( missing(post) )
         post <- extract.samples(fit,n=n)
     else {
         n <- dim(post[[1]])[1]
         if ( is.null(n) ) n <- length(post[[1]])
     }
-    
+
     # get linear model values from link
     # use our posterior samples, so later parameters have right correlation structure
     # don't flatten result, so we end up with a named list, even if only one element
     pred <- link( fit , data=data , n=n , post=post , flatten=FALSE , refresh=refresh , replace=replace , ... )
-    
+
     # extract likelihood, assuming it is first element of formula
     lik <- flist_untag(fit@formula)[[1]]
     # discover outcome
@@ -43,7 +72,7 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() ,
     # get simulation partner function
     rlik <- flik
     if ( ll==FALSE ) substr( rlik , 1 , 1 ) <- "r"
-    
+
     # check for aggreagted binomial, but only when ll==TRUE
     aggregated_binomial <- FALSE
     size_var_is_data <- FALSE
@@ -58,7 +87,7 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() ,
             if ( size_sym > 1 ) aggregated_binomial <- TRUE
         }
     }
-    
+
     # pull out parameters in likelihood
     pars <- vector(mode="list",length=length(lik[[3]])-1)
     for ( i in 1:length(pars) ) {
@@ -87,7 +116,7 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() ,
         if ( aggregated_binomial==TRUE ) use_outcome <- 'ones__'
         xeval <- paste( rlik , "(" , use_outcome , "," , pars , ",log=TRUE )" , collapse="" )
     }
-    
+
     # simulate outcomes
     sim_out <- matrix(NA,nrow=n,ncol=n_cases)
     for ( s in 1:n ) {
@@ -114,7 +143,7 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() ,
         # evaluate
         sim_out[s,] <- eval(parse(text=xeval),envir=e)
     }
-    
+
     # check for aggregated binomial outcome
     if ( aggregated_binomial==TRUE ) {
         # aggregated binomial with data for 'size'
@@ -152,15 +181,18 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() ,
         }#i
         sim_out <- sim_out_new
     }
-    
+
     # result
     return(sim_out)
 }
 )
 
+
+#' @rdname sim
+#' @export
 setMethod("sim", "map2stan",
 function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
-    
+
     ########################################
     # check arguments
     if ( missing(data) ) {
@@ -170,27 +202,27 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
         # weird vectorization errors otherwise
         #data <- as.data.frame(data)
     }
-    
+
     if ( n==0 ) {
         ptemp <- extract.samples(fit)
         n <- dim(ptemp[[1]])[1]
     }
-    
-    if ( missing(post) ) 
+
+    if ( missing(post) )
         post <- extract.samples(fit,n=n)
-    
+
     # get linear model values from link
     # use our posterior samples, so later parameters have right correlation structure with link values
     # don't flatten result, so we end up with a named list, even if only one element
     pred <- link( fit , data=data , n=n , post=post , flatten=FALSE , refresh=refresh , replace=replace , ... )
-    
+
     # extract likelihood, assuming it is first element of formula
     lik <- flist_untag(fit@formula)[[1]]
     # discover outcome
     outcome <- as.character(lik[[2]])
     # discover likelihood function
     flik <- as.character(lik[[3]][[1]])
-    
+
     # get simulation partner function
     rlik <- flik
     substr( rlik , 1 , 1 ) <- "r"
@@ -204,7 +236,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
     # build expression to evaluate
     n_cases <- length(data[[1]])
     xeval <- paste( rlik , "(" , n_cases , "," , pars , ")" , collapse="" )
-    
+
     # simulate outcomes
     sim_out <- matrix( NA , nrow=n , ncol=n_cases )
     # need to select out s-th sample for each parameter in post
@@ -219,7 +251,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
         #    elm <- pred[[1]][s,,]
         #elm <- list(elm)
         #names(elm)[1] <- names(pred)[1]
-        
+
         elm <- list()
         for ( j in 1:length(pred) ) {
             ndims <- length(dim(pred[[j]]))
@@ -229,14 +261,14 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
                 elm[[j]] <- pred[[j]][s,,]
         }
         names(elm) <- names(pred)
-        
+
         e <- list( as.list(data) , as.list(post2[s,]) , as.list(elm) )
         e <- unlist( e , recursive=FALSE )
         # evaluate
         if ( flik=="dordlogit" ) {
             n_outcome_vals <- dim( pred[[1]] )[3]
             probs <- pred[[1]][s,,]
-            sim_out[s,] <- sapply( 
+            sim_out[s,] <- sapply(
                 1:n_cases ,
                 function(i)
                     sample( 1:n_outcome_vals , size=1 , replace=TRUE , prob=probs[i,] )
@@ -245,7 +277,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
             sim_out[s,] <- eval(parse(text=xeval),envir=e)
         }
     }
-    
+
     return(sim_out)
 }
 )

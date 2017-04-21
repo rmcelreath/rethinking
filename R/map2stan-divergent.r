@@ -1,4 +1,5 @@
 # extracts n_divergent from stan fit
+#' @export
 divergent <- function( fit , warmup=FALSE ) {
     if ( class(fit)=="map2stan" ) fit <- fit@stanfit
     x <- rstan::get_sampler_params(fit)
@@ -13,6 +14,7 @@ divergent <- function( fit , warmup=FALSE ) {
 }
 
 # all diagnostics from Stan
+#' @export
 dashboard <- function( fit , warmup=FALSE ) {
     if ( class(fit)=="map2stan" ) fit <- fit@stanfit
     x <- rstan::get_sampler_params(fit)
