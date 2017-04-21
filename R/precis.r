@@ -42,16 +42,16 @@ precis_plot <- function( x , y , pars , col.ci="black" , xlab="Value" , ... ) {
 #' @param col_ci color of interval
 #' @param dot_size size of dots
 #' @param line_size size of lines
-#' @param flip logical indicating whther x- and y- axes should be swapped.  If TRUE (the default),
-#'   then parameters will be listed along the y-axis.
+#' @param flip logical indicating whther x- and y- axes should be swapped.
+#'   If TRUE (the default), then parameters will be listed along the y-axis.
 #' @param ... additional arguments (currently ignored)
 #' @export
 #'
 ggplot.precis <- function( x, params, col_ci = "black", lab = "value", flip = TRUE,
                            dot_size = 1, line_size = 0.5, ...) {
   x <- x@output
-  if ( !missing(pars) ) {
-    x <- x[pars,]
+  if ( !missing(params) ) {
+    x <- x[params,]
   }
   n <- nrow(x)
   PlotData <- data_frame(

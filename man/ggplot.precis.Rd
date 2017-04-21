@@ -14,8 +14,8 @@ ggplot.precis(x, params, col_ci = "black", lab = "value", flip = TRUE,
 
 \item{col_ci}{color of interval}
 
-\item{flip}{logical indicating whther x- and y- axes should be swapped.  If TRUE (the default),
-then parameters will be listed along the y-axis.}
+\item{flip}{logical indicating whther x- and y- axes should be swapped.
+If TRUE (the default), then parameters will be listed along the y-axis.}
 
 \item{dot_size}{size of dots}
 
