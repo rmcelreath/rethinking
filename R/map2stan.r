@@ -1252,7 +1252,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # add loop for non-vectorized distribution
                 txt1 <- concat( indent , "for ( i in 1:" , lik$N_name , " ) {\n" )
                 m_model_txt <- concat( m_model_txt , txt1 )
-                #m_gq <- concat( m_gq , txt1 )
+                if ( has_discrete_missingness==FALSE )
+                    m_gq <- concat( m_gq , txt1 )
 
                 xindent <- indent
                 
@@ -1389,7 +1390,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             if ( tmplt$vectorized==FALSE || has_discrete_missingness==TRUE ) {
                 txt1 <- concat( indent , "}//i \n" )
                 m_model_txt <- concat( m_model_txt , txt1 )
-                #m_gq <- concat( m_gq , txt1 )
+                if ( has_discrete_missingness==FALSE )
+                    m_gq <- concat( m_gq , txt1 )
             }
             
             # add number of cases to data list

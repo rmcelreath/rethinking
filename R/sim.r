@@ -190,7 +190,20 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
     outcome <- as.character(lik[[2]])
     # discover likelihood function
     flik <- as.character(lik[[3]][[1]])
-    
+
+    # check whether we must convert from Stan-name distribution to R-name distribution
+    first_char <- substr( flik , 1 , 1 )
+    if ( first_char != "d" ) {
+        # loop over templates and get matching dfoo name
+        for ( ii in 1:length(map2stan.templates) ) {
+            aStanName <- map2stan.templates[[ii]]$stan_name
+            if ( aStanName==flik ) {
+                flik <- map2stan.templates[[ii]]$R_name
+                break
+            }
+        }#ii
+    }
+
     # get simulation partner function
     rlik <- flik
     substr( rlik , 1 , 1 ) <- "r"
