@@ -1020,6 +1020,55 @@ dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3));",
             return(c(new_k[1],theta_txt));
         },
         vectorized = FALSE
+    ),
+    Phi = list(
+        # Phi() is the unit cumulative normal function
+        # used to z-score in Signal Detection Theory (among other things I'm sure)
+        name = "Phi",
+        R_name = "Phi",
+        stan_name = "",
+        stan_suffix = "",
+        num_pars = 0,
+        par_names = c("x"),
+        par_bounds = c("<lower=0,upper=1>"),
+        par_types = c("real"),
+        out_type = "",
+        # new tag: if TRUE, don't include this parameter in parameters{} and model{}
+        trans_pars_only = TRUE, 
+        par_map = function(k, e, n_pars=NULL, N_txt=NULL, ...) {
+            if (!is.null(N_txt)) {
+                # we have a vprior, add the hierachical stuff to transformed parameters{}
+                pname <- get("lhstxt", envir=e)
+                group <- concat("\\[", get("vprior", envir=e)$group, "\\]")
+                transpars <- get( "transpars" , envir=parent.frame() )
+                
+                
+                transpars[[pname]] <- c(
+                    concat("real<lower=0,upper=1> ", pname, "[", N_txt, "]"),
+                    concat("for ( j in 1:" , N_txt , " ) " , pname , "[j] <- Phi(" , gsub(group, "[j]", k) , " )"))
+                
+                assign( "transpars" , transpars , envir=e )
+            }
+            
+            return(k)
+        },
+        out_map = function(par_out, par_in, e, ...) {
+            # this gets run only for non-hierachical parameters
+            
+            transpars <- get( "transpars" , envir=e )
+            pname <- as.character(par_out[[1]])
+            x <- deparse(par_in[[1]])
+
+            transpars[[pname]] <- c(
+                concat("real<lower=0,upper=1> ", pname),
+                concat(pname, " <- Phi(", x, ")")
+            )
+            
+            assign( "transpars" , transpars , envir=e )
+            
+            return(par_out)
+        },
+        vectorized = FALSE
     )
 )
 
