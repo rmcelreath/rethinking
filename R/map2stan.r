@@ -7,13 +7,12 @@
 
 # to-do:
 # (*) need to do p*theta and (1-p)*theta multiplication outside likelihood in betabinomial (similar story for gammapoisson) --- or is there an operator for pairwise vector multiplication?
-# (-) handle improper input more gracefully
-# (-) add "as is" formula type? with quoted text on RHS to dump into Stan code
+# (*) make dev and log_lik optional, toggling generated quantities
 
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , log_lik=TRUE , dev=FALSE , ... ) {
 
     if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
     set.seed(rng_seed)
@@ -913,7 +912,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             par_out_clean <- strsplit( prior$par_out , "\\[" )[[1]][1]
             
             # now check if in start list
-            if ( !( par_out_clean %in% names(start) ) ) {
+            # This code disabled so Stan can sample inits from priors
+            if ( TRUE && !( par_out_clean %in% names(start) ) ) {
                 
                 # try to get dimension of parameter from any corresponding vprior
                 ndims <- 0
@@ -981,13 +981,21 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             npars <- length(vprior$pars_out)
             
             # add N count to data
-            N <- length( unique( d[[ vprior$group ]] ) )
-            d[[ N_txt ]] <- N
+            # UNLESS already hard coded in passed data
+            if ( is.null( d[[ N_txt ]] ) ) {
+                N <- length( unique( d[[ vprior$group ]] ) )
+                d[[ N_txt ]] <- N
+            } else {
+                N <- d[[ N_txt ]]
+            }
             
             # check for explicit start value
             # do this now, so out_map and pars_map functions can modify
+            # DISABLED so Stan can sample inits
+            # These zero inits were bad in high-dimension anyway
+            # Concentration of measure made it hard to move away from them in warmup
             for ( k in vprior$pars_out )
-                if ( !( k %in% names(start) ) ) {
+                if ( TRUE && !( k %in% names(start) ) ) {
                     if ( verbose==TRUE )
                         message( paste(k,": start values set to zero [",N,"]") )
                     for ( ch in 1:chains )
@@ -1021,7 +1029,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 lhstxt <- vprior$pars_out[[1]]
             }
             
-            # format parmater inputs
+            # format parameter inputs
             # use par_map function in template, so ordering etc can change
             #print(length(vprior$pars_out))
             klist <- tmplt$par_map( vprior$pars_in , environment() , length(vprior$pars_out) , N_txt )
@@ -1741,6 +1749,16 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             pars <- pars[ -exclude_idx ]
         }
     }
+
+    # hack to roll back to using Stan's init strategy, unless user provided for specific parameter
+    # used to need complex strat, before Stan allowed partial init lists
+    if ( length(start.orig)==0 ) {
+        start <- "random"
+    } else {
+        start_cloned <- vector(mode="list",length=chains)
+        for ( ch in 1:chains ) start_cloned[[ch]] <- start.orig
+        start <- start_cloned
+    }
     
     if ( sample==TRUE ) {
         #require(rstan) # don't need anymore
@@ -1897,7 +1915,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             coef = coef,
             vcov = varcov,
             data = d,
-            start = start,
+            start = start.orig,
             pars = pars,
             formula = flist.orig,
             formula_parsed = fp )
@@ -1930,7 +1948,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             call = match.call(), 
             model = model_code,
             data = d,
-            start = start,
+            start = start.orig,
             pars = pars,
             formula = flist.orig,
             formula_parsed = fp )

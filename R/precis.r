@@ -34,16 +34,28 @@ setMethod( "plot" , "precis" , function(x,y,...) precis_plot(x,y,...) )
 
 # function to process a list of posterior samples from extract.samples into a summary table
 # needed because as.data.frame borks the ordering of matrix parameters like varying effects
-postlistprecis <- function( post , prob=0.95 ) {
+postlistprecis <- function( post , prob=0.95 , spark=FALSE ) {
     n_pars <- length(post)
     result <- data.frame( Mean=0 , StdDev=0 , lower=0 , upper=0 )
+    if ( spark!=FALSE ) {
+        result <- data.frame( Mean=0 , StdDev=0 , Min=0 , Distribution="" , Max=0 )
+        result$Distribution <- as.character(result$Distribution)
+    }
     r <- 1
     for ( k in 1:n_pars ) {
         dims <- dim( post[[k]] )
         if ( length(dims)==1 ) {
             # single parameter
-            hpd <- as.numeric( HPDI( post[[k]] , prob=prob ) )
-            result[r,] <- c( mean(post[[k]]) , sd(post[[k]]) , hpd[1] , hpd[2] )
+            if ( spark==FALSE ) {
+                hpd <- as.numeric( HPDI( post[[k]] , prob=prob ) )
+                result[r,] <- c( mean(post[[k]]) , sd(post[[k]]) , hpd[1] , hpd[2] )
+            } else {
+                # histosparks in place of HPDI
+                the_spark <- histospark( post[[k]] , width=spark )
+                result[r,1:3] <- c( mean(post[[k]]) , sd(post[[k]]) , min(post[[k]]) )
+                result[r,4] <- the_spark
+                result[r,5] <- max( post[[k]] )
+            }
             rownames(result)[r] <- names(post)[k]
             r <- r + 1
         }
@@ -51,8 +63,15 @@ postlistprecis <- function( post , prob=0.95 ) {
             # vector of parameters
             # loop over
             for ( i in 1:dims[2] ) {
-                hpd <- as.numeric( HPDI( post[[k]][,i] , prob=prob ) )
-                result[r,] <- c( mean(post[[k]][,i]) , sd(post[[k]][,i]) , hpd[1] , hpd[2] )
+                if ( spark==FALSE ) {
+                    hpd <- as.numeric( HPDI( post[[k]][,i] , prob=prob ) )
+                    result[r,] <- c( mean(post[[k]][,i]) , sd(post[[k]][,i]) , hpd[1] , hpd[2] )
+                } else {
+                    the_spark <- histospark( post[[k]][,i] , width=spark )
+                    result[r,1:3] <- c( mean(post[[k]][,i]) , sd(post[[k]][,i]) , min(post[[k]][,i]) )
+                    result[r,4] <- the_spark
+                    result[r,5] <- max( post[[k]][,i] )
+                }
                 rownames(result)[r] <- concat( names(post)[k] , "[" , i , "]" )
                 r <- r + 1
             }
@@ -61,19 +80,27 @@ postlistprecis <- function( post , prob=0.95 ) {
             # matrix of parameters
             for ( i in 1:dims[2] ) {
                 for ( j in 1:dims[3] ) {
-                    hpd <- as.numeric( HPDI( post[[k]][,i,j] , prob=prob ) )
-                    result[r,] <- c( mean(post[[k]][,i,j]) , sd(post[[k]][,i,j]) , hpd[1] , hpd[2] )
+                    if ( spark==FALSE ) {
+                        hpd <- as.numeric( HPDI( post[[k]][,i,j] , prob=prob ) )
+                        result[r,] <- c( mean(post[[k]][,i,j]) , sd(post[[k]][,i,j]) , hpd[1] , hpd[2] )
+                    } else {
+                        the_spark <- histospark( post[[k]][,i,j] , width=spark )
+                        result[r,1:3] <- c( mean(post[[k]][,i,j]) , sd(post[[k]][,i,j]) , min(post[[k]][,i,j]) )
+                        result[r,4] <- the_spark
+                        result[r,5] <- max( post[[k]][,i,j] )
+                    }
                     rownames(result)[r] <- concat( names(post)[k] , "[" , i , "," , j , "]" )
                     r <- r + 1
                 }
             }
         }
     }
-    colnames(result)[3:4] <- c(paste("lower", prob), paste("upper", prob))
+    if ( spark==FALSE )
+        colnames(result)[3:4] <- c(paste("lower", prob), paste("upper", prob))
     result
 }
 
-precis <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , digits=2 , warn=TRUE ) {
+precis <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , digits=2 , warn=TRUE , spark=FALSE ) {
     the.class <- class(model)[1]
     found.class <- FALSE
     if ( the.class=="numeric" ) {
@@ -110,13 +137,13 @@ precis <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , 
         if ( the.class=="map2stan" ) {
             # HPDI from samples
             post <- extract.samples(model)
-            result <- postlistprecis( post , prob=prob )
+            result <- postlistprecis( post , prob=prob , spark=spark )
         }
         if ( the.class=="stanfit" ) {
             # HPDI from samples
             post <- extract.samples(model)
             post[['lp__']] <- NULL
-            result <- postlistprecis( post , prob=prob )
+            result <- postlistprecis( post , prob=prob , spark=spark )
         }
     }
     if ( the.class=="map2stan" | the.class=="stanfit" ) {

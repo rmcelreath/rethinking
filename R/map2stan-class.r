@@ -13,6 +13,15 @@ setMethod("coef", "map2stan", function(object) {
     object@coef
 })
 
+stan_total_samples <- function(stanfit) {
+    # find number of samples from stanfit
+    iter <- stanfit@sim$iter
+    warm <- stanfit@sim$warmup
+    chains <- stanfit@sim$chains
+    tot_samples <- (iter-warm)*chains
+    return(tot_samples)
+}
+
 setMethod("extract.samples","map2stan",
 function(object,n,...) {
     #require(rstan)
@@ -25,6 +34,8 @@ function(object,n,...) {
         attr(p[[i]],"dimnames") <- NULL
     }
     if ( !missing(n) ) {
+        tot_samples <- stan_total_samples(object@stanfit)
+        n <- min(n,tot_samples)
         for ( i in 1:length(p) ) {
             n_dims <- length( dim(p[[i]]) )
             if ( n_dims==1 ) p[[i]] <- p[[i]][1:n]
@@ -102,9 +113,33 @@ function (object, ...)
   attr(object,"deviance")
 })
 
+stan_sampling_duration <- function(object) {
+    if ( class(object)=="map2stan" ) object <- object@stanfit
+    dur <- get_elapsed_time(object)
+    totals <- rep(NA,nrow(dur))
+    for ( i in 1:nrow(dur) ) totals[i] <- sum( dur[i,] )
+    dur <- cbind( dur , totals )
+    colnames(dur)[3] <- "total"
+    lab <- "seconds"
+    if ( any(dur>60) ) {
+        dur <- dur/60 # convert to minutes
+        lab <- "minutes"
+        if ( any(dur>60) ) {
+            dur <- dur/60 # convert to hours
+            lab <- "hours"
+            if ( any(dur>24) ) {
+                dur <- dur/24 # convert to days
+                lab <- "days"
+            }
+        }
+    }
+    attr(dur,"units") <- lab
+    return(dur)
+}
+
 setMethod("show", "map2stan", function(object){
 
-    cat("map2stan model fit\n")
+    cat("map2stan model\n")
     iter <- object@stanfit@sim$iter
     warm <- object@stanfit@sim$warmup
     chains <- object@stanfit@sim$chains
@@ -113,6 +148,12 @@ setMethod("show", "map2stan", function(object){
     tot_samples <- (iter-warm)*chains
     cat(concat( tot_samples , " samples from " , chains , chaintxt ))
     
+    dur <- stan_sampling_duration(object)
+    lab <- attr(dur,"units")
+    attr(dur,"units") <- NULL
+    cat(concat("\nSampling durations (",lab,"):\n"))
+    print(round(dur,2))
+
     cat("\nFormula:\n")
     for ( i in 1:length(object@formula) ) {
         print( object@formula[[i]] )

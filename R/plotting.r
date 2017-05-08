@@ -296,3 +296,17 @@ mcmcpairs <- function( posterior , cex=0.3 , pch=16 , col=col.alpha("slateblue",
     pairs( posterior , cex=cex , pch=pch , col=col , upper.panel=panel.2d , lower.panel=panel.cor , diag.panel=panel.dens , ... )
 }
 
+# wickham's histospark
+# https://github.com/hadley/precis/blob/master/R/histospark.R
+sparks <- c("\u2581", "\u2582", "\u2583", "\u2585", "\u2587")
+histospark <- function(x, width = 10) {
+  bins <- graphics::hist(x, breaks = width, plot = FALSE)
+  factor <- cut(
+    bins$counts / max(bins$counts),
+    breaks = seq(0, 1, length = length(sparks) + 1),
+    labels = sparks,
+    include.lowest = TRUE
+  )
+  paste0(factor, collapse = "")
+}
+

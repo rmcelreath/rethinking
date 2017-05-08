@@ -22,9 +22,9 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() ,
         #data <- as.data.frame(data)
     }
     
-    if ( missing(post) ) 
+    if ( missing(post) ) {
         post <- extract.samples(fit,n=n)
-    else {
+    } else {
         n <- dim(post[[1]])[1]
         if ( is.null(n) ) n <- length(post[[1]])
     }
@@ -170,15 +170,17 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
         # weird vectorization errors otherwise
         #data <- as.data.frame(data)
     }
-    
+
     if ( n==0 ) {
-        ptemp <- extract.samples(fit)
-        n <- dim(ptemp[[1]])[1]
+        n <- stan_total_samples(fit@stanfit)
+    } else {
+        tot_samples <- stan_total_samples(fit@stanfit)
+        n <- min(n,tot_samples)
     }
     
     if ( missing(post) ) 
         post <- extract.samples(fit,n=n)
-    
+
     # get linear model values from link
     # use our posterior samples, so later parameters have right correlation structure with link values
     # don't flatten result, so we end up with a named list, even if only one element

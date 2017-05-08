@@ -6,7 +6,7 @@
 htmlhelp <- function() options(help_type="html")
 
 # set CRAN mirror
-setcran <- function(themirror="http://cran.stat.ucla.edu/") options(repos=structure(c(CRAN=themirror)))
+setcran <- function(themirror="https://cloud.r-project.org/") options(repos=structure(c(CRAN=themirror)))
 
 # default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
 blank <- function(ex=1,w=1,h=1) {
@@ -248,7 +248,12 @@ coerce_index <- function( ... ) {
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 ) L <- L[[1]]
     if ( length(L)==1 ) {
-        return( as.integer(as.factor(as.character(L[[1]]))) )
+        # first try to coerce straight to integer as test for any NAs
+        x <- as.integer(L[[1]])
+        if ( any(is.na(x)) ) 
+            # brute method
+            x <- as.integer(as.factor(as.character(L[[1]])))
+        return( x )
     } else {
         # multiple inputs
         vnames <- match.call()
@@ -287,10 +292,14 @@ var2 <- function( x , na.rm=TRUE ) {
 format_show <- function( x , digits ) {
     r <- as.data.frame(lapply( 1:length(x) , 
         function(i) { 
-            if ( names(x)[i] %in% names(digits) ) 
-                round( x[[i]] , digits[names(x)[i]] ) 
-            else 
-                round(x[[i]], digits['default__'] );
+            if ( class(x[[i]])!="character" ) {
+                if ( names(x)[i] %in% names(digits) ) 
+                    round( x[[i]] , digits[names(x)[i]] ) 
+                else 
+                    round(x[[i]], digits['default__'] );
+            } else {
+                return(x[[i]])
+            }
         } ) )
     names(r) <- names(x)
     rownames(r) <- rownames(x)
