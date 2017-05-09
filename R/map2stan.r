@@ -29,6 +29,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     m_model_lik <- "" # likelihood statements at bottom
     m_model_txt <- "" # general order-trusting code
     m_gq <- "" # generated quantities, can build mostly from m_model pieces
+
+    index_bank <- list() # holds master list of index "N_" variables, so we match them to variables as we go
     
     ########################################
     # inverse link list
@@ -560,8 +562,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     idx <- which(is.na(xcopy))
                     d[[undot(lik$outcome)]][idx] <- (-1)
 
-                    # overwrite with top 'N' name
-                    fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
+                    # add N var
+                    d[[ lik$N_name ]] <- lik$N_cases
+                    fp[['used_predictors']][[lik$N_name]] <- list( var=lik$N_name , type="index" )
+                    #fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
 
                     # make a copy of variable, with NAs omitted, to use in prior
                     new_x_name <- concat( undot(lik$outcome) , "_whole" )
@@ -592,7 +596,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     # is continuous (hopefully)
 
                     # overwrite with top 'N' name
-                    fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
+                    # did this bc unique N_ not added to data yet
+                    # add it instead
+                    d[[ lik$N_name ]] <- lik$N_cases
+                    fp[['used_predictors']][[lik$N_name]] <- list( var=lik$N_name , type="index" )
+                    #fp[['used_predictors']][[undot(lik$outcome)]] <- list( var=undot(lik$outcome) , N='N' , type=lik$out_type )
                     
                     # build info needed to perform imputation
                     var_missingness <- which(is.na(d[[undot(lik$outcome)]]))
@@ -601,7 +609,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     impute_bank[[ undot(lik$outcome) ]] <- list(
                         N_miss = length(var_missingness),
                         missingness = var_missingness,
-                        init = mean( d[[lik$outcome]] , na.rm=TRUE )
+                        init = mean( d[[lik$outcome]] , na.rm=TRUE ),
+                        merge_N = lik$N_name
                     )
                     # add missingness to data list
                     missingness_name <- concat(undot(lik$outcome),"_missingness")
@@ -1319,10 +1328,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # imputation stuff
                 if ( outcome %in% names(impute_bank) ) {
                     N_miss <- impute_bank[[lik$outcome]]$N_miss
+                    N_merge_name <- impute_bank[[lik$outcome]]$merge_N
                     # add _merge suffix
                     outcome <- concat(outcome,suffix_merge)
                     # build code in transformed parameters that constructs x_merge
-                    m_tpars1 <- concat( m_tpars1 , indent , "real " , outcome , "[N];\n" )
+                    m_tpars1 <- concat( m_tpars1 , indent , "real " , outcome , "[",N_merge_name,"];\n" )
                     m_tpars2 <- concat( m_tpars2 , indent , outcome , " <- " , lik$outcome , ";\n" )
                     # trap for single missing value and vectorization issues
                     if ( N_miss>1 )
@@ -1414,7 +1424,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     } # loop over fp_order
     
     # add number of cases to data list, in case no likelihood found
-    d[[ "N" ]] <- as.integer( length(d[[1]]) )
+    if ( is.null(d[["N"]]) )
+        d[[ "N" ]] <- as.integer( length(d[[1]]) )
     
     # compose generated quantities
     m_gq <- concat( m_model_declare , indent , "real dev;\n" , indent , "dev <- 0;\n" , m_gq )
