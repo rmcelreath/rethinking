@@ -1,5 +1,6 @@
 Statistical Rethinking book Errata
 ==========
+page 40: Just above R code box 2.5, the text refers to the different priors in Figure 2.5. It should refer to Figure 2.6.
 
 page 42: Just below R code box 2.6, the text says that map requires a list of start values. It does not, as long as priors are provided for each parameter. And indeed the example in box 2.6 does not contain a list of start values.
 
