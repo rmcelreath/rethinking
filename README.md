@@ -3,7 +3,7 @@ wythamewa
 
 This package contains models and data to replicate the payoff and frequency dependent social learning analysis of the Aplin, Sheldon, McElreath 2017, "Conformity does not perpetuate suboptimal traditions in a wild population of songbirds" (doi: 10.1073/pnas.1621067114).
 
-This package requires ``rstan'' (mc-stan.org) and ``rethinking'' (https://github.com/rmcelreath/rethinking) to fit the statistical models.
+This package requires ``rstan`` (mc-stan.org) and ``rethinking`` (https://github.com/rmcelreath/rethinking) to fit the statistical models.
 
 See ``?wythamewa`` for a quick start guide to replicating the analysis and figures in the paper. Full scripts to reproduce the figures are found in the various help pages accessible from there.
 
