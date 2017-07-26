@@ -27,6 +27,8 @@ page 314: "Islands that are better network acquire or sustain more tool types.":
 
 page 331, line 1: "a women" -> "a woman"
 
+page 345: The Mean values reported from the precis(m11.4) in R code 11.22 do not match the values converted back to the natural scale in R code 11.23. These values do match in the YouTube Lecture 16 (part 1) (see: https://youtu.be/rTrCA3yuabI at 29:05). 
+
 page 435: "FIGURE 14.4 display ... imputed neocortex values in blue ...
 shown by the blue line segments". The imputed values are actually the
 open black dots (and corresponding black line segments) as the caption
