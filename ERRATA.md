@@ -17,6 +17,8 @@ page 196-200: The data.frame d has 17 cases. However in the discussion of the fo
 
 page 212, the next-to-last sentence on the page refers to "the Rethinking box at the end of this section." That box is not in the text.
 
+page 229, second paragraph (m7.6): For every additional unit of shade, blooms decrease by 39, on average.
+
 page 237 Exercise H1: "...index variable, as explained in Chapter 6.",
 should be chapter 5 (at least that's their first appearance)
 
