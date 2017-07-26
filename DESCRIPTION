@@ -1,10 +1,11 @@
-Package: wythamewa
+Package: rethinking
 Type: Package
-Title: Parus major social learning analysis
-Version: 1.03
-Date: 2016-07-25
+Title: Statistical Rethinking book package
+Version: 1.59
+Date: 2016-6-24
 Author: Richard McElreath
-Maintainer: Richard McElreath <richard_mcelreath@eva.mpg.de>
-Depends: rstan, rethinking
-Description: Data and models for Parus major social learning analysis
+Maintainer: Richard McElreath <mcelreath@ucdavis.edu>
+Imports: coda, MASS, mvtnorm, loo
+Depends: rstan (>= 2.10.0), parallel, methods, stats, graphics
+Description: Utilities for fitting and comparing models
 License: GPL (>= 3)
