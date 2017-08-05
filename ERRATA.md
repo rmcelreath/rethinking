@@ -27,6 +27,8 @@ page 314: "Islands that are better network acquire or sustain more tool types.":
 
 page 331, line 1: "a women" -> "a woman"
 
+page 399: The text reads "Notice that I have placed the average intercept, α, in the linear model rather than inside the varying intercepts prior. This form is perfectly equivalent, recall, to placing α inside the prior." However, in the model specification and code, α is inside the varying intercepts parameter. Also, the explanation about interpreting the department level intercepts as deviations is not correct, since the model was not specificied in this way. 
+
 page 435: "FIGURE 14.4 display ... imputed neocortex values in blue ...
 shown by the blue line segments". The imputed values are actually the
 open black dots (and corresponding black line segments) as the caption
