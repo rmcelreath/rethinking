@@ -1,4 +1,4 @@
-setClass("map2stan", representation( call = "language",
+setClass("map2stan", slots=c( call = "language",
                                 model = "character",
                                 stanfit = "stanfit",
                                 coef = "numeric",
@@ -29,6 +29,7 @@ function(object,n,...) {
     # get rid of dev and lp__
     p[['dev']] <- NULL
     p[['lp__']] <- NULL
+    p[['log_lik']] <- NULL
     # get rid of those ugly dimnames
     for ( i in 1:length(p) ) {
         attr(p[[i]],"dimnames") <- NULL
@@ -91,7 +92,10 @@ function(object) {
 }
 )
 
-setMethod("vcov", "map2stan", function (object, ...) { object@vcov } )
+setMethod("vcov", "map2stan", function (object, ...) { 
+    #object@vcov 
+    cov(as.data.frame(extract.samples(object,...)))
+} )
 
 setMethod("nobs", "map2stan", function (object, ...) { attr(object,"nobs") } )
 
@@ -100,7 +104,11 @@ function (object, ...)
 {
     if(length(list(...)))
         warning("extra arguments discarded")
-    val <- (-1)*attr(object,"deviance")/2
+    if ( is.null(attr(object,"deviance") ) ) {
+        val <- attr( WAIC(object) , "lppd" )
+    } else {
+        val <- (-1)*attr(object,"deviance")/2
+    }
     attr(val, "df") <- length(object@coef)
     attr(val, "nobs") <- attr(object,"nobs")
     class(val) <- "logLik"
@@ -110,7 +118,11 @@ function (object, ...)
 setMethod("deviance", "map2stan",
 function (object, ...)
 {
-  attr(object,"deviance")
+    if ( is.null(attr(object,"deviance")) ) {
+        return( as.numeric((-2)*logLik(object)) )
+    } else {
+        return( attr(object,"deviance") )
+    }
 })
 
 stan_sampling_duration <- function(object) {
@@ -162,6 +174,7 @@ setMethod("show", "map2stan", function(object){
     #cat("\nExpected values of fixed effects:\n")
     #print(coef(object))
     
+    if ( FALSE ) {
     cat("\nLog-likelihood at expected values: ")
     cat(round(as.numeric(logLik(object)),2),"\n")
     
@@ -173,6 +186,7 @@ setMethod("show", "map2stan", function(object){
     
     cat("Effective number of parameters (pD): ")
     cat(round(as.numeric(attr(object,"pD")),2),"\n")
+    }
     
     if ( !is.null(attr(object,"WAIC")) ) {
         waic <- attr(object,"WAIC")

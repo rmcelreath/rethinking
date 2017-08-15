@@ -42,6 +42,41 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
     return(waic)
 })
 
+# extracts log_lik matrix from extracted samples in a list
+setMethod("WAIC", "list",
+function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
+
+    if ( is.null(object[[log_lik]]) ) stop(concat("No slot named '",log_lik,"' to extract pointwise log-likelihoods from."))
+    
+    ll_matrix <- object[[log_lik]]
+    
+    # stop(concat("Log-likelihood matrix '",log_lik,"'' not found."))
+
+    n_obs <- ncol(ll_matrix)
+    n_samples <- nrow(ll_matrix)
+    lpd <- rep(0,n_obs)
+    pD <- rep(0,n_obs)
+
+    for ( i in 1:n_obs ) {
+        lpd[i] <- log_sum_exp(ll_matrix[,i]) - log(n_samples)
+        pD[i] <- var2(ll_matrix[,i])
+    }
+
+    waic_vec <- (-2)*( lpd - pD )
+    if ( pointwise==FALSE ) {
+        waic <- sum(waic_vec)
+        lpd <- sum(lpd)
+        pD <- sum(pD)
+    } else {
+        waic <- waic_vec
+    }
+    attr(waic,"lppd") = lpd
+    attr(waic,"pWAIC") = pD
+    attr(waic,"se") = try(sqrt( n_obs*var2(waic_vec) ))
+    
+    return(waic)
+})
+
 setMethod("nobs","stanfit",
 function( object , log_lik="log_lik" , ... ) {
     # try to get number of observations from Stan model fit
@@ -57,8 +92,6 @@ function( object , log_lik="log_lik" , ... ) {
 # by default uses all samples returned by Stan; indicated by n=0
 setMethod("WAIC", "map2stan",
 function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
-    
-    if ( !(class(object)%in%c("map2stan")) ) stop("Requires map2stan fit")
     
     if ( !is.null(attr(object,"WAIC")) & loglik==FALSE ) {
         # already have it stored in object, so just return it
@@ -82,7 +115,18 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
 
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
     post <- extract.samples( object )
-    
+
+    # check for log_lik matrix in samples --- if found, use it instead
+    if ( !is.null(post[["log_lik"]]) ) {
+        if ( loglik==TRUE ) {
+            # need log_lik matrix (possibly to pass to LOO)
+            return( post[["log_lik"]] )
+        } else { 
+            return( WAIC(post) )
+        }
+    }
+
+    # code to follow calculates log_lik matrix in R
     n_samples <- dim( post[[1]] )[1]
     if ( n == 0 ) n <- n_samples # special flag for all samples in fit
     #if ( n_samples < n ) n <- n_samples

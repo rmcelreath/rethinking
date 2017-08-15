@@ -8,22 +8,6 @@ htmlhelp <- function() options(help_type="html")
 # set CRAN mirror
 setcran <- function(themirror="https://cloud.r-project.org/") options(repos=structure(c(CRAN=themirror)))
 
-# default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
-blank <- function(ex=1,w=1,h=1) {
-    quartz("myquartz",width=3.5*ex*w,height=3.5*ex*h)
-    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02)
-}
-
-# default pdf plot size, for making cmyk figures
-# close file with dev.off() as usual
-pdfblank <- function (ex = 1, w = 1, h = 1, colormodel="cmyk" , ... ) 
-{
-    pdf("mypdf.pdf", width = 3.5 * ex * w, height = 3.5 * ex * 
-        h , colormodel=colormodel , ...)
-    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, 
-        tck = -0.02)
-}
-
 # convenience function for choosing a csv file
 choose.csv <- function( ... ) read.csv( file=file.choose() , ... )
 
@@ -32,12 +16,6 @@ fclip <- function( x , xmin=NULL , xmax=NULL ) {
     if ( !is.null(xmin) ) x <- ifelse( x < xmin , xmin , x )
     if ( !is.null(xmax) ) x <- ifelse( x > xmax , xmax , x )
     x
-}
-
-make.grid <- function( n ) {
-    num.rows <- floor( sqrt(n) )
-    num.cols <- ceiling(n/num.rows)
-    c(num.rows,num.cols)
 }
 
 # timing functions

@@ -1,7 +1,7 @@
 # coeftab
 
 # coeftab class definition and show method
-setClass( "coeftab" , representation( coefs="matrix" , se="matrix" , nobs="numeric" , AIC="numeric" , digits="numeric" , width="numeric" ) )
+setClass( "coeftab" , slots=c( coefs="matrix" , se="matrix" , nobs="numeric" , AIC="numeric" , digits="numeric" , width="numeric" ) )
 
 coeftab_show <- function( object ) {
     result <- object@coefs

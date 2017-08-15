@@ -1,24 +1,27 @@
 # compare
 
 # compare class definition and show method
-setClass( "compareIC" , representation( output="data.frame" , dSE="matrix" ) )
+setClass( "compareIC" , slots=c( dSE="matrix" ) , contains="data.frame" )
 
 #compare.show <- function( object ) {
 #    r <- format_show( object@output , #digits=c('default__'=1,'weight'=2,'SE'=2,'dSE'=2) )
 #    print( r )
 #}
 setMethod( "show" , "compareIC" , function(object) {
-    r <- format_show( object@output , 
+    r <- format_show( object , 
                       digits=c('default__'=1,'weight'=2,'SE'=2,'dSE'=2) )
     print( r )
 } )
 
 # new compare function, defaulting to WAIC
 compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh=0 ) {
+
     # retrieve list of models
     L <- list(...)
     if ( is.list(L[[1]]) && length(L)==1 )
         L <- L[[1]]
+
+    if ( length(L)==1 ) stop( "Need more than one model to compare." )
     
     # retrieve model names from function call
     mnames <- match.call()
@@ -126,14 +129,14 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
         }
     }
     
-    new( "compareIC" , output=result , dSE=dSE.matrix )
+    new( "compareIC" , result , dSE=dSE.matrix )
 }
 
 # plot method for compareIC results shows deviance in and expected deviance out of sample, for each model, ordered top-to-bottom by rank
 setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALSE,...) {
-    dev_in <- x@output[[1]] - x@output[[2]]*2
-    dev_out <- x@output[[1]]
-    if ( !is.null(x@output[['SE']]) ) devSE <- x@output[['SE']]
+    dev_in <- x[[1]] - x[[2]]*2
+    dev_out <- x[[1]]
+    if ( !is.null(x[['SE']]) ) devSE <- x[['SE']]
     dev_out_lower <- dev_out - devSE
     dev_out_upper <- dev_out + devSE
     if ( weights==TRUE ) {
@@ -145,17 +148,17 @@ setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALS
     n <- length(dev_in)
     if ( missing(xlim) ) {
         xlim <- c(min(dev_in),max(dev_out))
-        if ( SE==TRUE & !is.null(x@output[['SE']]) ) {
+        if ( SE==TRUE & !is.null(x[['SE']]) ) {
             xlim <- c(min(dev_in),max(dev_out_upper))
         }
     }
-    main <- colnames(x@output)[1]
+    main <- colnames(x)[1]
     set_nice_margins()
-    dotchart( dev_in[n:1] , labels=rownames(x@output)[n:1] , xlab="deviance" , pch=16 , xlim=xlim , ... )
+    dotchart( dev_in[n:1] , labels=rownames(x)[n:1] , xlab="deviance" , pch=16 , xlim=xlim , ... )
     points( dev_out[n:1] , 1:n )
     mtext(main)
     # standard errors
-    if ( !is.null(x@output[['SE']]) & SE==TRUE ) {
+    if ( !is.null(x[['SE']]) & SE==TRUE ) {
         for ( i in 1:n ) {
             lines( c(dev_out_lower[i],dev_out_upper[i]) , rep(n+1-i,2) , lwd=0.75 )
         }
@@ -164,8 +167,8 @@ setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALS
         # plot differences and stderr of differences
         dcol <- col.alpha("black",0.5)
         abline( v=dev_out[1] , lwd=0.5 , col=dcol )
-        diff_dev_lower <- dev_out - x@output$dSE
-        diff_dev_upper <- dev_out + x@output$dSE
+        diff_dev_lower <- dev_out - x$dSE
+        diff_dev_upper <- dev_out + x$dSE
         if ( weights==TRUE ) {
             diff_dev_lower <- ICweights(diff_dev_lower)
             diff_dev_upper <- ICweights(diff_dev_upper)
@@ -282,8 +285,8 @@ library(rethinking)
 data(chimpanzees)
 
 d <- list( 
-    pulled_left = chimpanzees$pulled.left ,
-    prosoc_left = chimpanzees$prosoc.left ,
+    pulled_left = chimpanzees$pulled_left ,
+    prosoc_left = chimpanzees$prosoc_left ,
     condition = chimpanzees$condition ,
     actor = as.integer( chimpanzees$actor )
 )

@@ -7,12 +7,11 @@
 
 # to-do:
 # (*) need to do p*theta and (1-p)*theta multiplication outside likelihood in betabinomial (similar story for gammapoisson) --- or is there an operator for pairwise vector multiplication?
-# (*) make dev and log_lik optional, toggling generated quantities
 
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , log_lik=TRUE , dev=FALSE , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , log_lik=FALSE , DIC=FALSE , ... ) {
 
     if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
     set.seed(rng_seed)
@@ -78,7 +77,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     }
     if ( missing(data) ) stop( "'data' required." )
     if ( !( class(data) %in% c("list","data.frame") ) ) {
-        stop( "'data' must be of class list or data.frame." )
+        data <- try( as.list(data) , silent=TRUE )
+        stop( "'data' must be a list, a data.frame, or coercable into a list." )
     }
     
     flist.orig <- flist
@@ -1373,11 +1373,29 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 }
                 m_model_txt <- concat( m_model_txt , indent , xindent , outcome , " ~ " , lik$likelihood , "( " , parstxt , " )" , lik$T_text , ";\n" )
                 
-                # don't add deviance calc when imputed predictor
+                # don't add deviance/log_lik calc when imputed predictor
                 if ( !(lik$outcome %in% names(impute_bank)) && has_discrete_missingness==FALSE ) {
                     # get stan suffix
                     the_suffix <- templates[[lik$template]]$stan_suffix
-                    m_gq <- concat( m_gq , indent , xindent , "dev <- dev + (-2)*" , lik$likelihood , the_suffix , "( " , outcome , " | " , parstxt , " )" , lik$T_text , ";\n" )
+                    if ( DIC==TRUE )
+                        m_gq <- concat( m_gq , indent , xindent , "dev <- dev + (-2)*" , lik$likelihood , the_suffix , "( " , outcome , " | " , parstxt , " )" , lik$T_text , ";\n" )
+                    if ( log_lik==TRUE ) {
+                        # check for linear model names as parameters and add [i] to each
+                        if ( length(fp[['lm']])>0 ) {
+                            lm_names <- c()
+                            for ( j in 1:length(fp[['lm']]) ) {
+                                lm_names <- c( lm_names , fp[['lm']][[j]]$parameter )
+                            }
+                            parstxt_i <- parstxt_L
+                            for ( j in 1:length(parstxt_L) ) {
+                                if ( as.character(parstxt_L[[j]]) %in% lm_names ) {
+                                    parstxt_i[[j]] <- concat( as.character(parstxt_L[[j]]) , "[i]" )
+                                }
+                            }
+                            parstxt_i <- paste( parstxt_i , collapse=" , " )
+                        }
+                        m_gq <- concat( m_gq , indent , xindent , "for ( i in 1:N ) log_lik[i] = " , lik$likelihood , the_suffix , "( " , outcome , "[i] | " , parstxt_i , " )" , lik$T_text , ";\n" )
+                    }#log_lik
                 }
                 
             }
@@ -1428,7 +1446,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         d[[ "N" ]] <- as.integer( length(d[[1]]) )
     
     # compose generated quantities
-    m_gq <- concat( m_model_declare , indent , "real dev;\n" , indent , "dev <- 0;\n" , m_gq )
+    if ( DIC==TRUE )
+        m_gq <- concat( indent , "real dev;\n" , indent , "dev <- 0;\n" , m_gq )
+    if ( log_lik==TRUE )
+        m_gq <- concat( indent , "vector[N] log_lik;\n" , m_gq )
+    m_gq <- concat( m_model_declare , m_gq )
     
     # general data length data declare
     #m_data <- concat( m_data , indent , "int<lower=1> " , "N" , ";\n" )
@@ -1754,7 +1776,9 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     if ( missing(pars) ) {
         pars <- names(start[[1]])
         elected <- names(pars_elect)
-        pars <- c( pars , elected , "dev" )
+        pars <- c( pars , elected )
+        if ( DIC==TRUE ) pars <- c( pars , "dev" )
+        if ( log_lik==TRUE ) pars <- c( pars , "log_lik" )
         if ( length(pars_hide)>0 ) {
             exclude_idx <- which( pars %in% names(pars_hide) )
             pars <- pars[ -exclude_idx ]
@@ -1873,48 +1897,55 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     fp$impute_bank <- impute_bank
     fp$discrete_miss_bank <- discrete_miss_bank
     if ( sample==TRUE ) {
+
         # compute expected values of parameters
         s <- summary(fit)$summary
         s <- s[ -which( rownames(s)=="lp__" ) , ]
-        s <- s[ -which( rownames(s)=="dev" ) , ]
+        if ( DIC==TRUE ) s <- s[ -which( rownames(s)=="dev" ) , ]
+        if ( log_lik==TRUE ) s <- s[ -which( rownames(s)=="log_lik" ) , ]
         if ( !is.null(dim(s)) ) {
             coef <- s[,1]
             # compute variance-covariance matrix
-            varcov <- matrix(NA,nrow=nrow(s),ncol=nrow(s))
-            diag(varcov) <- s[,3]^2
+            #varcov <- matrix(NA,nrow=nrow(s),ncol=nrow(s))
+            varcov <- matrix( s[,3]^2 , ncol=1 )
+            rownames(varcov) <- rownames(s)
         } else {
             coef <- s[1]
-            varcov <- matrix( s[3]^2 , 1 , 1 )
+            varcov <- matrix( s[3]^2 , ncol=1 )
             names(coef) <- names(start[[1]])
         }
-        
-        # compute DIC
-        dev.post <- extract(fit, "dev", permuted = TRUE, inc_warmup = FALSE)
-        dbar <- mean( dev.post$dev )
-        # to compute dhat, need to feed parameter averages back into compiled stan model
-        post <- extract( fit )
-        Epost <- list()
-        for ( i in 1:length(post) ) {
-            dims <- length( dim( post[[i]] ) )
-            name <- names(post)[i]
-            if ( name!="lp__" & name!="dev" ) {
-                if ( dims==1 ) {
-                    Epost[[ name ]] <- mean( post[[i]] )
-                } else {
-                    Epost[[ name ]] <- apply( post[[i]] , 2:dims , mean )
+
+        if ( DIC==TRUE ) {
+            
+            # compute DIC
+            dev.post <- extract(fit, "dev", permuted = TRUE, inc_warmup = FALSE)
+            dbar <- mean( dev.post$dev )
+            # to compute dhat, need to feed parameter averages back into compiled stan model
+            post <- extract( fit )
+            Epost <- list()
+            for ( i in 1:length(post) ) {
+                dims <- length( dim( post[[i]] ) )
+                name <- names(post)[i]
+                if ( name!="lp__" & name!="dev" ) {
+                    if ( dims==1 ) {
+                        Epost[[ name ]] <- mean( post[[i]] )
+                    } else {
+                        Epost[[ name ]] <- apply( post[[i]] , 2:dims , mean )
+                    }
                 }
-            }
-        }#i
+            }#i
         
-        if ( debug==TRUE ) print( Epost )
-        
-        # push expected values back through model and fetch deviance
-        #message("Taking one more sample now, at expected values of parameters, in order to compute DIC")
-        #fit2 <- stan( fit=fit , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=2 , refresh=-1 , cores=1 )
-        fit2 <- sampling( fit@stanmodel , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=1 , cores=1 )
-        dhat <- as.numeric( extract(fit2,"dev") )
-        pD <- dbar - dhat
-        dic <- dbar + pD
+            if ( debug==TRUE ) print( Epost )
+            
+            # push expected values back through model and fetch deviance
+            #message("Taking one more sample now, at expected values of parameters, in order to compute DIC")
+            #fit2 <- stan( fit=fit , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=2 , refresh=-1 , cores=1 )
+            fit2 <- sampling( fit@stanmodel , init=list(Epost) , data=d , pars="dev" , chains=1 , iter=1 , cores=1 )
+            dhat <- as.numeric( extract(fit2,"dev") )
+            pD <- dbar - dhat
+            dic <- dbar + pD
+
+        }#DIC
         
         # if (debug==TRUE) print(Epost)
         
@@ -1932,9 +1963,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             formula_parsed = fp )
         
         attr(result,"df") = length(result@coef)
-        attr(result,"DIC") = dic
-        attr(result,"pD") = pD
-        attr(result,"deviance") = dhat
+        if ( DIC==TRUE ) {
+            attr(result,"DIC") = dic
+            attr(result,"pD") = pD
+            attr(result,"deviance") = dhat
+        }
         try( 
             if (!missing(d)) attr(result,"nobs") = length(d[[ fp[['likelihood']][[1]][['outcome']] ]]) , 
             silent=TRUE

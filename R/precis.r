@@ -8,16 +8,24 @@ precis.whitelist <- data.frame(
 )
 
 # precis class definition and show method
-setClass( "precis" , representation( output="data.frame" , digits="numeric" ) )
-precis_show <- function( object ) {
+# setClass( "precis" , representation( output="data.frame" , digits="numeric" ) )
+setClass( "precis" , slots=c( digits="numeric" ) , contains="data.frame" )
+
+precis_show_old <- function( object ) {
     #print( round( object@output , object@digits ) )
     r <- format_show( object@output , digits=c('default__'=object@digits,'n_eff'=0) )
     print(r)
 }
+precis_show <- function( object ) {
+    #print( round( object@output , object@digits ) )
+    r <- format_show( object , digits=c('default__'=object@digits,'n_eff'=0) )
+    print(r)
+}
+
 setMethod( "show" , "precis" , function(object) precis_show(object) )
 
 precis_plot <- function( x , y , pars , col.ci="black" , xlab="Value" , ... ) {
-    x <- x@output
+    #x <- x@output
     if ( !missing(pars) ) {
         x <- x[pars,]
     }
@@ -100,7 +108,159 @@ postlistprecis <- function( post , prob=0.95 , spark=FALSE ) {
     result
 }
 
-precis <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , digits=2 , warn=TRUE , spark=FALSE ) {
+setGeneric("precis",
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    new( "precis" , as.data.frame(object) , digits=digits )
+}
+)
+
+# function that handles depth and sorting
+precis_format <- function( result , depth , sort , decreasing ) {
+    # deal with depth
+    if ( depth==1 ) {
+        hits <- regexpr("]",rownames(result),fixed=TRUE)
+        hits_idx <- which( hits > -1 )
+        if ( length(hits_idx)>0 ) {
+            result <- result[-hits_idx,]
+            message( paste( length(hits_idx) , "vector or matrix parameters omitted in display. Use depth=2 to show them." ) )
+        }
+    }
+    if ( depth==2 ) {
+        hits <- regexpr(",",rownames(result),fixed=TRUE)
+        hits_idx <- which( hits > -1 )
+        if ( length(hits_idx)>0 ) {
+            result <- result[-hits_idx,]
+            message( paste( length(hits_idx) , "matrix parameters omitted in display. Use depth=3 to show them." ) )
+        }
+    }
+
+    # sort
+    if ( !is.null(sort) ) {
+        o <- order( result[,sort] , decreasing=decreasing )
+        result <- result[o,]
+    }
+
+    return(result)
+}
+
+setMethod("precis", "data.frame", 
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    plo <- (1-prob)/2
+    phi <- 1 - plo
+    result <- data.frame(
+        mean = apply(object,2,mean,na.rm=TRUE),
+        sd = apply(object,2,sd,na.rm=TRUE),
+        lo = apply(object,2,quantile,na.rm=TRUE,probs=plo),
+        hi = apply(object,2,quantile,na.rm=TRUE,probs=phi),
+        histogram = apply(object,2,histospark),
+        stringsAsFactors = FALSE
+    )
+    colnames(result)[3:4] <- paste( c( plo , phi )*100 , "%" , sep="" )
+
+    result <- precis_format( result , depth , sort , decreasing )
+
+    return( new( "precis" , result , digits=digits ) )
+})
+
+setMethod("precis", "list", 
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    # coerce to data frame and format row names for vectors/matrices to [] style
+    result <- as.data.frame( object , stringsAsFactors = FALSE )
+    # since data frame conversion vectorizes matrices, need to treat each variable
+    for ( i in 1:length(object) ) {
+        # check dimension and process names when > 1
+        n <- length(dim(object[[i]]))
+        if ( n > 1 ) {
+            dims <- dim(object[[i]])
+            idx <- grep( concat("^",names(object)[i],".") , names(result) )
+            if ( n==2 ) {
+                # vector
+                new_names <- paste( names(object)[i] , "[" , 1:dims[2] , "]" , sep="" )
+                names(result)[idx] <- new_names
+            }#2
+            if ( n==3 ) {
+                # matrix
+                new_names <- paste( names(object)[i] , "[" , rep(1:dims[2],each=dims[3]) , "," , rep(1:dims[3],times=dims[2]) , "]" , sep="" )
+                names(result)[idx] <- new_names
+            }#3
+        }#n>1
+    }#i
+    # hand off to data frame method
+    precis( result , depth , pars , prob , digits , sort, decreasing , ... )
+})
+
+# template function for processing objects with coef and vcov methods
+xprecis_glm <- function( object , depth , pars , prob , digits , sort , decreasing , ... ) {
+    plo <- (1-prob)/2
+    phi <- 1 - plo
+    z <- qnorm(phi)
+    result <- data.frame(
+        mean = coef(object),
+        sd = se(object),
+        lo = coef(object) - z*se(object),
+        hi = coef(object) + z*se(object)
+    )
+    colnames(result)[3:4] <- paste( c( plo , phi )*100 , "%" , sep="" )
+
+    result <- precis_format( result , depth , sort , decreasing )
+
+    return( new( "precis" , result , digits=digits ) )
+}
+
+setMethod("precis", "map",
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    # just pass to glm method
+    xprecis_glm( object , depth , pars , prob , digits , sort , decreasing , ... )
+})
+
+setMethod("precis", "glm",
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    # just pass to glm method
+    xprecis_glm( object , depth , pars , prob , digits , sort , decreasing , ... )
+})
+
+setMethod("precis", "lm",
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    # just pass to glm method
+    xprecis_glm( object , depth , pars , prob , digits , sort , decreasing , ... )
+})
+
+setMethod("precis", "map2stan",
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    low <- (1-prob)/2
+    upp <- 1-low
+    result <- summary(object@stanfit,pars=pars,probs=c(low,upp))$summary[,c(1,3:7)]
+    result <- as.data.frame( result )
+
+    idx <- which( rownames(result) %in% c("dev","lp__") )
+    idx2 <- grep( "log_lik[" , rownames(result) , fixed=TRUE )
+    if ( length(idx2)>0 ) idx <- c( idx , idx2 )
+    if ( length(idx)>0 ) {
+        # remove dev and lp__ and log_lik from table
+        result <- result[ -idx , ]
+    }
+
+    result <- precis_format( result , depth , sort , decreasing )
+
+    return( new( "precis" , result , digits=digits ) )
+})
+
+setMethod("precis", "stanfit",
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    # assume stan for moment
+    low <- (1-prob)/2
+    upp <- 1-low
+    result <- summary(object,pars=pars,probs=c(low,upp))$summary[,c(1,3:7)]
+    result <- as.data.frame( result )
+
+    result <- precis_format( result , depth , sort , decreasing )
+
+    return( new( "precis" , result , digits=digits ) )
+})
+# precis2(mfit,pars=parlist)
+
+# old version 1 method
+precisx <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , digits=2 , warn=TRUE , spark=FALSE ) {
     the.class <- class(model)[1]
     found.class <- FALSE
     if ( the.class=="numeric" ) {

@@ -20,6 +20,13 @@ denschart <- function (x, pars,
     opar <- par("mai", "mar", "cex", "yaxs")
     on.exit(par(opar))
     par(cex = cex, yaxs = "i")
+    if (class(x) %in% c("map2stan","map","stanfit")) {
+        x <- extract.samples(x)
+        if ( class(x)=="data.frame" ) {
+            x <- as.list(x)
+            for ( i in 1:length(x) ) x[[i]] <- as.array(x[[i]])
+        }
+    }
     if (!is.list(x)) 
         stop("'x' must be a list of vectors or matrices")
     n <- length(x)
@@ -143,10 +150,11 @@ denschart <- function (x, pars,
                     d_max <- ifelse( y_max > d_max , y_max , d_max )
                 }
             }
+            color <- rep_len(color, m)
             for ( j in 1:m ) {
                 if ( single_real(x[[i]][,j])==FALSE ) {
                     a[[j]]$y <- a[[j]]$y/d_max * height + y[i] - 0.3
-                    polygon( a[[j]]$x , a[[j]]$y , col=col.alpha(color,alpha) , border=border )
+                    polygon( a[[j]]$x , a[[j]]$y , col=col.alpha(color[j],alpha) , border=border )
                     x_label[j] <- a[[j]]$x[ a[[j]]$y==max(a[[j]]$y) ][1]
                 }
             }#j

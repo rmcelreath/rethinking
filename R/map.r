@@ -405,7 +405,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     }
     
     # list parameters without explicit priors and warn
-    if ( FALSE ) {
+    if ( verbose==TRUE ) {
         if ( any( !(names(pars) %in% names(pars_with_priors)) ) ) {
             flat_pars <- names(pars)[ !(names(pars) %in% names(pars_with_priors)) ]
             message( paste( "Using flat priors for:" , paste(flat_pars,collapse=" ") ) )
@@ -414,7 +414,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     
     #################
     # handle vector parameters
-    # at this point in parse, may have vector paramters in pars (and start)
+    # at this point in parse, may have vector parameters in pars (and start)
     # optim can't handle vector paramters
     # so need to:
     # (1) convert vector to series of scalar par_._1, par_._2, ..., par_._n

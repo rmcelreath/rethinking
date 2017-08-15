@@ -9,6 +9,39 @@ set_nice_margins <- function() {
     }
 }
 
+# default quartz plot size for book: 3.5in by 4in, giving square plot for default margins
+blank <- function(ex=1,w=1,h=1,...) {
+    quartz("myquartz",width=3.5*ex*w,height=3.5*ex*h)
+    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02, ...)
+}
+
+blank2 <- function(ex=1,w=1,h=1,...) {
+    quartz("myquartz",width=3.5*ex*w,height=3.5*ex*h)
+    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, tck = -0.02, cex.axis=0.8, bty="l", ...)
+}
+
+# Set Caslon Pro as plotting typeface
+goCaslonPro <- function() {
+    quartzFonts(caslonpro = c("ACaslonPro-Regular", "ACaslonPro-Bold", "ACaslonPro-Italic", "ACaslonPro-BoldItalic"))
+    par(family = "caslonpro")
+}
+
+# default pdf plot size, for making cmyk figures
+# close file with dev.off() as usual
+pdfblank <- function (ex = 1, w = 1, h = 1, colormodel="cmyk" , ... ) 
+{
+    pdf("mypdf.pdf", width = 3.5 * ex * w, height = 3.5 * ex * 
+        h , colormodel=colormodel , ...)
+    par(mgp = c(1.5, 0.5, 0), mar = c(2.5, 2.5, 2, 1) + 0.1, 
+        tck = -0.02)
+}
+
+make.grid <- function( n ) {
+    num.rows <- floor( sqrt(n) )
+    num.cols <- ceiling(n/num.rows)
+    c(num.rows,num.cols)
+}
+
 dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , add=FALSE , ...) {
     the.class <- class(x)[1]
     if ( the.class=="data.frame" ) {

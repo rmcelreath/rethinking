@@ -1,4 +1,4 @@
-setClass("map", representation( call = "language",
+setClass("map", slots=c( call = "language",
                                 coef = "numeric",
                                 vcov = "matrix",
                                 optim = "list",
