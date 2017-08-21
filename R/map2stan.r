@@ -442,6 +442,17 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         return(templates[[ tmpname ]])
     }
     
+    # Function to check if the current parameter is a prior or a vprior
+    # returns TRUE for a vprior, FALSE for a prior
+    is_vprior <- function(pname) {
+        any(sapply(fp$vprior, function(p){p$pars_out[[1]]}) == pname)
+    }    
+    
+    is_prior <- function(pname) {
+        any(sapply(fp$prior, function(p){p$par_out}) == pname)
+    }
+    
+    
     # build parsed list
     fp <- list( 
         likelihood = list() ,
@@ -475,8 +486,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
         result <- NULL
         if ( var %in% names(d) ) {
             type <- "real"
-            var_class <- class(d[[var]])
-            if ( var_class=="integer" ) type <- "int"
+            var_class <- class(d[[var]][[1]])
+            if ( var_class == "integer")  type <- "int"
             result <- list( var=var , N=N_name , type=type )
         }
         return(result)
@@ -909,9 +920,16 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 lhstxt <- tmplt$out_map( prior$par_out , prior$pars_in , environment() )
             }
             
-            # build text
-            txt <- concat( indent , lhstxt , " ~ " , prior$density , "( " , parstxt , " )" , prior$T_text , ";" )
+            # if the trans_pars_only tag was set on the template, don't include this parameter in the models section
             
+            if (is.null(templates[[prior$template]]$trans_pars_only) | !isTRUE(templates[[prior$template]]$trans_pars_only)){
+                # build text
+                txt <- concat( indent , lhstxt , " ~ " , prior$density , "( " , parstxt , " )" , prior$T_text , ";" )
+            } else {
+                txt <- ""
+            }
+            
+ 
             #m_model_priors <- concat( m_model_priors , txt , "\n" )
             m_model_txt <- concat( m_model_txt , txt , "\n" )
             
@@ -1053,12 +1071,17 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             
             # add text to model code
             # new vectorized normal and multi_normal
+            
+            
             if ( vprior$density %in% c("multi_normal","normal") )
                 m_model_txt <- concat( m_model_txt , indent , lhstxt , " ~ " , vprior$density , "( " , rhstxt , " )" , vprior$T_text , ";\n" )
-            else
-            # old un-vectorized code
-                m_model_txt <- concat( m_model_txt , indent , "for ( j in 1:" , N_txt , " ) " , lhstxt , "[j] ~ " , vprior$density , "( " , rhstxt , " )" , vprior$T_text , ";\n" )
-            
+            else {
+                # check if this is a trans_pars_only vprior
+                if (is.null(tmplt$trans_pars_only) | !isTRUE(tmplt$trans_pars_only)) {
+                    # old un-vectorized code
+                    m_model_txt <- concat( m_model_txt , indent , "for ( j in 1:" , N_txt , " ) " , lhstxt , "[j] ~ " , vprior$density , "( " , rhstxt , " )" , vprior$T_text , ";\n" )
+                }
+            }
             # declare each parameter with correct type from template
             outtype <- "vector"
             for ( j in 1:length(vprior$pars_out) ) {
@@ -1589,8 +1612,22 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 }
             }
             
-            # add to parameters block
-            m_pars <- concat( m_pars , indent , type , constraint , type_dim , " " , pname , ";\n" )
+            
+            
+            # if the trans_pars_only tag was set on the template, don't include this parameter in the parameters section
+            
+            if (is_vprior(pname)) {
+                trans_pars_only = templates[[fp$vprior[[which(sapply(fp$vprior, function(p){p$pars_out[[1]]}) == pname)]]$template]]$trans_pars_only
+            } else if (is_prior(pname)) {
+                trans_pars_only = templates[[fp$prior[[ which(sapply(fp$prior,  function(p){p$par_out      }) == pname)]]$template]]$trans_pars_only
+            } else {
+                trans_pars_only <- NULL
+            }
+            
+            if (is.null(trans_pars_only) | !isTRUE(trans_pars_only)){
+                # add to parameters block
+                m_pars <- concat( m_pars , indent , type , constraint , type_dim , " " , pname , ";\n" )
+            }
         }#i
     }
     
