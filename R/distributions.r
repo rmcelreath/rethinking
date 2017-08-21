@@ -376,9 +376,80 @@ dmvnorm2 <- function( x , Mu , sigma , Rho , log=FALSE ) {
     dmvnorm(x, Mu, SIGMA, log=log )
 }
 
+# vectorized version of rmvnorm, with split scale vector and correlation matrix
 rmvnorm2 <- function( n , Mu=rep(0,length(sigma)) , sigma=rep(1,length(Mu)) , Rho=diag(length(Mu)) , method="chol" ) {
-    DS <- diag(sigma)
-    SIGMA <- DS %*% Rho %*% DS
-    rmvnorm( n=n , mean=Mu , sigma=SIGMA , method=method )
+    ldim <- function(x) { 
+        z <- length(dim(x))
+        if ( z==0 ) z <- 1
+        return(z)
+    }
+    if ( ldim(Mu)>1 || ldim(sigma)>1 || ldim(Rho)>1 ) {
+        m <- 0 # dimension of multi_normal
+        mR <- 0 # dim of Rho
+        # vectorization needed
+        # make Mu, sigma, and Rho same implied length
+        K_Mu <- 1
+        if ( ldim(Mu)==2 ) {
+            K_Mu <- dim(Mu)[1] # matrix
+            m <- dim(Mu)[2]
+        } else {
+            m <- length(Mu)
+        }
+
+        K_sigma <- 1
+        if ( ldim(sigma)==2 ) {
+            K_sigma <- dim(sigma)[1] # matrix
+        }
+        K_Rho <- 1
+        if ( ldim(Rho)==3 ) {
+            K_Rho <- dim(Rho)[1] # array (vector of matrices)
+        }
+        mR <- dim(Rho)[2] # should work whether Rho is matrix or array
+        
+        # get largest dim
+        #K <- max( K_Mu , K_sigma , K_Rho )
+        K <- n
+
+        # need to fill to same size
+        if ( K_Mu < K ) {
+            Mu_new <- matrix( NA , nrow=K , ncol=m )
+            row_list <- rep( 1:K_Mu , length.out=K )
+            if ( K_Mu==1 )
+                for ( i in 1:K )
+                    Mu_new[i,] <- Mu
+            else
+                for ( i in 1:K )
+                    Mu_new[i,] <- Mu[row_list[i],]
+            Mu <- Mu_new
+        }
+        if ( K_sigma < K ) {
+            sigma_new <- matrix( NA , nrow=K , ncol=m )
+            row_list <- rep( 1:K_sigma , length.out=K )
+            for ( i in 1:K )
+                sigma_new[i,] <- sigma[row_list[i],]
+            sigma <- sigma_new
+        }
+        if ( K_Rho < K ) {
+            Rho_new <- array( NA , dim=c( K , m , m ) )
+            row_list <- rep( 1:K_Rho , length.out=K )
+            for ( i in 1:K )
+                Rho_new[i,,] <- Rho[row_list[i],,]
+            Rho <- Rho_new
+        }
+        # should all be same length now, so can brute force vectorize over and sample
+        
+        result <- array( NA , dim=c( K , m ) )
+        for ( i in 1:n ) {
+            DS <- diag(sigma[i,])
+            SIGMA <- DS %*% Rho[i,,] %*% DS
+            result[i,] <- rmvnorm( n=1 , mean=Mu[i,] , sigma=SIGMA , method=method )
+        }
+        return(result)
+
+    } else {
+        DS <- diag(sigma)
+        SIGMA <- DS %*% Rho %*% DS
+        return( rmvnorm( n=n , mean=Mu , sigma=SIGMA , method=method ) )
+    }
 }
 

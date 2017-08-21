@@ -527,6 +527,7 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
             formula_parsed = flist2,
             fminuslogl = fmll,
             links = links )
+    attr(m,"formula_exploded") <- flist # expanded c() constructs
     attr(m,"df") <- length(m@coef)
     attr(m,"veclist") <- veclist
     if (!missing(data)) attr(m,"nobs") = length(data[[1]])

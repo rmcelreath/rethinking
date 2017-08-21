@@ -1961,6 +1961,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             pars = pars,
             formula = flist.orig,
             formula_parsed = fp )
+
+        attr(result,"constraints") <- constraints
         
         attr(result,"df") = length(result@coef)
         if ( DIC==TRUE ) {

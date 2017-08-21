@@ -55,6 +55,11 @@ denschart <- function (x, pars,
                 }
             }
             nd <- length(dim(x[[i]]))
+            if ( nd==0 ) {
+                # no dim, so probably a numeric vector
+                # convert to 1D array
+                x[[i]] <- as.array(x[[i]])
+            }
             if ( nd==3 ) {
                 # matrix
                 if ( drop_matrices==FALSE )
