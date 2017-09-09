@@ -27,6 +27,8 @@ page 314: "Islands that are better network acquire or sustain more tool types.":
 
 page 331, line 1: "a women" -> "a woman"
 
+page 377  "And the plotting code is exactly the same as before (page 297).": Page 301 has the code for plotting the posterior predictions for a single actor, while 297 plots only average predictions for models that ignore actor.
+
 page 435: "FIGURE 14.4 display ... imputed neocortex values in blue ...
 shown by the blue line segments". The imputed values are actually the
 open black dots (and corresponding black line segments) as the caption
