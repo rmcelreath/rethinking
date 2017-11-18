@@ -3,11 +3,15 @@ Statistical Rethinking book Errata
 
 page 42: Just below R code box 2.6, the text says that map requires a list of start values. It does not, as long as priors are provided for each parameter. And indeed the example in box 2.6 does not contain a list of start values.
 
+page 66: "If you plot these samples, you'll see the distribution shown in the right-hand plot in Figure 3.6." But figure 3.6 has the posterior predictive on the bottom.
+
 page 87: The marginal description of the model reads "mu ~ dnorm(156, 10)" but the model is Normal(178, 20). Same error on p 95 and in code 4.38. It is corrected in code 4.39.
 
 page 95-96: dnorm(156,100) should be dnorm(178,100) in both model presentation and then R code on top of page 96.
 
 page 103, R code 4.50: The ``post`` object implied here is the one from R code 4.46: ``post <- extract.samples(m4.3)``.
+
+page 112: The marginal description uses 140 and 100 for parameters of normal distribution for alpha, while the formula uses 178 and 100.  R code 4.66 matches the formula.
 
 page 125: Below R code 5.4, "The posterior mean for age at marriage, ba, ..." 'ba' should be 'bA'.
 
