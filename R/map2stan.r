@@ -11,7 +11,7 @@
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , log_lik=FALSE , DIC=FALSE , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , log_lik=FALSE , DIC=FALSE , declare_all_data=TRUE , ... ) {
 
     if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
     set.seed(rng_seed)
@@ -1465,7 +1465,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             if ( class(d[[var$var]])=="integer" ) type <- "int"
             if ( class(d[[var$var]])=="matrix" ) {
                 type <- "matrix"
-                if ( is.null(var$N) ) var$N <- dim(d[[var$var]])
+                if ( is.null(var$N) ) 
+                    var$N <- dim(d[[var$var]])
+                else if ( length(var$N)<2 )
+                    var$N <- dim(d[[var$var]])
             }
             # coerce outcome type
             if ( !is.null(var$type) ) type <- var$type
@@ -1806,10 +1809,10 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
 
         if ( is.null(previous_stanfit) ) {
             #fit <- try(stan( model_code=model_code , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
-            fit <- try(stan( model_code=model_code , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
+            fit <- try(stan( model_code=model_code , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , control=control , ... ))
         }
         else
-            fit <- try(stan( fit=previous_stanfit , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , ... ))
+            fit <- try(stan( fit=previous_stanfit , model_name=modname , data=d , init=initlist , iter=iter , warmup=warmup , chains=chains , cores=cores , pars=pars , seed=rng_seed , control=control , ... ))
 
         if ( class(fit)=="try-error" ) {
                 # something went wrong in at least one chain

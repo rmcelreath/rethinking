@@ -60,6 +60,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
     
     # number of samples
     n_samples <- dim( post[[1]] )[1]
+    if ( is.null(n_samples) ) n_samples <- length(post[[1]])
     if ( n == 0 ) n <- n_samples # special flag for all samples in fit
     if ( n_samples < n ) n <- n_samples
     

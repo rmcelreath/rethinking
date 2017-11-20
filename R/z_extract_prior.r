@@ -106,6 +106,12 @@ function( fit , n=1000 , pars , ... ) {
         result <- new_result
     }
 
+    # make sure each entry is an array, even if 1D
+    for ( i in 1:length(result) ) {
+        if ( is.null(dim(result[[i]])) )
+            result[[i]] <- as.array(result[[i]])
+    }
+
     return(result)
 })
 
@@ -204,7 +210,7 @@ function( fit , n=1000 , ... ) {
                 # vector prior like: a[id] ~ normal( 0 , sigma_a )
                 dims <- fit@stanfit@par_dims[[ pnames[[1]] ]]
                 x <- sapply( 1:dims , function(k) sample_from_prior( dname , args , n ) )
-                result[[ pnames[[1]] ]] <- x
+                result[[ pnames[[1]] ]] <- as.array(x)
             } else {
                 # multivariate like: c(a,b)[id] ~ multi_normal( 0 , Sigma )
                 # sample and then shunt into correct named slots
@@ -232,6 +238,12 @@ function( fit , n=1000 , ... ) {
         }
     }#i
     result <- new_result
+
+    # make sure each entry is an array, even if 1D
+    for ( i in 1:length(result) ) {
+        if ( is.null(dim(result[[i]])) )
+            result[[i]] <- as.array(result[[i]])
+    }
 
     return(result)
 

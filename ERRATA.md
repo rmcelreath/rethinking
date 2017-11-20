@@ -37,6 +37,8 @@ page 331, line 1: "a women" -> "a woman"
 
 page 386, problem 12H1, first paragraph: 'By the year 200' should read 'By the year 2000'.
 
+page 403: The average effect in the P *C interaction model is typed βP but I think should be βPC.
+
 page 435: "FIGURE 14.4 display ... imputed neocortex values in blue ...
 shown by the blue line segments". The imputed values are actually the
 open black dots (and corresponding black line segments) as the caption

@@ -1020,6 +1020,76 @@ dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3));",
             return(c(new_k[1],theta_txt));
         },
         vectorized = FALSE
+    ),
+    CormackJollySeberK = list(
+        name = "CormackJollySeberK",
+        R_name = "dCJS",
+        stan_name = "increment_log_prob",
+        stan_code = 
+"if (cjs_last[i] > 0) {
+        for (k in (cjs_first[i]+1):cjs_last[i]) {
+            target += (log(PAR1[k-1]));     // i survived from k-1 to k
+            if (OUTCOME[i,k] == 1)
+                target += (log(PAR2[k]));       // i captured at k
+            else
+                target += (log1m(PAR2[k]));     // i not captured at k
+        }
+        target += (log(PAR1[cjs_last[i]]));   // i not seen after last[i]
+    }",
+        stan_dev = "",
+        stan_loglik = "",
+        num_pars = 2,
+        par_names = c("phi","p"), # phi: survival prob; p: detection prob (conditional on survival)
+        par_bounds = c("lower=0,upper=1","lower=0,upper=1"),
+        par_types = c("real","real"),
+        out_type = "matrix", # each outcome is a vector of 0/1 indicating detection history of individual
+        par_map = function(k,e,...) {
+            # to-do
+            # (1) translate histories to first,list,n_captured variables
+            # (2) compute chi parameters in transformed parameters
+            #     chi[k] = Pr[ no capture > k | alive at k ]
+            # (3) generated quantities code for abundance estimate
+            return(k)
+        },
+        # new 'code' slot uses specification of custom code map2stan argument
+        code = list(
+            list( 
+"int<lower=0,upper=cjs_K+1> cjs_first[cjs_I];     // first[i]: ind i first capture
+int<lower=0,upper=cjs_K+1> cjs_last[cjs_I];      // last[i]:  ind i last capture
+int<lower=0,upper=cjs_I> cjs_n_captured[cjs_K];  // n_capt[k]: num aptured at k",
+                block="transformed data", section="declare" ),
+            list(
+"cjs_first = rep_array(cjs_K+1,cjs_I);
+cjs_last = rep_array(0,cjs_I);
+for (i in 1:cjs_I) {
+    for (k in 1:cjs_K) {
+        if (OUTCOME[i,k] == 1) {
+            if (k < cjs_first[i]) cjs_first[i] <- k;
+            if (k > cjs_last[i]) cjs_last[i] <- k;
+        }
+    }
+}
+n_captured <- rep_array(0,K);
+for (i in 1:I)
+    for (k in 1:K)
+        n_captured[k] <- n_captured[k] + X[i,k];",
+                block="transformed data", section="body" ),
+            list(
+"vector<lower=0,upper=1>[cjs_K] chi;   // chi[k]: Pr[no capture > k | alive at k]",
+                block="transformed parameters", section="declare" ),
+            list(
+"{
+    int k;
+    chi[cjs_K] <- 1.0;              
+    k <- cjs_K - 1;
+    while (k > 0) {
+        chi[k] <- (1 - phi[k]) + phi[k] * (1 - p[k+1]) * chi[k+1]; 
+        k <- k - 1;
+    }
+}",
+                block="transformed parameters", section="body" )
+        ),
+        vectorized = FALSE
     )
 )
 

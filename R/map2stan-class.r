@@ -449,3 +449,19 @@ stanergy <- function( x , colscheme="blue" , binwidth=NULL , merge_chains=FALSE 
     color_scheme_set(colscheme) # we hates the ggplot
     mcmc_nuts_energy( np , merge_chains = merge_chains , binwidth=binwidth )
 }
+
+# function to do mcmc_parcoord to help find divergences
+divergence_tracker <- function( x , no_lp=TRUE , pars , ... ) {
+    if ( class(x)=="map2stan" ) x <- x@stanfit
+    np <- nuts_params(x)
+    draws <- as.array(x)
+    if ( missing(pars) ) {
+        pars <- dimnames(x)$parameters
+        if ( no_lp==TRUE ) {
+            pars <- pars[ -which(pars=="lp__") ]
+        }
+    }
+    require(bayesplot)
+    bayesplot::mcmc_parcoord(draws,np=np,pars=pars,...)
+}
+# divergence_tracker( m5 )
