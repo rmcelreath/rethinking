@@ -219,7 +219,7 @@ What ``map2stan`` does is notice the missing values, see the distribution assign
 
 ## Semi-automated marginalization for binary discrete missing values
 
-Binary (0/1) variables with missing values present a special obstacle, because Stan cannot sample discrete parameters. So instead of imputing binary missing values, ``map2stan`` can simply average (marginalize) over them. As in the above case, when ``map2stan`` detects missing values in a predictor variable, it will try to find a distribution for the variable containing them. If this variable is binary (0/1), then it will construct a mixture model in which each term is the log-likelihood conditional on the variables taking a particular combination of 0/1 values.
+Binary (0/1) variables with missing values present a special obstacle, because Stan cannot sample discrete parameters. So instead of imputing binary missing values, ``map2stan`` can average (marginalize) over them. As in the above case, when ``map2stan`` detects missing values in a predictor variable, it will try to find a distribution for the variable containing them. If this variable is binary (0/1), then it will construct a mixture model in which each term is the log-likelihood conditional on the variables taking a particular combination of 0/1 values.
 
 Following the example in the previous section, we can simulate missingness in a binary predictor:
 ```
@@ -234,14 +234,76 @@ The model definition is analogous to the previous, but also requires some care i
 f6 <- alist(
     y ~ dnorm( mu , sigma ),
     mu <- a + b*x,
-    x ~ bernoulli( phi_x ),
+    x ~ bernoulli( phi ),
     a ~ dnorm( 0 , 100 ),
     b ~ dnorm( 0  , 10 ),
-    phi_x ~ beta( 1 , 1 ),
+    phi ~ beta( 1 , 1 ),
     sigma ~ dcauchy(0,2)
 )
-m6 <- map2stan( f6 , data=list(y=y,x=x) , constraints=list(phi_x="lower=0,upper=1") )
+m6 <- map2stan( f6 , data=list(y=y,x=x) , constraints=list(phi="lower=0,upper=1") )
 ```
+The algorithm works, in theory, for any number of binary predictors with missing values. For example, with two predictors, each with missingness:
+```
+N <- 100
+N_miss <- 10
+x1 <- rbinom( N , size=1 , prob=0.5 )
+x2 <- rbinom( N , size=1 , prob=0.1 )
+y <- rnorm( N , 2*x1 - x2  , 1 )
+x1[ sample(1:N,size=N_miss) ] <- NA
+x2[ sample(1:N,size=N_miss) ] <- NA
+f7 <- alist(
+    y ~ dnorm( mu , sigma ),
+    mu <- a + b1*x1 + b2*x2,
+    x1 ~ bernoulli( phi1 ),
+    x2 ~ bernoulli( phi2 ),
+    a ~ dnorm( 0 , 100 ),
+    c(b1,b2) ~ dnorm( 0  , 10 ),
+    phi1 ~ beta( 1 , 1 ),
+    phi2 ~ beta( 1 , 1 ),
+    sigma ~ dcauchy(0,2)
+)
+m7 <- map2stan( f7 , data=list(y=y,x1=x1,x2=x2) , 
+      constraints=list(phi1="lower=0,upper=1",phi2="lower=0,upper=1") )
+```
+While the unobserved values for the binary predictors are usually not of interest, they can be computed from the posterior distribution. Adding the argument ``do_discrete_imputation=TRUE`` instructs ``map2stan`` to perform these calculations automatically. Example:
+```
+m6 <- map2stan( f6 , data=list(y=y,x=x) , constraints=list(phi="lower=0,upper=1") ,
+      do_discrete_imputation=TRUE )
+precis( m6 , depth=2 )
+```
+The output contains samples for each case with imputed probilities that ``x`` takes the value 1.
+
+The algorithm works by constructing a list of mixture terms that are needed to to compute the probability of each observed ``y`` value. In the simplest case, with only one predictor with missing values, the implied mixture likelihood contains two terms:
+```
+Pr(y[i]) = Pr(x[i]=1)Pr(y[i]|x[i]=1) + Pr(x[i]=0)Pr(y[i]|x[i]=0)
+```
+In the parameters of our example model ``m6`` above, this is:
+```
+Pr(y[i]) = phi*N(y[i]|a+b,sigma) + (1-phi)*N(y[i]|a,sigma)
+```
+It is now a simple matter to loop over cases ``i`` and compute the above for each. Similarly the posterior probability of that ``x[i]==1`` is given as:
+```
+Pr(x[i]==1|y[i]) = phi*N(y[i]|a+b,sigma) / Pr(y[i])
+```
+When only one predictor has missingness, then this is simple. What about when there are two or more? In that case, all the possible combinations of missingness have to be accounted for. For example, suppose there are two predictors, ``x1`` and ``x2``, both with missingness on case ``i``. Now the implied mixture likelihood is:
+```
+Pr(y[i]) = Pr(x1=1)Pr(x2=1)*Pr(y[i]|x1=1,x2=1) + Pr(x1=1)Pr(x2=0)Pr(y[i]|x1=1,x2=0) + Pr(x1=0)Pr(x2=1)Pr(y[i]|x1=0,x2=1) + Pr(x1=0)Pr(x2=0)Pr(y[i]|x1=0,x2=0)
+```
+There are four combinations of unobserved values, and so four terms in the mixture likelihood. When ``x2`` is instead observed, we can substitute the observed value into the above, and then the mixture simplifies readily to our previous two-term likelihood:
+```
+Pr(y[i]|x2[i]==1) = Pr(x1=1)Pr(x2=1)Pr(y[i]|x1=1,x2=1) + Pr(x1=1)Pr(x2=0)Pr(y[i]|x1=1,x2=1) + Pr(x1=0)Pr(x2=1)Pr(y[i]|x1=0,x2=1) + Pr(x1=0)Pr(x2=0)Pr(y[i]|x1=0,x2=1)
+                  = [Pr(x1=1)Pr(x2=1)+Pr(x1=1)Pr(x2=0)]Pr(y[i]|x1=1,x2=1) 
+                    + [Pr(x1=0)Pr(x2=1)+Pr(x1=0)Pr(x2=0)]Pr(y[i]|x1=0,x2=1)
+                  = Pr(x1=1)Pr(y[i]|x1=1,x2=1) + Pr(x1=0)Pr(y[i]|x1=0,x2=1)
+```
+This implies that if we loop over cases ``i`` and insert any observed values into the general mixture likelihood, we can compute the relevant mixture for the specific combination of missingness on each case ``i``. That is what ``map2stan`` does. The general mixture terms can be generated algorithmically. The code below generates a matrix of terms for ``n`` binary variables with missingness.
+```
+ncombinations <- 2^n
+d <- matrix(NA,nrow=ncombinations,ncol=n)
+for ( col_var in 1:n ) 
+    d[,col_var] <- rep( 0:1 , each=2^(col_var-1) , length.out=ncombinations )
+```
+Rows of ``d`` contain terms, columns contain variables, and the values in each column are the corresponding values of each variable. The algorithm builds a linear model for each row in this matrix, composes the mixture likelihood as the sum of these rows, and performs proper substitutions of observed values. All calculations are done on the log scale, for precision.
 
 ## Gaussian process
 

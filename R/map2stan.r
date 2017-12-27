@@ -11,7 +11,7 @@
 ##################
 # map2stan itself
 
-map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , log_lik=FALSE , DIC=FALSE , declare_all_data=TRUE , ... ) {
+map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , log_lik=FALSE , DIC=FALSE , declare_all_data=TRUE , do_discrete_imputation=FALSE , ... ) {
 
     if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
     set.seed(rng_seed)
@@ -1138,10 +1138,14 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # build Stan code
 
                 misstestcode <- "if ( "
+                misstests <- rep(NA,nx)
                 for ( j in 1:nx ) {
+                    # build joint test for any missingness for case i
                     misstestcode <- concat( misstestcode , linmod$discrete_miss_list[[j]] , "[i]<0" )
                     if ( nx > 1 && j < nx ) # add logical OR
                         misstestcode <- concat( misstestcode , " || " )
+                    # individual test for variable j for case i
+                    misstests[j] <- concat( "if ( " , linmod$discrete_miss_list[[j]] , "[i]<0 )" )
                 }
                 misstestcode <- concat( misstestcode , " ) {" )
                 # save for later --- we need this test again in likelihood loop
@@ -1149,11 +1153,25 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
 
                 # make version of lm with x vars swapped out for values in row of miss matrix
                 lm_aliased <- linmod$RHS
-                for ( j in 1:nx ) lm_aliased <- gsub( 
-                    concat(linmod$discrete_miss_list[[j]],"[i]") , 
-                    concat(linmod$parameter,"_missmatrix[mmrow,",j,"]") , 
-                    lm_aliased , fixed=TRUE )
-                lm_replace_txt <- concat(inden(2),mxtlm,"[i,mmrow] = ",lm_aliased,";")
+                lm_var_declare <- concat( inden(2) , "vector[" , nx , "] dimiproxy;" )
+                lm_var_assignments <- inden(2)
+                for ( j in 1:nx ) {
+                    # assign local proxy variable for each variable with discrete missingness
+                    # 1. test whether var j is missing for case i
+                    # 2. if missing, assign dimiproxy[j] = missmatrix[mmrow,j]
+                    # 3. if observed, assign dimiproxy[j] = var[i]
+                    if ( j > 1 ) lm_var_assignments <- concat( lm_var_assignments , inden(4) )
+                    lm_var_assignments <- concat( lm_var_assignments , 
+                        "dimiproxy[",j,"] = " , linmod$discrete_miss_list[[j]] , "[i];\n" ,
+                        inden(4) , misstests[j] , 
+                        " dimiproxy[",j,"] = " , linmod$parameter,"_missmatrix[mmrow,",j,"];\n" )
+                    lm_aliased <- gsub( 
+                        concat(linmod$discrete_miss_list[[j]],"[i]") , 
+                        #concat(linmod$parameter,"_missmatrix[mmrow,",j,"]") , 
+                        concat("dimiproxy[",j,"]") , 
+                        lm_aliased , fixed=TRUE )
+                }#j
+                lm_replace_txt <- concat( inden(2) , mxtlm , "[i,mmrow] = " , lm_aliased , ";" )
 
                 # link function
                 if ( linmod$link != "identity" & linmod$use_link==TRUE ) {
@@ -1167,6 +1185,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 }
 
                 # build code to add log prob factors to terms
+                # these terms handle the marginalization over unknown states
                 terms_txt <- concat(inden(2),mxt,"[i,mmrow] = 0;\n")
                 for ( j in 1:nx ) {
                     terms_txt <- concat(terms_txt,inden(4),"if ( ",linmod$parameter,"_missmatrix[mmrow,",j,"]==1 )\n")
@@ -1179,6 +1198,8 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 code_lines <- c(
                 misstestcode,
                 concat(indent,"for ( mmrow in 1:rows(",linmod$parameter,"_missmatrix) ) {"),
+                lm_var_declare,
+                lm_var_assignments,
                 lm_replace_txt,
                 terms_txt,
                 concat(indent,"}//mmrow"),
@@ -1269,7 +1290,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 # add loop for non-vectorized distribution
                 txt1 <- concat( indent , "for ( i in 1:" , lik$N_name , " ) {\n" )
                 m_model_txt <- concat( m_model_txt , txt1 )
-                if ( has_discrete_missingness==FALSE )
+                if ( has_discrete_missingness==FALSE || do_discrete_imputation==TRUE )
                     m_gq <- concat( m_gq , txt1 )
 
                 xindent <- indent
@@ -1299,7 +1320,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 txt1 <- fp[['lm']][[ lms_with_dm[[1]][[2]] ]]$misstestcode # assume just one for now
                 txt1 <- concat( inden(2) , txt1 , "\n" )
                 m_model_txt <- concat( m_model_txt , txt1 )
-                #m_gq <- concat( m_gq , txt1 )
+                if ( do_discrete_imputation==TRUE ) m_gq <- concat( m_gq , txt1 )
                 xindent <- concat( xindent , indent )
             }
             
@@ -1370,6 +1391,36 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                     m_model_txt <- concat( m_model_txt , inden(3) , "target += log_sum_exp(" , sym , mixterms_suffix , "[i]);\n" )
                     # close off discrete missing branch
                     m_model_txt <- concat( m_model_txt , inden(2) , "} else \n" )
+
+                    if ( do_discrete_imputation==TRUE ) {
+                        # for each variable in discrete_miss_bank,
+                        #  need to compute posterior probability using log probabilities in mixture
+                        m_gq <- concat( m_gq , inden(3) , "for ( mmrow in 1:rows(", sym , missmatrix_suffix ,") )\n" )
+                        m_gq <- concat( m_gq , inden(4) , sym , mixterms_suffix , "[i,mmrow] = " , sym , mixterms_suffix , "[i,mmrow] + " , LLtxt , ";\n" )
+                        ndmb <- length( discrete_miss_bank )
+                        for ( ix in 1:ndmb ) {
+                            var_name <- names(discrete_miss_bank)[ix]
+                            # add vector of imputed values to start of generated quantities
+                            m_gq <- concat( inden(1) , "vector[N] " , var_name , "_impute;\n" , m_gq )
+                            # add to pars so the samples get returned!
+                            pars_elect[[concat(var_name,"_impute")]] <- concat(var_name,"_impute")
+                            # add calculation to body of generated quantities
+                            # uses softmax to exp each term and normalize them
+                            # dot product with missmatrix extracts terms that include variable ix
+                            m_gq <- concat( m_gq , inden(3) , var_name , "_impute[i] = " , var_name , "[i];\n" )
+                            m_gq <- concat( m_gq , inden(3) , misstests[[ix]] )
+                            m_gq <- concat( m_gq , var_name , 
+                                "_impute[i] = dot_product( softmax(to_vector(" , sym , mixterms_suffix , "[i])) , " , sym , missmatrix_suffix , "[:,",ix,"] )" , ";\n" )
+                        }#ix
+                        # close off discrete missing branch
+                        m_gq <- concat( m_gq , inden(2) , "} else {\n" )
+                        # need to fill observed values in _impute vector, or will get sampling error for undefined values
+                        for ( ix in 1:ndmb ) {
+                            var_name <- names(discrete_miss_bank)[ix]
+                            m_gq <- concat( m_gq , inden(3) , var_name , "_impute[i] = " , var_name , "[i];\n" )
+                        }#ix
+                        m_gq <- concat( m_gq , inden(2) , "}\n" )
+                    }
                 }
                 m_model_txt <- concat( m_model_txt , indent , xindent , outcome , " ~ " , lik$likelihood , "( " , parstxt , " )" , lik$T_text , ";\n" )
                 
@@ -1426,7 +1477,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             if ( tmplt$vectorized==FALSE || has_discrete_missingness==TRUE ) {
                 txt1 <- concat( indent , "}//i \n" )
                 m_model_txt <- concat( m_model_txt , txt1 )
-                if ( has_discrete_missingness==FALSE )
+                if ( has_discrete_missingness==FALSE || do_discrete_imputation==TRUE )
                     m_gq <- concat( m_gq , txt1 )
             }
             

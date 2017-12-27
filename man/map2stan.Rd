@@ -9,7 +9,9 @@
 map2stan( flist , data , start , pars , constraints=list() , types=list() , 
   sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , 
   verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , 
-  control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , ... )
+  control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , 
+  log_lik=FALSE , DIC=FALSE , declare_all_data=TRUE , 
+  do_discrete_imputation=FALSE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -32,6 +34,10 @@ map2stan( flist , data , start , pars , constraints=list() , types=list() ,
   \item{control}{Optional list of control parameters for \code{stan}. Default increases target acceptance rate (\code{adapt_delta}) to 0.95.}
   \item{add_unique_tag}{When \code{TRUE}, adds a comment to the Stan model code with the date-time stamp. This makes each model unique and will force Stan to recompile. Useful for avoiding segfault bugs when reusing compiled objects.}
   \item{code}{Optional list of custom Stan code to insert in model. See details and example.}
+  \item{log_lik}{Return log likelihood of each observation in samples. Used for calculating WAIC and LOO.}
+  \item{DIC}{Return deviance and DIC. This is deprecated and may be removed in a later version.}
+  \item{declare_all_data}{When \code{TRUE}, all variables in the data list are declared in the Stan model code. When \code{FALSE}, only used variables are declared.}
+  \item{do_discrete_imputation}{When \code{TRUE}, samples for missing binary predictors are returned. Not necessary to marginalize over discrete missing values.}
   \item{...}{Additional arguments to pass to \code{\link{stan}}}
 }
 \details{
