@@ -26,7 +26,7 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
     if ( !missing(data) ) {
         model_orig <- fit$model
         out_var <- names(model_orig)[1] # first name should be outcome
-        data <- cbind( 0 , data )
+        data <- cbind( 0 , as.data.frame(data) )
         names(data)[1] <- out_var
         fit$model <- data
     }
@@ -63,7 +63,7 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , ... ) {
     if ( !missing(data) ) {
         model_orig <- fit$model
         out_var <- names(model_orig)[1] # first name should be outcome
-        data <- cbind( 0 , data )
+        data <- cbind( 0 , as.data.frame(data) )
         names(data)[1] <- out_var
         fit$model <- data
     }
