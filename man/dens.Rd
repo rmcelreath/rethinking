@@ -17,7 +17,7 @@ dens( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALS
   \item{show.zero}{If \code{TRUE}, draws a vertical line at location of zero on horizonal axis.}
   \item{rm.na}{If \code{TRUE}, removes \code{NA}s before computing density}
   \item{add}{If \code{TRUE}, overlays density on an existing plot}
-  \item{...}{Other parameters to pass to \code{density}, which constructs the density estimates.}
+  \item{...}{Other parameters to pass to \code{plot} and \code{lines}, which plot the density estimates.}
 }
 \details{
   This function merely provides a convenient interface for plotting density estimates produced by \code{density}. It handles both single vectors and multiple vectors, contained within a data frame.
