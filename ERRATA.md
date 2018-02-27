@@ -27,6 +27,8 @@ page 314: "Islands that are better network acquire or sustain more tool types.":
 
 page 331, line 1: "a women" -> "a woman"
 
+page 405: "but now using dvnormNC" should be "but now using dmvnormNC" (missing first "m" in dmvnormNC).
+
 page 435: "FIGURE 14.4 display ... imputed neocortex values in blue ...
 shown by the blue line segments". The imputed values are actually the
 open black dots (and corresponding black line segments) as the caption
