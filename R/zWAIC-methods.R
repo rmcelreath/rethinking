@@ -114,7 +114,8 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
     }
 
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
-    post <- extract.samples( object )
+    #post <- extract.samples( object )
+    post <- extract( object@stanfit )
 
     # check for log_lik matrix in samples --- if found, use it instead
     if ( !is.null(post[["log_lik"]]) ) {

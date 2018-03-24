@@ -1283,6 +1283,11 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             # add sampling statement to model block
             outcome <- lik$outcome
 
+            # flag for outcome being a variable with discrete missingness
+            outcome_discrete_missing <- FALSE
+            if ( outcome %in% paste(names(discrete_miss_bank),"_whole",sep="") )
+                outcome_discrete_missing <- TRUE
+
             xindent <- "" # controls formatting
             
             # when function not vectorized OR a parameter has discrete missingness, must loop explicitly over [i] instead of vectorizing code
@@ -1425,7 +1430,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 m_model_txt <- concat( m_model_txt , indent , xindent , outcome , " ~ " , lik$likelihood , "( " , parstxt , " )" , lik$T_text , ";\n" )
                 
                 # don't add deviance/log_lik calc when imputed predictor
-                if ( !(lik$outcome %in% names(impute_bank)) && has_discrete_missingness==FALSE ) {
+                if ( !(lik$outcome %in% names(impute_bank)) && (has_discrete_missingness==FALSE || log_lik==TRUE) ) {
                     # get stan suffix
                     the_suffix <- templates[[lik$template]]$stan_suffix
                     if ( DIC==TRUE )
@@ -1445,7 +1450,25 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                             }
                             parstxt_i <- paste( parstxt_i , collapse=" , " )
                         }
-                        m_gq <- concat( m_gq , indent , xindent , "for ( i in 1:N ) log_lik[i] = " , lik$likelihood , the_suffix , "( " , outcome , "[i] | " , parstxt_i , " )" , lik$T_text , ";\n" )
+                        # if likelihood ordinarily vectorized, then add a loop here
+                        if ( outcome_discrete_missing==FALSE ) {
+                            if ( tmplt$vectorized==TRUE ) {
+                                m_gq <- concat( m_gq , indent , xindent , "for ( i in 1:N ) log_lik[i] = " , lik$likelihood , the_suffix , "( " , outcome , "[i] | " , parstxt_i , " )" , lik$T_text , ";\n" )
+                            } else {
+                            # likelihood not vectorized, so should have a loop over i already in gq code
+                            # this is the case for ordered logit for example
+                                if ( do_discrete_imputation==TRUE ) {
+                                    # add test for discrete missingness and only calc log_lik when none for this case
+                                    txt1 <- fp[['lm']][[ lms_with_dm[[1]][[2]] ]]$misstestcode
+                                    m_gq <- concat( m_gq , xindent , txt1 , "\n" )
+                                    m_gq <- concat( m_gq , xindent, indent , "log_lik[i] = 0;\n" )
+                                    m_gq <- concat( m_gq , xindent, "} else {\n" )
+                                }
+                                m_gq <- concat( m_gq , indent , xindent , "log_lik[i] = " , lik$likelihood , the_suffix , "( " , outcome , " | " , parstxt_i , " )" , lik$T_text , ";\n" )
+                                if ( do_discrete_imputation==TRUE ) 
+                                    m_gq <- concat( m_gq , xindent, "}\n" )
+                            }
+                        }#outcome not discrete missing
                     }#log_lik
                 }
                 
