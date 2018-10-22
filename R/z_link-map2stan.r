@@ -8,7 +8,11 @@
 setMethod("link", "map2stan",
 function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
 
-    if ( class(fit)!="map2stan" ) stop("Requires map2stan fit")
+    # trap for ulam2018 method
+    ag <- attr( fit , "generation" )
+    if ( !is.null(ag) )
+        if ( ag=="ulam2018" )
+            return( link_ulam( fit , data=data , post=post , n=n , simplify=flatten , ... ) )
 
     # get samples from Stan fit
     if ( missing(post) ) post <- extract.samples(fit,n=n)
@@ -79,9 +83,18 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
         }
         if ( !is.na(outcome) ) {
             n_cases <- length( data[[ outcome ]] )
-            if ( n_cases > 0 )
+            if ( n_cases > 0 ) {
                 K <- max( fit@data[[ outcome ]] ) # get max level from original data
-            else {
+                # above can go wrong when there are unobserved levels for categorical outcome
+                # so check for cutpoints length
+                if ( lm_lik[[i]]=="ordered_logistic" ) {
+                    the_cuts <- as.character( lik[[i]]$pars[[2]] )
+                    if ( !is.null( post[[ the_cuts ]] ) ) {
+                        # get number of defined levels from cuts + 1
+                        K <- dim( post[[ the_cuts ]] )[2] + 1 
+                    }
+                }
+            } else {
                 # outcome not found, so just fill with 1s
                 n_cases <- length( data[[1]] ) # just hope is informative
                 data[[outcome]] <- rep(1,n_cases)

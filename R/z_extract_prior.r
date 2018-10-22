@@ -118,6 +118,12 @@ function( fit , n=1000 , pars , ... ) {
 setMethod( "extract.prior", "map2stan",
 function( fit , n=1000 , ... ) {
 
+    # trap for ulam2018 method
+    ag <- attr( fit , "generation" )
+    if ( !is.null(ag) )
+        if ( ag=="ulam2018" )
+            return( extract_prior_ulam( fit , n=n , ... ) )
+
     # args must be a list of arguments to density function
     # can contain vectors
     sample_from_prior <- function( dname , args , n ) {
@@ -248,6 +254,76 @@ function( fit , n=1000 , ... ) {
     return(result)
 
 })
+
+extract_prior_ulam <- function( fit , n=1000 , distribution_library=ulam_dists , ... ) {
+
+    # args must be a list of arguments to density function
+    # can contain vectors
+    sample_from_prior <- function( dname , args , n ) {
+        the_rdensity <- dname
+        substr( the_rdensity , 1 , 1 ) <- "r"
+        pars <- list()
+        pars$n <- n
+        pars[[2]] <- args
+        pars <- unlist( pars , recursive=FALSE ) #recursive=FALSE means result is a list, not vector
+        result <- do.call( the_rdensity , args=pars )
+        return(result)
+    }
+
+    result <- list()
+
+    # sample from corresponding priors in parsed formula
+
+    # scan all symbols for parameters
+    n_symbols <- length(fit@formula_parsed$symbols)
+    n_pars <- 0
+    pars_list <- list()
+    if ( n_symbols > 0 ) {
+        for ( i in 1:n_symbols ) {
+            if ( fit@formula_parsed$symbols[[i]]$type=="par" ) {
+                n_pars <- n_pars + 1
+                par_name <- names(fit@formula_parsed$symbols)[i]
+                pars_list[[ par_name ]] <- fit@formula_parsed$symbols[[i]]
+            }
+        }#i
+    } else {
+        stop( "No symbols found in formula." )
+    }
+
+    # now sample from each parameter
+    if ( n_pars == 0 ) {
+        stop( "No parameters found in formula." )
+    }
+    if ( n_pars > 0 ) {
+        for ( i in 1:n_pars ) {
+            
+        }#i
+    }
+
+    result <- pars_list
+
+    if ( FALSE ) {
+    # need to get name structure from posterior samples, so can do in same order later
+    post <- extract.samples(fit,n=3,...)
+    new_result <- list()
+    for ( i in 1:length(post) ) {
+        a_name <- names(post)[i]
+        if ( !is.null(result[[a_name]]) ) {
+            new_result[[ a_name ]] <- result[[ a_name ]]
+        }
+    }#i
+    result <- new_result
+
+    # make sure each entry is an array, even if 1D
+    for ( i in 1:length(result) ) {
+        if ( is.null(dim(result[[i]])) )
+            result[[i]] <- as.array(result[[i]])
+    }
+    }
+
+    return(result)
+
+}
 
 #### TESTS #############
 if ( FALSE ) {

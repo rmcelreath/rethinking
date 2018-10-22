@@ -24,8 +24,7 @@ precis_show <- function( object ) {
 
 setMethod( "show" , "precis" , function(object) precis_show(object) )
 
-precis_plot <- function( x , y , pars , col.ci="black" , xlab="Value" , add=FALSE , xlim=NULL , labels=rownames(x)[n:1] , ... ) {
-    #x <- x@output
+precis_plot <- function( x , y , pars , col.ci="black" , xlab="Value" , add=FALSE , xlim=NULL , labels=rownames(x)[1:n] , ... ) {
     if ( !missing(pars) ) {
         x <- x[pars,]
     }
@@ -34,6 +33,7 @@ precis_plot <- function( x , y , pars , col.ci="black" , xlab="Value" , add=FALS
     left <- x[[3]][n:1]
     right <- x[[4]][n:1]
     set_nice_margins()
+    labels <- labels[n:1]
     if ( is.null(xlim) ) xlim <- c(min(left),max(right))
     if ( add==FALSE )
         dotchart( mu , labels=labels , xlab=xlab , xlim=xlim , ... )

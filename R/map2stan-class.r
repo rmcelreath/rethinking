@@ -126,7 +126,7 @@ function (object, ...)
 })
 
 stan_sampling_duration <- function(object) {
-    if ( class(object)=="map2stan" ) object <- object@stanfit
+    if ( class(object)=="map2stan" | class(object)=="ulam" ) object <- object@stanfit
     dur <- get_elapsed_time(object)
     totals <- rep(NA,nrow(dur))
     for ( i in 1:nrow(dur) ) totals[i] <- sum( dur[i,] )
@@ -452,6 +452,7 @@ stanergy <- function( x , colscheme="blue" , binwidth=NULL , merge_chains=FALSE 
 
 # function to do mcmc_parcoord to help find divergences
 divergence_tracker <- function( x , no_lp=TRUE , pars , ... ) {
+    require(bayesplot)
     if ( class(x)=="map2stan" ) x <- x@stanfit
     np <- nuts_params(x)
     draws <- as.array(x)
@@ -461,7 +462,6 @@ divergence_tracker <- function( x , no_lp=TRUE , pars , ... ) {
             pars <- pars[ -which(pars=="lp__") ]
         }
     }
-    require(bayesplot)
     bayesplot::mcmc_parcoord(draws,np=np,pars=pars,...)
 }
 # divergence_tracker( m5 )

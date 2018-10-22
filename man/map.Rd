@@ -1,11 +1,13 @@
-\name{map}
+\name{quap}
 \alias{map}
+\alias{quap}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{Find maximum a posteriori (MAP) estimates}
+\title{Compute quadratic approximate posterior distribution}
 \description{
-  Find mode of posterior distribution for arbitrary fixed effect models.
+  Find mode of posterior distribution for arbitrary fixed effect models and then produce an approximation of the full posterior using the quadratic curvature at the mode.
 }
 \usage{
+quap( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose=FALSE , ... )
 map( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose=FALSE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
@@ -19,7 +21,7 @@ map( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose
   \item{...}{Additional arguments to pass to \code{optim}}
 }
 \details{
-  This command provides a convenient interface for finding maximum a posteriori estimates for models defined by a formula or by a list of formulas. This procedure is equivalent to penalized maximum likelihood estimation, and therefore can be used to define many common regularization procedures.
+  This command provides a convenient interface for finding quadratic approximations of posterior distributions for models defined by a formula or by a list of formulas. This procedure is equivalent to penalized maximum likelihood estimation and the use of a Hessian for profiling, and therefore can be used to define many common regularization procedures. The point estimates returned correspond to a maximum a posterior, or MAP, estimate. However the intention is that users will use \code{extract.samples} and other functions to work with the full posterior.
   
   \code{flist} should be a either a single formula that defines the likelihood function or rather a list of formulas that define the likelihood and priors for parameters. See examples below.
   
@@ -54,7 +56,7 @@ flist <- alist(
     c(a,b) ~ dnorm(0,10) , 
     sigma ~ dcauchy(0,1)
 )
-fit <- map( flist , start=list(a=40,b=0.1,sigma=20) , data=cars )
+fit <- quap( flist , start=list(a=40,b=0.1,sigma=20) , data=cars )
 
 # regularized logistic regression example
 y <- c( rep(0,10) , rep(1,10) )
@@ -73,11 +75,11 @@ flist1 <- alist(
 
 # without priors, same problem as:
 # glm3a <- glm( y ~ x , family=binomial , data=list(y=y,x=x) )
-fit3a <- map( flist0 , data=list(y=y,x=x) , start=list(a=0,b=0) )
+fit3a <- quap( flist0 , data=list(y=y,x=x) , start=list(a=0,b=0) )
 precis(fit3a)
 
 # now with regularization
-fit3b <- map( flist1 , data=list(y=y,x=x) , start=list(a=0,b=0) )
+fit3b <- quap( flist1 , data=list(y=y,x=x) , start=list(a=0,b=0) )
 precis(fit3b)
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

@@ -12,8 +12,8 @@ ensemble <- function( ... , data , n=1e3 , func=WAIC , weights , refresh=0 , rep
         if ( length(L)>1 ) {
             use_func <- func
             ictab <- compare( ... , func=use_func , refresh=refresh , n=n , sort=FALSE )
-            rownames(ictab@output) <- mnames
-            weights <- ictab@output$weight
+            rownames(ictab) <- mnames
+            weights <- ictab$weight
         } else {
             ictab <- NA
             weights <- 1

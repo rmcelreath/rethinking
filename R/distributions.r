@@ -1,10 +1,10 @@
 # distributions
 
 # bernoulli convenience functions
-dbern <- function(x,prob,log=TRUE) {
+dbern <- function(x,prob,log=FALSE) {
     dbinom(x,size=1,prob=prob,log=log)
 }
-rbern <- function(n,prob) {
+rbern <- function(n,prob=0.5) {
     rbinom(n,size=1,prob=prob)
 }
 

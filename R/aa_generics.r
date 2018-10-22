@@ -21,3 +21,9 @@ if (!isGeneric("AIC"))
 
 if (!isGeneric("pairs"))
       setGeneric("pairs", function(x, ...) standardGeneric("pairs"))
+
+setGeneric("link",
+function( fit , data , n=1000 , ... ) {
+    print(class(fit))
+}
+)

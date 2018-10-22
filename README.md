@@ -1,7 +1,7 @@
 rethinking
 ==========
 
-This R package accompanies a course and book on Bayesian data analysis (McElreath 2016. Statistical Rethinking. CRC Press.). It contains tools for conducting both MAP estimation and Hamiltonian Monte Carlo (through RStan - mc-stan.org). These tools force the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful.
+This R package accompanies a course and book on Bayesian data analysis (McElreath 2016. Statistical Rethinking. CRC Press.). It contains tools for conducting both quick quadratic approximation of the posterior distribution as well as Hamiltonian Monte Carlo (through RStan - mc-stan.org). Many packages do this. The signature difference of this package is that it forces the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful and---most important---useful for teaching and learning. When students have to write out every detail of the model, they actually learn the model.
 
 For example, a simple Gaussian model could be specified with this list of formulas:
 
@@ -9,11 +9,11 @@ For example, a simple Gaussian model could be specified with this list of formul
 f <- alist(
     y ~ dnorm( mu , sigma ),
     mu ~ dnorm( 0 , 10 ),
-    sigma ~ dcauchy( 0 , 1 )
+    sigma ~ dexp( 1 )
 )
 ```
 
-The first formula in the list is the likelihood; the second is the prior for ``mu``; the third is the prior for ``sigma`` (implicitly a half-Cauchy, due to positive constraint on ``sigma``).
+The first formula in the list is the probability of the outcome (likelihood); the second is the prior for ``mu``; the third is the prior for ``sigma``.
 
 ## Quick Installation
 
@@ -31,19 +31,19 @@ devtools::install_github("rmcelreath/rethinking")
 ```
 If there are any problems, they likely arise when trying to install ``rstan``, so the ``rethinking`` package has little to do with it. See the manual linked above for some hints about getting ``rstan`` installed. But always consult the RStan section of the website at ``mc-stan.org`` for the latest information on RStan.
 
-## MAP estimation
+## Quadratic Approximation with `quap`
 
-To use maximum a posteriori (MAP) fitting:
+To use quadratic approximation:
 ```
 library(rethinking)
 
 f <- alist(
     y ~ dnorm( mu , sigma ),
     mu ~ dnorm( 0 , 10 ),
-    sigma ~ dcauchy( 0 , 1 )
+    sigma ~ dexp( 1 )
 )
 
-fit <- map( 
+fit <- quap( 
     f , 
     data=list(y=c(-1,1)) , 
     start=list(mu=0,sigma=1)
@@ -51,79 +51,86 @@ fit <- map(
 ```
 The object ``fit`` holds the result. For a summary of marginal posterior distributions, use ``summary(fit)`` or ``precis(fit)``:
 ```
-      Mean StdDev  2.5% 97.5%
-mu    0.00   0.59 -1.16  1.16
-sigma 0.84   0.33  0.20  1.48
+      mean   sd  5.5% 94.5%
+mu    0.00 0.59 -0.95  0.95
+sigma 0.84 0.33  0.31  1.36
 ```
 
-## Hamiltonian Monte Carlo estimation
+## Hamiltonian Monte Carlo with `ulam` and `map2stan`
 
-The same formula list can be compiled into a Stan (mc-stan.org) model:
+The same formula list can be compiled into a Stan (mc-stan.org) model using one of two tools: `ulam` or `map2stan`. For simple models, they are identical. `ulam` is the newer tool that allows for much for flexibility. `map2stan` is the original tool from the first edition of the package and textbook. 
 
+`ulam` is named after Stanisław Ulam, who was one of the parents of the Monte Carlo method and is the namesake of the Stan project as well. It is pronounced something like [OO-lahm], not like [YOU-lamm].
+
+Both tools take the same kind of input as `quap`:
 ```
-fit.stan <- map2stan( 
-    f , 
-    data=list(y=c(-1,1)) , 
-    start=list(mu=0,sigma=1)
-)
+fit_stan <- ulam( f , data=list(y=c(-1,1)) )
 ```
-The ``start`` list is optional, provided a prior is defined for every parameter. In that case, ``map2stan`` will automatically sample from each prior to get starting values for the chains.  The chain runs automatically, provided ``rstan`` is installed. The ``plot`` method will display trace plots for the chains.
+The chain runs automatically, provided ``rstan`` is installed. The ``plot`` method will display trace plots for the chains. And chain diagnostics are displayed in the `precis(fit_stan)` output:
+```
+      mean   sd  5.5% 94.5% n_eff Rhat
+sigma 1.45 0.72  0.67  2.84   145    1
+mu    0.12 1.04 -1.46  1.59   163    1
+```
 
-The Stan code can be accessed by using ``stancode(fit.stan)``:
+The Stan code can be accessed by using ``stancode(fit_stan)``:
 ```
 data{
-    int<lower=1> N;
-    real y[N];
+    real y[2];
 }
 parameters{
-    real mu;
     real<lower=0> sigma;
+    real mu;
 }
 model{
+    sigma ~ exponential( 1 );
     mu ~ normal( 0 , 10 );
-    sigma ~ cauchy( 0 , 1 );
     y ~ normal( mu , sigma );
-}
-generated quantities{
-    real dev;
-    dev <- 0;
-    dev <- dev + (-2)*normal_log( y , mu , sigma );
 }
 ```
 
 To run multiple chains in parallel on multiple cores, use the ``cores`` argument:
 ```
-fit.stan <- map2stan( 
+fit_stan <- ulam( 
     f , 
     data=list(y=c(-1,1)) , 
-    start=list(mu=0,sigma=1) ,
-    chains=4 , cores=4 , iter=2000 , warmup=1000
-)
+    chains=4 , cores=4 , iter=2000 , warmup=1000 )
 ```
-The ``parallel`` package is used here, relying upon ``mclapply`` (Mac, UNIX) or ``parLapply`` (Windows). It is best to run parallel operations in the Terminal/Command Prompt, as GUI interfaces sometimes crash when forking processes.
+
+Note that `ulam` doesn't really care about R distribution names. You can instead use Stan-style names:
+```
+fit_stan <- ulam(
+    alist(
+        y ~ normal( mu , sigma ),
+        mu ~ normal( 0 , 10 ),
+        sigma ~ exponential( 1 )
+    ), data=c(-1,1) )
+```
 
 ## Posterior prediction
 
-Both ``map`` and ``map2stan`` model fits can be post-processed to produce posterior distributions of any linear models and posterior predictive distributions.
+All ``quap``, `ulam`, and ``map2stan`` objects can be post-processed to produce posterior predictive distributions.
 
 ``link`` is used to compute values of any linear models over samples from the posterior distribution. 
 
-``sim`` is used to simulate posterior predictive distributions, simulating outcomes over samples from the posterior distribution of parameters. See ``?link`` and ``?sim`` for details.
+``sim`` is used to simulate posterior predictive distributions, simulating outcomes over samples from the posterior distribution of parameters. `sim` can also be used to simulate prior predictives.
 
-``postcheck`` automatically computes posterior predictive (retrodictive?) checks for each case used to fit a model.
+See ``?link`` and ``?sim`` for details.
+
+``postcheck`` automatically computes posterior predictive (retrodictive?) checks. It merely uses `link` and `sim`.
 
 
 ## Multilevel model formulas
 
-While ``map`` is limited to fixed effects models for the most part, ``map2stan`` can specify multilevel models, even quite complex ones. For example, a simple varying intercepts model looks like:
+While ``quap`` is limited to fixed effects models for the most part, `ulam` and ``map2stan`` can specify multilevel models, even quite complex ones. For example, a simple varying intercepts model looks like:
 ```
 f2 <- alist(
     y ~ dnorm( mu , sigma ),
     mu <- a + aj[group],
     aj[group] ~ dnorm( 0 , sigma_group ),
     a ~ dnorm( 0 , 10 ),
-    sigma ~ dcauchy( 0 , 1 ),
-    sigma_group ~ dcauchy( 0 , 1 )
+    sigma ~ dexp( 1 ),
+    sigma_group ~ dexp( 1 )
 )
 ```
 And with varying slopes as well:
@@ -131,29 +138,11 @@ And with varying slopes as well:
 f3 <- alist(
     y ~ dnorm( mu , sigma ),
     mu <- a + aj[group] + (b + bj[group])*x,
-    c(aj,bj)[group] ~ dmvnorm( 0 , Sigma_group ),
-    a ~ dnorm( 0 , 10 ),
-    b ~ dnorm( 0 , 1 ),
-    sigma ~ dcauchy( 0 , 1 ),
-    Sigma_group ~ inv_wishart( 3 , diag(2) )
-)
-```
-
-
-
-## Nice covariance priors
-
-The ``inv_wishart`` prior in the model just above is conventional, but not appealing. Since Stan does not use Gibbs sampling, there is no advantage to the ``inv_wishart`` prior. 
-To escape these conventional priors, ``map2stan`` supports decomposition of covariance matrices into vectors of standard deviations and a correlation matrix, such that priors can be specified independently for each:
-```
-f4 <- alist(
-    y ~ dnorm( mu , sigma ),
-    mu <- a + aj[group] + (b + bj[group])*x,
     c(aj,bj)[group] ~ dmvnorm2( 0 , sigma_group , Rho_group ),
     a ~ dnorm( 0 , 10 ),
     b ~ dnorm( 0 , 1 ),
-    sigma ~ dcauchy( 0 , 1 ),
-    sigma_group ~ dcauchy( 0 , 1 ),
+    sigma ~ dexp( 1 ),
+    sigma_group ~ dexp( 1 ),
     Rho_group ~ dlkjcorr(2)
 )
 ```

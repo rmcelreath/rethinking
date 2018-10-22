@@ -1,13 +1,9 @@
 # function to compute value of linear models from map fit, over samples
 
-setGeneric("link",
-function( fit , data , n=1000 , ... ) {
-    print(class(fit))
-}
-)
+
 
 setMethod("link", "map",
-function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TRUE , ... ) {
+function( fit , data , n=1000 , post , refresh=0 , replace=list() , flatten=TRUE , ... ) {
     
     if ( class(fit)!="map" ) stop("Requires map fit")
     if ( missing(data) ) {
@@ -84,6 +80,8 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , flatten=TR
                 dims <- dim( post[[par_name]] )
                 # scalar
                 if ( is.null(dims) ) init[[par_name]] <- post[[par_name]][s]
+                # 1d vector
+                if ( length(dims)==1 ) init[[par_name]] <- post[[par_name]][s]
                 # vector
                 if ( length(dims)==2 ) init[[par_name]] <- post[[par_name]][s,]
                 # matrix

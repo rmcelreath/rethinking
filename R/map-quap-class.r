@@ -58,7 +58,7 @@ function (object, ...)
 
 setMethod("show", "map", function(object){
 
-    cat("\nMaximum a posteriori (MAP) model fit\n")
+    cat("\nQuadratic approximate posterior distribution\n")
     
     cat("\nFormula:\n")
     for ( i in 1:length(object@formula) ) {
@@ -80,6 +80,10 @@ setMethod("summary", "map", function(object){
     
     precis(object)
     
+})
+
+setMethod("plot", "map" , function( x , ... ) {
+    plot( precis( x ) , ... )
 })
 
 setGeneric("extract.samples",

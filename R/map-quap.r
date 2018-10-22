@@ -1,4 +1,4 @@
-# MAP - maximum a posteriori estimation
+# QUAP - quadratic approximation (used to be called map)
 
 # to-do:
 
@@ -23,7 +23,7 @@ flist_untag <- function(flist,eval=TRUE) {
 }
 
 # main event
-map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose=FALSE , ... ) {
+quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose=FALSE , ... ) {
     
     ########################################
     # check arguments
@@ -536,6 +536,8 @@ map <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FAL
     # result
     m
 }
+
+map <- quap
 
 # EXAMPLES
 if ( FALSE ) {

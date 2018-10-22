@@ -39,26 +39,29 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , ... ) {
 setMethod("LOO", "stanfit",
 function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
     if ( !is.null(extract.samples(object)[[log_lik]]) )
-        ll_matrix <- extract.samples(object)[[log_lik]]
+        ll_matrix <- loo::extract_log_lik( object , merge_chains=FALSE )
     else
         stop(concat("Log-likelihood matrix '",log_lik,"'' not found."))
 
-    loo_list <- loo::loo(ll_matrix)
+    rel_n_eff <- loo::relative_eff(exp(ll_matrix))
+
+    loo_list <- loo::loo( ll_matrix , r_eff = rel_n_eff )
 
     if ( pointwise==TRUE ) {
-        looIC <- as.vector( loo_list$pointwise[,3] )
+        looIC <- as.vector( loo_list$pointwise[,4] )
         lppd <- as.vector( loo_list$pointwise[,1] )
-        pD <- as.vector( loo_list$pointwise[,2] )
+        pD <- as.vector( loo_list$pointwise[,3] )
     } else {
-        looIC <- loo_list$looic
-        lppd <- loo_list$elpd_loo
-        pD <- loo_list$p_loo
+        looIC <- loo_list$estimates[3,1]
+        lppd <- loo_list$estimates[1,1]
+        pD <- loo_list$estimates[2,1]
     }
     attr(looIC,"lppd") = lppd
     attr(looIC,"pLOO") = pD
     
     n_tot <- ncol(ll_matrix)
-    attr(looIC,"se") = try(sqrt( n_tot*var2(as.vector( loo_list$pointwise[,3] )) ))
+    #attr(looIC,"se") = try(sqrt( n_tot*var(as.vector( loo_list$pointwise[,4] )) ))
+    attr(looIC,"se") = loo_list$estimates[3,2]
     
     return(looIC)
 })

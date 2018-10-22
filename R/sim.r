@@ -7,7 +7,7 @@ function( fit , data , n=1000 , ... ) {
 )
 
 setMethod("sim", "map",
-function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() , ... ) {
+function( fit , data , n=1000 , post , ll=FALSE , refresh=0 , replace=list() , ... ) {
     # when ll=FALSE, simulates sampling, one sample for each sample in posterior
     # when ll=TRUE, computes loglik of each observation, for each sample in posterior
     
@@ -104,6 +104,8 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() ,
             dims <- dim( post[[par_name]] )
             # scalar
             if ( is.null(dims) ) init[[par_name]] <- post[[par_name]][s]
+            # 1d vector
+            if ( length(dims)==1 ) init[[par_name]] <- post[[par_name]][s]
             # vector
             if ( length(dims)==2 ) init[[par_name]] <- post[[par_name]][s,]
             # matrix
@@ -161,6 +163,12 @@ function( fit , data , n=1000 , post , ll=FALSE , refresh=0.1 , replace=list() ,
 setMethod("sim", "map2stan",
 function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
     
+    # trap for ulam2018 method
+    ag <- attr( fit , "generation" )
+    if ( !is.null(ag) )
+        if ( ag=="ulam2018" )
+            return( sim_ulam( fit , data=data , post=post , n=n , ... ) )
+
     ########################################
     # check arguments
     if ( missing(data) ) {

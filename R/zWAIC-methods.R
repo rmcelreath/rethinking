@@ -42,6 +42,39 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
     return(waic)
 })
 
+# extracts log_lik matrix from stanfit and computes WAIC
+setMethod("WAIC", "ulam",
+function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
+    
+    ll_matrix <- extract.samples(object@stanfit,pars=log_lik)[[1]]
+    
+    # stop(concat("Log-likelihood matrix '",log_lik,"'' not found."))
+
+    n_obs <- ncol(ll_matrix)
+    n_samples <- nrow(ll_matrix)
+    lpd <- rep(0,n_obs)
+    pD <- rep(0,n_obs)
+
+    for ( i in 1:n_obs ) {
+        lpd[i] <- log_sum_exp(ll_matrix[,i]) - log(n_samples)
+        pD[i] <- var2(ll_matrix[,i])
+    }
+
+    waic_vec <- (-2)*( lpd - pD )
+    if ( pointwise==FALSE ) {
+        waic <- sum(waic_vec)
+        lpd <- sum(lpd)
+        pD <- sum(pD)
+    } else {
+        waic <- waic_vec
+    }
+    attr(waic,"lppd") = lpd
+    attr(waic,"pWAIC") = pD
+    attr(waic,"se") = try(sqrt( n_obs*var2(waic_vec) ))
+    
+    return(waic)
+})
+
 # extracts log_lik matrix from extracted samples in a list
 setMethod("WAIC", "list",
 function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {

@@ -1,4 +1,4 @@
-# graphical posterior validation checks for map and map2stan
+# graphical posterior validation checks for quap and map2stan
 
 postcheck <- function( fit , x , prob=0.89 , window=20 , n=1000 , col=rangi2 , ... ) {
     
@@ -49,13 +49,20 @@ postcheck <- function( fit , x , prob=0.89 , window=20 , n=1000 , col=rangi2 , .
     
     # check for aggregated binomial context
     mumax <- max(c(as.numeric(mu.PI)))
-    if ( ymax > 1 & mumax <= 1 & dname %in% c("dbinom","dbetabinom") ) {
+    if ( ymax > 1 & mumax <= 1 & dname %in% c("dbinom","dbetabinom","binomial") ) {
         # probably aggregated binomial
         size_var <- as.character(lik[[3]][[2]])
-        size_var <- fit@data[[ size_var ]]
-        for ( i in 1:ny ) {
-            y.PI[,i] <- y.PI[,i]/size_var[i]
-            y[i] <- y[i]/size_var[i]
+        if ( !is.null( fit@data[[ size_var ]] ) ) {
+            size_var <- fit@data[[ size_var ]]
+            for ( i in 1:ny ) {
+                y.PI[,i] <- y.PI[,i]/size_var[i]
+                y[i] <- y[i]/size_var[i]
+            }
+        } else {
+            for ( i in 1:ny ) {
+                y.PI[,i] <- y.PI[,i]/as.numeric(size_var)
+                y[i] <- y[i]/as.numeric(size_var)
+            }
         }
         ymin <- 0
         ymax <- 1
