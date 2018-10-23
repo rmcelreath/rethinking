@@ -51,10 +51,10 @@ map( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose
 \examples{
 data(cars)
 flist <- alist(
-    dist ~ dnorm( mean=mu , sd=sigma ) ,
+    dist ~ dnorm( mu , sigma ) ,
     mu <- a+b*speed ,
-    c(a,b) ~ dnorm(0,10) , 
-    sigma ~ dcauchy(0,1)
+    c(a,b) ~ dnorm(0,1) , 
+    sigma ~ dexp(1)
 )
 fit <- quap( flist , start=list(a=40,b=0.1,sigma=20) , data=cars )
 
@@ -63,12 +63,12 @@ y <- c( rep(0,10) , rep(1,10) )
 x <- c( rep(-1,9) , rep(1,11) )
 
 flist0 <- alist(
-    y ~ dbinom( prob=p , size=1 ) ,
+    y ~ dbinom( 1 , p ) ,
     logit(p) <- a + b*x
 )
 
 flist1 <- alist(
-    y ~ dbinom( prob=p , size=1 ),
+    y ~ dbinom( 1 , p ),
     logit(p) <- a + b*x ,
     c(a,b) ~ dnorm(0,10)
 )
@@ -81,6 +81,25 @@ precis(fit3a)
 # now with regularization
 fit3b <- quap( flist1 , data=list(y=y,x=x) , start=list(a=0,b=0) )
 precis(fit3b)
+
+# vector parameters
+data(UCBadmit)
+fit4 <- quap(
+    alist(
+        admit ~ dbinom( apps , p ),
+        logit(p) <- a[dept_id] + b*male,
+        a[dept_id] ~ dnorm(0,4),
+        b ~ dnorm(0,1)
+    ),
+    data=list(
+        admit = UCBadmit$admit,
+        apps = UCBadmit$applications,
+        male = ifelse( UCBadmit$applicant.gender=="male" , 1 , 0 ),
+        dept_id = coerce_index(UCBadmit$dept)
+    )
+)
+
+
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the
 % R documentation directory.

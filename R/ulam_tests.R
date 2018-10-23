@@ -48,9 +48,12 @@ if ( FALSE ) {
     check_hash( stancode(z2) , "30e2efaf60da86c26c12d1546be851c2" )
 
     # continuous missing data
+
+    # automated merging and NA indexing
+    # merge_missing
     UCBadmit$x <- rnorm(12)
     UCBadmit$x[1:2] <- NA
-    z2b <- ulam(
+    z2b2 <- ulam(
         alist(
             admit ~ binomial(applications,p),
             logit(p) <- a + b*male + bx*x_merge,
@@ -273,7 +276,7 @@ if ( FALSE ) {
             logit(p) <- v[dept,1] + v[dept,2]*male,
             vector[2]:v[dept] ~ multi_normal( v_mu , Rho , sigma ),
             vector[2]:v_mu[[1]] ~ normal(0,4),
-            v_mu[[2]] ~ normal(0,1),
+            vector[2]:v_mu[[2]] ~ normal(0,1),
             sigma[1] ~ half_normal(0,1),
             sigma[2] ~ half_normal(0,2),
             Rho ~ lkjcorr(2)
@@ -281,7 +284,9 @@ if ( FALSE ) {
         data=UCBadmit )
 
     # cholesky form
+
     # multi_normal_NC needs to edit formula with macro
+    # DOES NOT YET WORK
     z8p <- ulam(
         alist(
             admit ~ binomial(applications,p),

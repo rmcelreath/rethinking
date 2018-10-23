@@ -15,7 +15,7 @@ f <- alist(
 
 The first formula in the list is the probability of the outcome (likelihood); the second is the prior for ``mu``; the third is the prior for ``sigma``.
 
-## Quick Installation
+# Quick Installation
 
 You can find a manual with expanded installation and usage instructions here: ``http://xcelab.net/rm/software/``
 
@@ -31,9 +31,9 @@ devtools::install_github("rmcelreath/rethinking")
 ```
 If there are any problems, they likely arise when trying to install ``rstan``, so the ``rethinking`` package has little to do with it. See the manual linked above for some hints about getting ``rstan`` installed. But always consult the RStan section of the website at ``mc-stan.org`` for the latest information on RStan.
 
-## Quadratic Approximation with `quap`
+# Quadratic Approximation with `quap`
 
-To use quadratic approximation:
+Almost any ordinary generalized linear model can be specified with `quap`. To use quadratic approximation:
 ```
 library(rethinking)
 
@@ -55,10 +55,13 @@ The object ``fit`` holds the result. For a summary of marginal posterior distrib
 mu    0.00 0.59 -0.95  0.95
 sigma 0.84 0.33  0.31  1.36
 ```
+It also supports vectorized parameters, which is convenient for categories. See examples `?quap`. 
 
-## Hamiltonian Monte Carlo with `ulam` and `map2stan`
+In the first edition of the textbook, this function was called `map`. It can still be used with that alias. It was renamed, because the name `map` was misleading. This function produces quadratic approximations of the posterior distribution, not just maximum a posteriori (MAP) estimates.
 
-The same formula list can be compiled into a Stan (mc-stan.org) model using one of two tools: `ulam` or `map2stan`. For simple models, they are identical. `ulam` is the newer tool that allows for much for flexibility. `map2stan` is the original tool from the first edition of the package and textbook. 
+# Hamiltonian Monte Carlo with `ulam` (and `map2stan`)
+
+The same formula list can be compiled into a Stan (mc-stan.org) model using one of two tools: `ulam` or `map2stan`. For simple models, they are identical. `ulam` is the newer tool that allows for much more flexibility, including explicit variable types and custom distributions. `map2stan` is the original tool from the first edition of the package and textbook. Going forward, new features will be added to `ulam`.
 
 `ulam` is named after Stanisław Ulam, who was one of the parents of the Monte Carlo method and is the namesake of the Stan project as well. It is pronounced something like [OO-lahm], not like [YOU-lamm].
 
@@ -66,12 +69,17 @@ Both tools take the same kind of input as `quap`:
 ```
 fit_stan <- ulam( f , data=list(y=c(-1,1)) )
 ```
-The chain runs automatically, provided ``rstan`` is installed. The ``plot`` method will display trace plots for the chains. And chain diagnostics are displayed in the `precis(fit_stan)` output:
+The chain runs automatically, provided ``rstan`` is installed. Chain diagnostics are displayed in the `precis(fit_stan)` output:
 ```
       mean   sd  5.5% 94.5% n_eff Rhat
 sigma 1.45 0.72  0.67  2.84   145    1
 mu    0.12 1.04 -1.46  1.59   163    1
 ```
+For `ulam` models, `plot` displays the same information as `precis` and `traceplot` displays the chains.
+
+`extract.samples` returns samples in a list. `extract.prior` samples from the prior and returns the samples in a list as well.
+
+The `stanfit` object itself is in the `@stanfit` slot. Anything you'd do with a Stan model can be done with that slot directly.
 
 The Stan code can be accessed by using ``stancode(fit_stan)``:
 ```
@@ -89,22 +97,14 @@ model{
 }
 ```
 
-To run multiple chains in parallel on multiple cores, use the ``cores`` argument:
-```
-fit_stan <- ulam( 
-    f , 
-    data=list(y=c(-1,1)) , 
-    chains=4 , cores=4 , iter=2000 , warmup=1000 )
-```
-
-Note that `ulam` doesn't really care about R distribution names. You can instead use Stan-style names:
+Note that `ulam` doesn't care about R distribution names. You can instead use Stan-style names:
 ```
 fit_stan <- ulam(
     alist(
         y ~ normal( mu , sigma ),
         mu ~ normal( 0 , 10 ),
         sigma ~ exponential( 1 )
-    ), data=c(-1,1) )
+    ), data=list(y=c(-1,1)) )
 ```
 
 ## Posterior prediction
@@ -122,33 +122,289 @@ See ``?link`` and ``?sim`` for details.
 
 ## Multilevel model formulas
 
-While ``quap`` is limited to fixed effects models for the most part, `ulam` and ``map2stan`` can specify multilevel models, even quite complex ones. For example, a simple varying intercepts model looks like:
+While ``quap`` is limited to fixed effects models for the most part, `ulam` can specify multilevel models, even quite complex ones. For example, a simple varying intercepts model looks like:
 ```
-f2 <- alist(
-    y ~ dnorm( mu , sigma ),
-    mu <- a + aj[group],
-    aj[group] ~ dnorm( 0 , sigma_group ),
-    a ~ dnorm( 0 , 10 ),
-    sigma ~ dexp( 1 ),
-    sigma_group ~ dexp( 1 )
-)
+# prep data
+data( UCBadmit )
+UCBadmit$male <- as.integer(UCBadmit$applicant.gender=="male")
+UCBadmit$dept <- rep( 1:6 , each=2 )
+UCBadmit$applicant.gender <- NULL
+
+# varying intercepts model
+m_glmm1 <- ulam(
+    alist(
+        admit ~ binomial(applications,p),
+        logit(p) <- a[dept] + b*male,
+        a[dept] ~ normal( abar , sigma ),
+        abar ~ normal( 0 , 4 ),
+        sigma ~ half_normal(0,1),
+        b ~ normal(0,1)
+    ), data=UCBadmit )
 ```
-And with varying slopes as well:
+The analogous varying slopes model is:
 ```
-f3 <- alist(
-    y ~ dnorm( mu , sigma ),
-    mu <- a + aj[group] + (b + bj[group])*x,
-    c(aj,bj)[group] ~ dmvnorm2( 0 , sigma_group , Rho_group ),
-    a ~ dnorm( 0 , 10 ),
-    b ~ dnorm( 0 , 1 ),
-    sigma ~ dexp( 1 ),
-    sigma_group ~ dexp( 1 ),
-    Rho_group ~ dlkjcorr(2)
-)
+m_glmm2 <- ulam(
+    alist(
+        admit ~ binomial(applications,p),
+        logit(p) <- a[dept] + b[dept]*male,
+        c( a , b )[dept] ~ multi_normal( c(abar,bbar) , Rho , sigma ),
+        abar ~ normal( 0 , 4 ),
+        bbar ~ normal(0,1),
+        sigma ~ half_normal(0,1),
+        Rho ~ lkjcorr(2)
+    ),
+    data=UCBadmit )
+```
+Another way to express the varying slopes model is with a vector of varying effects. This is made possible by using an explicit vector declaration inside the formula:
+```
+m_glmm3 <- ulam(
+    alist(
+        admit ~ binomial(applications,p),
+        logit(p) <- v[dept,1] + v[dept,2]*male,
+        vector[2]:v[dept] ~ multi_normal( c(abar,bbar) , Rho , sigma ),
+        abar ~ normal( 0 , 4 ),
+        bbar ~ normal(0,1),
+        sigma ~ half_normal(0,1),
+        Rho ~ lkjcorr(2)
+    ),
+    data=UCBadmit )
+```
+That `vector[2]:v[dept]` means "declare a vector of length two for each unique dept". To access the elements of these vectors, the linear model uses multiple indexes inside the brackets: `[dept,1]`. 
+
+This strategy can be taken one step further and the means can be declared as a vector as well:
+```
+m_glmm4 <- ulam(
+    alist(
+        admit ~ binomial(applications,p),
+        logit(p) <- v[dept,1] + v[dept,2]*male,
+        vector[2]:v[dept] ~ multi_normal( v_mu , Rho , sigma ),
+        vector[2]:v_mu ~ normal(0,1),
+        sigma[1] ~ half_normal(0,1),
+        sigma[2] ~ half_normal(0,2),
+        Rho ~ lkjcorr(2)
+    ),
+    data=UCBadmit )
+```
+And a completely non-centered parameterization can be coded directly as well:
+```
+m_glmm5 <- ulam(
+    alist(
+        admit ~ binomial(applications,p),
+        logit(p) <- v_mu[1] + v[dept,1] + (v_mu[2] + v[dept,2])*male,
+        matrix[dept,2]: v <- t(diag_pre_multiply( sigma , L_Rho ) * z),
+        matrix[2,dept]: z ~ normal( 0 , 1 ),
+        vector[2]: v_mu[[1]] ~ normal(0,4),
+        vector[2]: v_mu[[2]] ~ normal(0,1),
+        vector[2]: sigma ~ half_normal(0,1),
+        cholesky_factor_corr[2]: L_Rho ~ lkj_corr_cholesky( 2 )
+    ),
+    data=UCBadmit )
+```
+In the above, the varying effects matrix `v` is constructed from a matrix of z-scores `z` and a covariance structure contained in `sigma` and a Cholesky factor `L_Rho`. Note the double-bracket notation `v_mu[[1]]` allowing distinct priors for each index of a vector.
+
+## log-likelihood calculations for WAIC and LOO
+
+`ulam` can optionally return pointwise log-likelihood values. These are needed for computing WAIC and PSIS-LOO. The `log_lik` argument toggles this on:
+```
+m_glmm1 <- ulam(
+    alist(
+        admit ~ binomial(applications,p),
+        logit(p) <- a[dept] + b*male,
+        a[dept] ~ normal( abar , sigma ),
+        abar ~ normal( 0 , 4 ),
+        sigma ~ half_normal(0,1),
+        b ~ normal(0,1)
+    ), data=UCBadmit , log_lik=TRUE )
+WAIC(m_glmm1)
+```
+The additional code has been added to the generated quantities block of the Stan model (see this with `stancode(m_glmm1)`):
+```
+generated quantities{
+    vector[12] log_lik;
+    vector[12] p;
+    for ( i in 1:12 ) {
+        p[i] = a[dept[i]] + b * male[i];
+        p[i] = inv_logit(p[i]);
+    }
+    for ( i in 1:12 ) log_lik[i] = binomial_lpmf( admit[i] | applications[i] , p[i] );
+}
 ```
 
+## Conditional statements, custom distributions, and mixture models
 
-# Non-centered parameterization
+`ulam` also supports if-then statements and custom distribution assignments. These are useful for coding mixture models, such as zero-inflated Poisson and discrete missing value models.
+
+Here's an example zero-inflated Poisson model.
+```
+# zero-inflated poisson
+# gen data first - example from text
+prob_drink <- 0.2 # 20% of days
+rate_work <- 1    # average 1 manuscript per day
+N <- 365
+drink <- rbinom( N , 1 , prob_drink )
+y <- as.integer( (1-drink)*rpois( N , rate_work ) )
+x <- rnorm( N ) # dummy covariate
+
+# now ulam code
+m_zip <- ulam(
+    alist(
+        y|y==0 ~ custom( log_mix( p , 0 , poisson_lpmf(0|lambda) ) ),
+        y|y>0 ~ custom( log1m(p) + poisson_lpmf(y|lambda) ),
+        logit(p) <- ap,
+        log(lambda) <- al + bl*x,
+        ap ~ dnorm(0,1),
+        al ~ dnorm(0,10),
+        bl ~ normal(0,1)
+    ) ,
+    data=list(y=y,x=x) )
+```
+The Stan code corresponding to the first two lines in the formula above is:
+```
+for ( i in 1:365 ) 
+    if ( y[i] > 0 ) target += log1m(p) + poisson_lpmf(y[i] | lambda[i]);
+for ( i in 1:365 ) 
+    if ( y[i] == 0 ) target += log_mix(p, 0, poisson_lpmf(0 | lambda[i]));
+```
+What `custom` does is define custom `target` updates. And the `|` operator makes the line conditional. Note that `log1m`, `log_mix`, and `poisson_lpmf` are Stan functions.
+
+The same `custom` distribution approach allows for marginalization over discrete missing values. Let's introduce some missing values in the `UCBadmit` data from earlier.
+```
+UCBadmit$male2 <- UCBadmit$male
+UCBadmit$male2[1:2] <- (-1) # missingness code
+UCBadmit$male2 <- as.integer(UCBadmit$male2)
+```
+Now the model needs to detect when `male2` is missing (-1) and then compute a mixture over the unknown state.
+```
+m_mix <- ulam(
+    alist(
+        admit|male2==-1 ~ custom( log_mix( 
+            phi_male , 
+            binomial_lpmf(admit|applications,p_m1) , 
+            binomial_lpmf(admit|applications,p_m0) ) ),
+        admit|male2>-1 ~ binomial( applications , p ),
+        logit(p) <- a[dept] + b*male2,
+        logit(p_m1) <- a[dept] + b*1,
+        logit(p_m0) <- a[dept] + b*0,
+        male2|male2>-1 ~ bernoulli( phi_male ),
+        phi_male ~ beta(2,2),
+        a[dept] ~ normal(0,4),
+        b ~ normal(0,1)
+    ),
+    data=UCBadmit )
+```
+Note the addition of `phi_male` to average over the unknown state. 
+
+## Continuous missing data imputation
+
+In principle, imputation of missing real-valued data is easy: Just replace each missing value with a parameter. In practice, this involves a bunch of annoying bookkeeping. `ulam` has a macro named `merge_missing` to simplify this.
+```
+UCBadmit$x <- rnorm(12)
+UCBadmit$x[1:2] <- NA
+m_miss <- ulam(
+    alist(
+        admit ~ binomial(applications,p),
+        logit(p) <- a + b*male + bx*x_merge,
+        x_merge ~ normal( 0 , 1 ),
+        x_merge <- merge_missing( x , x_impute ),
+        a ~ normal(0,4),
+        b ~ normal(0,1),
+        bx ~ normal(0,1)
+    ),
+    data=UCBadmit )
+```
+What `merge_missing` does is find the `NA` values in `x` (whichever symbol is the first argument), build a vector of parameters called `x_impute` (whatever you name the second argument) of the right length, and piece together a vector `x_merge` that contains both, in the right places. You can then assign a prior to this vector and use it in linear models as usual.
+
+The merging is done as the Stan model runs, using a custom function block. See the Stan code `stancode(m_miss)` for all the lovely details.
+
+`merge missing` is an example of a macro, which is a way for `ulam` to use function names to trigger special compilation. In this case, `merge_missing` both inserts a function in the Stan model and builds the necessary index to locate the missing values during run time. Macros will get full documentation later, once the system is finalized.
+
+## Gaussian processes
+
+A simple Gaussian process, like the Oceanic islands example in Chapter 13 of the book, is done as:
+```
+data(Kline2)
+d <- Kline2
+data(islandsDistMatrix)
+d$society <- 1:10
+dat <- list(
+    y=d$total_tools,
+    society=d$society,
+    log_pop = log(d$population),
+    Dmat=islandsDistMatrix
+)
+
+m_GP1 <- ulam(
+    alist(
+        y ~ poisson( mu ),
+        log(mu) <- a + aj[society] + b*log_pop,
+        a ~ normal(0,10),
+        b ~ normal(0,1),
+        vector[10]: aj ~ multi_normal( 0 , SIGMA ),
+        matrix[10,10]: SIGMA <- cov_GPL2( Dmat , etasq , rhosq , 0.01 ),
+        etasq ~ exponential(1),
+        rhosq ~ exponential(1)
+    ),
+    data=dat )
+```
+This is just an ordinary varying intercepts model, but all 10 intercepts are drawn from a single Gaussian distribution. The covariance matrix `SIGMA` is defined in the usual L2-norm. Again, `cov_GPL2` is a macro that inserts a function in the Stan code to compute the covariance matrix as the model runs.
+
+Fancier Gaussian processes require a different parameterization. And these can be built as well. Here's an example using 151 primate species and a phylogenetic distance matrix. First, prepare the data:
+```
+data(Primates301)
+data(Primates301_distance_matrix)
+d <- Primates301
+d$name <- as.character(d$name)
+dstan <- d[ complete.cases( d$social_learning, d$research_effort , d$body , d$brain ) , ]
+# prune distance matrix to spp in dstan
+spp_obs <- dstan$name
+y <- Primates301_distance_matrix
+y2 <- y[ spp_obs , spp_obs ]
+# scale distances
+y3 <- y2/max(y2)
+```
+Now the model, which is a non-centered L2-norm Gaussian process:
+```
+m_GP2 <- ulam(
+    alist(
+        social_learning ~ poisson( lambda ),
+        log(lambda) <- a + g[spp_id] + b_ef*log_research_effort + b_body*log_body + b_eq*log_brain,
+        a ~ normal(0,1),
+        vector[N_spp]: g <<- L_SIGMA * eta,
+        vector[N_spp]: eta ~ normal( 0 , 1 ),
+        matrix[N_spp,N_spp]: L_SIGMA <<- cholesky_decompose( SIGMA ),
+        matrix[N_spp,N_spp]: SIGMA <- cov_GPL2( Dmat , etasq , rhosq , 0.01 ),
+        b_body ~ normal(0,1),
+        b_eq ~ normal(0,1),
+        b_ef ~ normal(1,1),
+        etasq ~ exponential(1),
+        rhosq ~ exponential(1)
+    ),
+    data=list(
+        N_spp = nrow(dstan),
+        social_learning = dstan$social_learning,
+        spp_id = 1:nrow(dstan),
+        log_research_effort = log(dstan$research_effort),
+        log_body = log(dstan$body),
+        log_brain = log(dstan$brain),
+        Dmat = y3
+    ) , 
+    control=list(max_treedepth=15,adapt_delta=0.95) ,
+    sample=FALSE )
+```
+This model does not sample quickly, so I've set `sample=FALSE`. You can still inspect the Stan code with `stancode(m_GP2)`. 
+
+Note that the covariance `SIGMA` is built the same way as before, but then we immediately decompose it to a Cholesky factor and build the varying intercepts `g` by matrix multiplication. The `<<-` operator tells `ulam` not to loop, but to do a direct assignment. So `g <<- L_SIGMA * eta` does the right linear algebra.
+
+## Work in progress
+
+`ulam` is still in rapid development. But it will be the core of the 2nd edition of the textbook, allowing more precise and transparent model definitions that hide less of what is actually going on.
+
+
+# `map2stan` syntax and features
+
+The older `map2stan` function makes stronger assumtions about the formulas it will see. This allows is to provide some additional automation and it has some special syntax as a result. `ulam` in contrast supports such features through its macros library.
+
+## Non-centered parameterization
 Here is a non-centered parameterization that moves the scale parameters in the varying effects prior to the linear model, which is often more efficient for sampling:
 ```
 f4u <- alist(
@@ -331,6 +587,8 @@ Note the use of the ``constraints`` list to pass custom parameter constraints to
 ## Information criteria
 
 Both ``map`` and ``map2stan`` provide DIC and WAIC. Well, in most cases they do. In truth, both tools are flexible enough that you can specify models for which neither DIC nor WAIC can be correctly calculated. But for ordinary GLMs and GLMMs, it works. See the R help ``?WAIC``. A convenience function ``compare`` summarizes information criteria comparisons, including standard errors for WAIC. 
+
+`ulam` supports WAIC calculation with the optional `log_lik=TRUE` argument, which returns the kind of log-likelihood vector needed by the `loo` package.
 
 ``ensemble`` computes ``link`` and ``sim`` output for an ensemble of models, each weighted by its Akaike weight, as computed from WAIC.
 
