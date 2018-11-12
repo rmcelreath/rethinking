@@ -3,6 +3,8 @@ Statistical Rethinking book Errata
 
 page 42: Just below R code box 2.6, the text says that map requires a list of start values. It does not, as long as priors are provided for each parameter. And indeed the example in box 2.6 does not contain a list of start values.
 
+page 68: Rethinking: What does more extreme mean, paragraph 2: "For example the far right plot in Figure 3.6 evaluates model fit in the best way for the model."  Should be "the bottom plot in Figure 3.6..."
+
 page 87: The marginal description of the model reads "mu ~ dnorm(156, 10)" but the model is Normal(178, 20). Same error on p 95 and in code 4.38. It is corrected in code 4.39.
 
 page 95-96: dnorm(156,100) should be dnorm(178,100) in both model presentation and then R code on top of page 96.
