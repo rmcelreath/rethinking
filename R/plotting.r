@@ -78,6 +78,17 @@ dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , sh
     }
 }
 
+# like dens, but uses bins and bars
+bins <- function( x , n_bins=30 , rm.na=TRUE , ... ) {
+    if ( rm.na==TRUE ) x <- x[ !is.na(x) ]
+    cuts <- seq( from=min(x) , to=max(x) , length.out=n_bins )
+    y <- cut( x , cuts )
+    y <- table(y)
+    names(y) <- round( cuts[1:(length(cuts)-1)] , 1 )
+    plot( y , ylab="Frequency" , ... )
+    invisible( y )
+}
+
 # just converts x,y,z lists of same length to a matrix for contour to plot
 contour_xyz <- function( x , y , z , ... ) {
     ux <- unique(x)

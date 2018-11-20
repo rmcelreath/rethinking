@@ -190,9 +190,9 @@ ulam_dists <- list(
             }
 
             MU <- as.character( right[[2]] )
-            # check for c() style vector of means
+            # check for c() and cbind() style vector of means
             if ( class( right[[2]] )=="call" ) {
-                if ( as.character(right[[2]][[1]])=="c" ) {
+                if ( as.character(right[[2]][[1]]) %in% c( "c" , "cbind" ) ) {
                     MU <- MU[-1] # -1 removes "c"
                     n_vars <- length(MU)
                 } else {
@@ -307,13 +307,32 @@ ulam_dists <- list(
 
             # do we need a local var for means?
             if ( length(MU)>1 ) {
-                out <- concat( out , indent , "vector[" , n_vars , "] MU;\n" )
+                # what is length of each element?
+                # should either be 1 or same as n_cases
+                vlen <- 1
+                vdims <- symbols[[ MU[1] ]]$dims
+                if ( class(vdims)=="list" ) {
+                    vlen <- vdims[[2]]
+                    if ( vlen != n_cases ) warning( "multi_normal mean vector has length > 1 but not same length as outcome" )
+                }
+                # build text
+                out <- concat( out , indent , "vector[" , n_vars , "] MU" )
+                if ( vlen > 1 ) 
+                    out <- concat( out , "[" , vlen , "];\n" )
+                else
+                    out <- concat( out , ";\n" )
                 # assign it too
-                out <- concat( out , indent , "MU = [ " )
+                vsuf <- ""
+                if ( vlen==1 )
+                    out <- concat( out , indent , "MU = [ " )
+                else {
+                    out <- concat( out , indent , "for ( j in 1:" , vlen , " ) " )
+                    out <- concat( out , "MU[j] = [ " )
+                    vsuf <- "[j]"
+                }
                 for ( j in 1:length(MU) ) {
-                    out <- concat( out , MU[j] )
-                    if ( j < length(MU) )
-                        out <- concat( out , " , " )
+                    out <- concat( out , MU[j] , vsuf )
+                    if ( j < length(MU) ) out <- concat( out , " , " )
                 }
                 out <- concat( out , " ]';\n" )
             }
@@ -686,7 +705,8 @@ ulam_macros <- list(
             # t(diag_pre_multiply( sigma , L_Rho ) * z)
             sigma_symbol <- deparse( f[[n]][[3]][[2]] )
             corr_symbol <- deparse( f[[n]][[3]][[3]] )
-            new_right <- concat( "t(diag_pre_multiply( " , sigma_symbol , " , " , corr_symbol , ") * z)" )
+            z_symbol <- deparse( f[[n]][[3]][[4]] )
+            new_right <- concat( "t(diag_pre_multiply( " , sigma_symbol , " , " , corr_symbol , ") * ", z_symbol , " )" )
             f[[n]][[3]] <- parse( text=new_right )[[1]]
             return( f )
         }

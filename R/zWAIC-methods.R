@@ -11,7 +11,7 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
 
 # extracts log_lik matrix from stanfit and computes WAIC
 setMethod("WAIC", "stanfit",
-function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
+function( object , n=0 , refresh=0 , pointwise=FALSE , log_lik="log_lik" , ... ) {
     
     ll_matrix <- extract.samples(object,pars=log_lik)[[1]]
     
@@ -44,7 +44,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
 
 # extracts log_lik matrix from stanfit and computes WAIC
 setMethod("WAIC", "ulam",
-function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
+function( object , n=0 , refresh=0 , pointwise=FALSE , log_lik="log_lik" , ... ) {
     
     ll_matrix <- extract.samples(object@stanfit,pars=log_lik)[[1]]
     
@@ -77,7 +77,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
 
 # extracts log_lik matrix from extracted samples in a list
 setMethod("WAIC", "list",
-function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
+function( object , n=0 , refresh=0 , pointwise=FALSE , log_lik="log_lik" , ... ) {
 
     if ( is.null(object[[log_lik]]) ) stop(concat("No slot named '",log_lik,"' to extract pointwise log-likelihoods from."))
     
@@ -124,7 +124,7 @@ function( object , log_lik="log_lik" , ... ) {
 
 # by default uses all samples returned by Stan; indicated by n=0
 setMethod("WAIC", "map2stan",
-function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
+function( object , n=0 , refresh=0 , pointwise=FALSE , loglik=FALSE , ... ) {
     
     if ( !is.null(attr(object,"WAIC")) & loglik==FALSE ) {
         # already have it stored in object, so just return it
@@ -378,7 +378,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , loglik=FALSE , ... ) {
 )
 
 setMethod("WAIC", "map",
-function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
+function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
     
     if ( !(class(object)%in%c("map")) ) stop("Requires map fit")
     

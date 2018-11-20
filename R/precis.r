@@ -208,6 +208,20 @@ xprecis_glm <- function( object , depth , pars , prob , digits , sort , decreasi
 
     result <- precis_format( result , depth , sort , decreasing )
 
+    # obey pars list
+    if ( !missing(pars) ) {
+        # need to handle vector/matrix parameters
+        # for each element in pars, add a copy with '[' on end
+        # then use grep to white list any parameter that starts with element of pars
+        pars_new <- paste( pars , "[" , sep="" )
+        pars <- c( pars , pars_new )
+        keep_idx <- rep(FALSE,nrow(result))
+        for ( i in 1:length(pars) ) {
+            keep_idx <- keep_idx | startsWith( rownames(result) , pars[i] )
+        }
+        result <- result[ keep_idx , ]
+    }
+
     return( new( "precis" , result , digits=digits ) )
 }
 

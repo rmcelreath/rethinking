@@ -6,9 +6,9 @@
   Compiles lists of formulas into Stan model code. Allows for arbitary fixed effect and mixed effect regressions. Allows for explicit typing of variables within the formula list. Much more flexible than \code{map2stan}.
 }
 \usage{
-ulam( flist , data , pars , start , chains=1 , cores=1 , iter=1000 , 
+ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , 
   control=list(adapt_delta=0.95) , distribution_library=ulam_dists , 
-  macro_library=ulam_macros , declare_all_data=TRUE ,
+  macro_library=ulam_macros , custom , declare_all_data=TRUE ,
   log_lik=FALSE , sample=TRUE , messages=TRUE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
@@ -16,23 +16,55 @@ ulam( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
   \item{flist}{A formula or list of formulas that define the likelihood and priors. Can also pass in a \code{map} model fit. See details.}
   \item{data}{A data frame or list containing the data}
   \item{pars}{Optional: character vector of parameters to return samples for}
-  \item{start}{Optional named list specifying parameters and their initial values}
+  \item{pars_omit}{Optional: character vector of parameters to exclude from samples}
+  \item{start}{Optional. Either: (1) a named list specifying parameters and their initial values or (2) a function to return such a named list.}
   \item{chains}{Number of independent chains to sample from}
   \item{cores}{Number of processor cores to distribute chains over.}
   \item{iter}{Number of iterations of sampling. By default, half of these iterations are warmup.}
   \item{control}{Optional list of control parameters for \code{stan}. Default increases target acceptance rate (\code{adapt_delta}) to 0.95.}
   \item{distribution_library}{List of distribution templates.}
   \item{macro_library}{List of function and distribution macros.}
+  \item{custom}{Optional list of custom resources. See details and examples.}
   \item{declare_all_data}{When \code{TRUE}, all variables in the data list are declared in the Stan model code. When \code{FALSE}, only used variables are declared.}
   \item{log_lik}{Return log likelihood of each observation in samples. Used for calculating WAIC and LOO.}
   \item{sample}{If \code{FALSE}, builds Stan code without sampling}
   \item{messages}{If \code{TRUE}, prints various internal steps to help with debugging}
-  \item{WAIC}{When \code{TRUE}, computes WAIC after sampling, storing the result}
-  \item{constraints}{Optional: named list of custom parameter constraints, using Stan notation}
   \item{...}{Additional arguments to pass to \code{\link{stan}}}
 }
 \details{
   \code{ulam} provides a slim version of Stan syntax that omits blocks but still allows for explicit variable types and dimensions. The basic model formula is the same as \code{map2stan}, but the syntax does not assume a GLMM structure. This allows it to be more flexible, but it also means more mistakes are possible. With great power comes great responsibility. 
+
+  The function of a model formula is to related the variables to one another. There are three types of variables: (1) data, (2) parameters, and (3) local variables. Model formulas are composed of multiple lines. Each line defines a variable using either a distributional assumption like:
+
+  \code{y ~ normal( mu , sigma )}
+
+  or rather a determinsitic assignment like:
+
+  \code{mu <- a + b*x}
+
+  The basic structure of such a definition is:
+
+  \code{type[dimension]: name[dimension] ~ distribution( arguments )}
+
+  The \code{type} delcaration is optional. So the most basic defintion can be just \code{y ~ bernoulli(theta)}, but a full declariation can be more detailed, when necessary. The examples below show how matrix variables can be defined in this syntax.
+
+  For determinstic assignments like:
+
+  \code{mu <- a + b*x}
+
+  It is also possible to use a control word to specify how the values are returned. Using \code{save>} returns the values in the posterior samples. For example:
+
+  \code{save> mu <- a + b*x}
+
+  will return \code{mu} for each case and posterior sample. This works by duplicating the code in both the model block, where it is used to compute the log-probability, and in generated quantities.
+
+  It is also possible to use \code{gq} to evaluate the assignment only after sampling, in Stan's generated quantities block. This is useful for derived values that are not needed in computing the posterior but may be useful afterwards. For example, constrasts could be calculated this way. In the examples, the line:
+
+  \code{gq> bp_diff <- bp[1] - bp[2]}
+
+  is used to calculate the posterior distribution of the difference between the two parameters. The code is added to Stan's generated quantities, so that it doesn't slow down the model block.
+
+  The control tag \code{transpars} can be used to place an assignment in Stan's transformed parameters block. Keep in mind that any other intermediate calculations must also be placed in the same block. Finally, \code{transdata} places the assignment in the transformed data block. This means it will only execute once, before sampling begins. But it also means that the values will not be available post-sampling for helper functions like \code{link}. As such, it will usually be better to transform data before passing it into \code{ulam}.
   
   Methods are defined for \code{\link{extract.samples}}, \code{\link{extract.prior}}, \code{\link{link}}, \code{\link{sim}}, \code{\link{ensemble}}, \code{\link{compare}}, \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, \code{plot}, \code{traceplot}, \code{pairs}, and \code{show}.
 }
@@ -58,10 +90,11 @@ library(rethinking)
 data(chimpanzees)
 
 # don't want any variables with NAs
+# also recode condition to an index {1,0} -> {1,2}
 d <- list( 
     pulled_left = chimpanzees$pulled_left ,
     prosoc_left = chimpanzees$prosoc_left ,
-    condition = chimpanzees$condition ,
+    condition = as.integer( 2 - chimpanzees$condition ) ,
     actor = as.integer( chimpanzees$actor ) ,
     blockid = as.integer( chimpanzees$block )
 )
@@ -69,27 +102,61 @@ d <- list(
 # simple logistic regression
 m1 <- ulam(
     alist(
-        pulled_left ~ binomial(1,theta),
-        logit(theta) <- a + bp*prosoc_left + bpc*condition*prosoc_left ,
+        pulled_left ~ bernoulli(theta),
+        logit(theta) <- a + bp[condition]*prosoc_left  ,
         a ~ normal(0,4),
-        bp ~ normal(0,1),
-        bpc ~ normal(0,1)
+        bp[condition] ~ normal(0,1)
     ) ,
     data=d, chains=2, cores=1 , sample=TRUE )
 
-precis(m1)
-plot(m1)
+precis(m1,depth=2)
+plot(m1,depth=2)
 pairs(m1)
+
+# same model, but save theta so it is return in samples
+# note 'save>' in second line of formula
+m1b <- ulam(
+    alist(
+        pulled_left ~ bernoulli(theta),
+        save> logit(theta) <- a + bp[condition]*prosoc_left  ,
+        a ~ normal(0,4),
+        bp[condition] ~ normal(0,1)
+    ) ,
+    data=d, chains=2, cores=1 , sample=TRUE )
+
+# same model, but use gq to compute contrast between conditions
+# note that order does matter. bp_diff should come before bp[] is defined
+m1c <- ulam(
+    alist(
+        pulled_left ~ bernoulli(theta),
+        logit(theta) <- a + bp[condition]*prosoc_left  ,
+        gq> bp_diff <- bp[1] - bp[2],
+        a ~ normal(0,4),
+        bp[condition] ~ normal(0,1)
+    ) ,
+    data=d, chains=2, cores=1 , sample=TRUE )
+
+# can also transform data inside model, using transdata> tag.
+# this is more efficient, because it only evaluates once, not during sampling.
+# for example, this constructs prosoc_right variable:
+m1d <- ulam(
+    alist(
+        pulled_left ~ bernoulli(theta),
+        logit(theta) <- a + bp[condition]*prosoc_right  ,
+        transdata> prosoc_right <- 1 - prosoc_left,
+        a ~ normal(0,4),
+        bp[condition] ~ normal(0,1)
+    ) ,
+    data=d, chains=2, cores=1 , sample=TRUE )
 
 # now model with varying intercepts on actor
 m2 <- ulam(
     alist(
-        pulled_left ~ binomial(1,theta),
-        logit(theta) <- a + aj[actor] + bp*prosoc_left + bpc*condition*prosoc_left,
+        pulled_left ~ bernoulli(theta),
+        logit(theta) <- a + aj[actor] + bp[condition]*prosoc_left,
         aj[actor] ~ normal( 0 , sigma_actor ),
         a ~ normal(0,4),
-        bp ~ normal(0,1),
-        bpc ~ normal(0,1),
+        bp[condition] ~ normal(0,1),
         sigma_actor ~ exponential(1)
     ) ,
     data=d, chains=2 , cores=1 , sample=TRUE )
@@ -100,13 +167,12 @@ plot(m2)
 # varying intercepts on actor and experimental block
 m3 <- ulam(
     alist(
-        pulled_left ~ binomial(1,theta),
-        logit(theta) <- a + aj[actor] + ak[blockid] + bp*prosoc_left + bpc*condition*prosoc_left,
+        pulled_left ~ bernoulli(theta),
+        logit(theta) <- a + aj[actor] + ak[blockid] + bp[condition]*prosoc_left,
         aj[actor] ~ normal( 0 , sigma_actor ),
         ak[blockid] ~ normal( 0 , sigma_block ),
         a ~ dnorm(0,4),
-        bp ~ dnorm(0,1),
-        bpc ~ dnorm(0,1),
+        bp[condition] ~ dnorm(0,1),
         sigma_actor ~ exponential(1),
         sigma_block ~ exponential(1)
     ) ,
@@ -125,80 +191,54 @@ plot(m3)
 m3 <- ulam(
     alist(
         # likeliood
-        pulled_left ~ binomial(1,p),
+        pulled_left ~ bernoulli(theta),
 
         # linear models
-        logit(p) <- A + (BP + BPC*condition)*prosoc_left,
-        A <- a + a_actor[actor],
-        BP <- bp + bp_actor[actor],
-        BPC <- bpc + bpc_actor[actor],
-
-        # adaptive prior
-        c(a_actor,bp_actor,bpc_actor)[actor] ~
-                                multi_normal(0,Rho_actor,sigma_actor),
-
-        # fixed priors
-        c(a,bp,bpc) ~ normal(0,1),
-        sigma_actor ~ exponential(1),
-        Rho_actor ~ lkjcorr(4)
-    ) , data=d , chains=3 , cores=1 , sample=TRUE )
-
-# same model but now with explicit vector of varying effects for each actor
-# note indexing in linear models
-m4 <- ulam(
-    alist(
-        # likeliood
-        pulled_left ~ binomial(1,p),
-
-        # linear models
-        logit(p) <- A + (BP + BPC*condition)*prosoc_left,
+        logit(theta) <- A + BP*prosoc_left,
         A <- a + v[actor,1],
-        BP <- bp + v[actor,2],
-        BPC <- bpc + v[actor,3],
+        BP <- bp + v[actor,condition+1],
 
         # adaptive prior
-        vector[3]:v[actor] ~ multi_normal(0,Rho_actor,sigma_actor),
+        vector[3]: v[actor] ~ multi_normal( 0 , Rho_actor , sigma_actor ),
 
         # fixed priors
-        c(a,bp,bpc) ~ normal(0,1),
+        c(a,bp) ~ normal(0,1),
         sigma_actor ~ exponential(1),
         Rho_actor ~ lkjcorr(4)
     ) , data=d , chains=3 , cores=1 , sample=TRUE )
 
 # same model but with non-centered parameterization
 # see Chapter 13 for explanation and more elaborate example
-m5 <- ulam(
+m4 <- ulam(
     alist(
         # likeliood
-        pulled_left ~ binomial(1,p),
+        pulled_left ~ bernoulli(theta),
 
         # linear models
-        logit(p) <- A + (BP + BPC*condition)*prosoc_left,
+        logit(theta) <- A + BP*prosoc_left,
         A <- a + v[actor,1],
-        BP <- bp + v[actor,2],
-        BPC <- bpc + v[actor,3],
+        BP <- bp + v[actor,condition+1],
 
         # adaptive prior
         matrix[actor,3]: v <- compose_noncentered( sigma_actor , L_Rho_actor , z ),
         matrix[3,actor]: z ~ normal( 0 , 1 ),
 
         # fixed priors
-        c(a,bp,bpc) ~ normal(0,1),
-        vector[3]:sigma_actor ~ exponential(1),
+        c(a,bp) ~ normal(0,1),
+        vector[3]: sigma_actor ~ exponential(1),
         cholesky_factor_corr[3]: L_Rho_actor ~ lkj_corr_cholesky( 4 )
     ) , data=d , chains=3 , cores=1 , sample=TRUE )
 
 # same as m5, but without hiding the construction of v
-m5b <- ulam(
+m5 <- ulam(
     alist(
         # likeliood
-        pulled_left ~ binomial(1,p),
+        pulled_left ~ bernoulli(theta),
 
         # linear models
-        logit(p) <- A + (BP + BPC*condition)*prosoc_left,
+        logit(theta) <- A + BP*prosoc_left,
         A <- a + v[actor,1],
-        BP <- bp + v[actor,2],
-        BPC <- bpc + v[actor,3],
+        BP <- bp + v[actor,condition+1],
 
         # adaptive prior
         matrix[actor,3]: v <- t(diag_pre_multiply( sigma_actor , L_Rho_actor ) * z),
@@ -206,7 +246,7 @@ m5b <- ulam(
 
         # fixed priors
         c(a,bp,bpc) ~ normal(0,1),
-        vector[3]:sigma_actor ~ exponential(1),
+        vector[3]: sigma_actor ~ exponential(1),
         cholesky_factor_corr[3]: L_Rho_actor ~ lkj_corr_cholesky( 4 )
     ) , data=d , chains=3 , cores=1 , sample=TRUE )
 

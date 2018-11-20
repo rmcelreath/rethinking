@@ -4,7 +4,7 @@
 # allow explicit declarations
 # see tests at end of this file for examples
 
-ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , ... ) {
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , ... ) {
 
     data <- as.list(data)
 
@@ -25,7 +25,7 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
     indent <- "    " # 4 spaces
     inden <- function(x) paste( rep(indent,times=x) , collapse="" )
 
-    pars_omit <- c()
+    if ( missing(pars_omit) ) pars_omit <- c()
 
     flist.orig <- flist
     #flist <- flist_untag(flist) # converts <- to ~ and evals to formulas
@@ -120,6 +120,7 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
         if ( class( f[[2]] ) == "call" ) {
             # some function here instead of a raw name
             symbol <- as.character( f[[2]] ) # default processing, works for link functions
+            # special processing follows
             if ( as.character( f[[2]][[1]] )==':' ) {
                 symbol <- as.character( f[[2]][[3]] )
                 dims <- as.character(f[[2]][[2]] )
@@ -158,6 +159,18 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
                 # composition function later handles multiple implied declarations
                 symbol <- as.character( f[[2]] )
                 symbol[1] <- "VECTOR"
+            }
+            if ( as.character( f[[2]][[1]] ) == '>' ) {
+                # block tag
+                # 'save>' places local assignment in transformed parameters
+                # 'gq>' places in generated quantities
+                the_block <- deparse( f[[2]][[2]] )
+
+                # need to send it down recursively to process other features
+                ff <- f
+                ff[[2]] <- ff[[2]][[3]]
+                symbol <- get_left_symbol( ff )
+                attr(symbol,"block") <- the_block
             }
         } else {
             # a raw name
@@ -649,6 +662,10 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
             new_graph[ 1:old_dim , 1:old_dim ] <- symbol_graph
             colnames(new_graph) <- c( colnames(symbol_graph) , rep(NA,length(left_symbol)) )
             rownames(new_graph) <- colnames(new_graph)
+        } else {
+            # init names
+            rownames( new_graph ) <- rep("XX",new_dim)
+            colnames( new_graph ) <- rep("XX",new_dim)
         }
         for ( j in 1:length(left_symbol) ) {
             rownames( new_graph )[old_dim+j] <- left_symbol[j]
@@ -798,7 +815,7 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
                             if ( symbols[[ii]]$type=="par" ) {
                                 # check its dims
                                 j <- which( names(symbols)==right_symbols[ii] )
-                                if ( !is.na( symbols[[j]]$dims ) ) {
+                                if ( any(!is.na( symbols[[j]]$dims )) ) {
                                     zzdims <- 0
                                     if ( length(symbols[[j]]$dims)==1 ) zzdims <- 1
                                     else zzdims <- symbols[[j]]$dims[[2]]
@@ -817,7 +834,9 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
             # register symbol
             the_link <- NA
             if ( !is.null( attr(left_symbol,"link") ) ) the_link <- attr(left_symbol,"link")
-            symbols[[ left_symbol ]] <- list( type=left_type , dims=the_dims , link=the_link )
+            the_block <- "model"
+            if ( !is.null( attr(left_symbol,"block") ) ) the_block <- attr(left_symbol,"block")
+            symbols[[ left_symbol ]] <- list( type=left_type , dims=the_dims , link=the_link , block=the_block )
 
             # build the link function that can be called after sampling
             #link_funcs[[ left_symbol ]] <- compose_link_func( flist[[i]][[3]] , the_link )
@@ -840,8 +859,34 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
             # add assignment to model block
             # do this at end here, because we parsed right-hand side data vars just above
             local_built <- compose_assignment( left_symbol , flist[[i]] )
-            m_model_txt <- concat( m_model_txt , local_built )
-            if ( log_lik==TRUE ) {
+            
+            # check for explicit block tag
+            the_block <- "model"
+            if ( !is.null( attr(left_symbol,"block") ) ) {
+                the_block <- attr(left_symbol,"block")
+                if ( the_block=="transpars" ) {
+                    # transformed parameters
+                    m_tpars2 <- concat( m_tpars2 , local_built )
+                }
+                if ( the_block=="transdata" ) {
+                    # transformed data
+                    m_tdata2 <- concat( m_tdata2 , local_built )
+                }
+                if ( the_block=="save" ) {
+                    # generated quantities AND model block
+                    m_gq2 <- concat( m_gq2 , local_built )
+                    m_model_txt <- concat( m_model_txt , local_built )
+                }
+                if ( the_block=="gq" ) {
+                    # generated quantities ONLY
+                    m_gq2 <- concat( m_gq2 , local_built )
+                }
+            } else { 
+                m_model_txt <- concat( m_model_txt , local_built )
+            }
+            
+            # add to gq for log_lik, but only when not in transformed pars
+            if ( log_lik==TRUE & the_block=="model" ) {
                 # also add to generated quantities, so we can compute log_lik, assuming likelihood might contain this local symbol
                 m_gq2 <- concat( m_gq2 , local_built )
             }
@@ -865,7 +910,9 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
     # add parameter declarations to parameter block
     # add local var declarations to model block
     # add data declarations to data block
-    for ( i in 1:length(symbols) ) {
+    # WE DO THIS BACKWARDS SO PARS/DATA ARE IN ORIGINAL ORDER AS IN FORMULA
+    use_pars <- c()
+    for ( i in length(symbols):1 ) {
         left_symbol <- names(symbols)[i]
         if ( symbols[[i]]$type=="data" ) {
             Z <- compose_declaration( names(symbols)[i] , symbols[[i]] )
@@ -877,8 +924,35 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
         }
         if ( symbols[[i]]$type=="local" ) {
             Z <- compose_declaration( names(symbols)[i] , symbols[[i]] )
-            m_model_declare <- concat( m_model_declare , indent , Z , ";\n" )
-            if ( log_lik==TRUE ) {
+
+            # check for explicit block tag
+            the_block <- symbols[[i]]$block
+            if ( the_block=="transpars" ) {
+                # transformed parameters
+                m_tpars1 <- concat( m_tpars1 , indent , Z , ";\n" )
+                use_pars <- c( use_pars , left_symbol )
+            }
+            if ( the_block=="transdata" ) {
+                # transformed parameters
+                m_tdata1 <- concat( m_tdata1 , indent , Z , ";\n" )
+            }
+            if ( the_block=="gq" ) {
+                # generated quantities ONLY
+                m_gq1 <- concat( m_gq1 , indent , Z , ";\n" )
+                use_pars <- c( use_pars , left_symbol )
+            }
+            if ( the_block=="save" ) {
+                # generated quantities AND model block
+                m_gq1 <- concat( m_gq1 , indent , Z , ";\n" )
+                m_model_declare <- concat( m_model_declare , indent , Z , ";\n" )
+                use_pars <- c( use_pars , left_symbol )
+            }
+            if ( the_block=="model" ) {
+                # model block (default)
+                m_model_declare <- concat( m_model_declare , indent , Z , ";\n" )
+            }
+
+            if ( log_lik==TRUE & the_block=="model" ) {
                 # also add to generated quantities
                 m_gq1 <- concat( m_gq1 , indent , Z , ";\n" )
                 pars_omit <- c( pars_omit , left_symbol ) # mark to omit from returned samples
@@ -920,7 +994,7 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
         "\n" )
 
     stanfit <- NULL
-    use_pars <- c()
+    # use_pars <- c() --- declared earlier
     if ( missing(pars) ) {
         # return by default all pars, but no locals that might be in gen quants
         for ( i in 1:length(symbols) ) {
@@ -930,9 +1004,27 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
         use_pars <- pars
     }
     if ( log_lik==TRUE ) use_pars <- c( use_pars , "log_lik" )
+    if ( length(pars_omit)>0 ) {
+        # remove these names from use_pars
+        idx <- which( pars_omit %in% use_pars )
+        if ( length(idx)>0 ) use_pars <- use_pars[ -idx ]
+    }
+
+    # reverse order of use_pars, so names in formula order
+    use_pars <- use_pars[ length(use_pars):1 ]
+
+    # fire lasers
     if ( sample==TRUE ) {
-        stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
+        if ( length(start)==0 )
+            stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
                          chains=chains , cores=cores , iter=iter , control=control , ... )
+        else {
+            f_init <- "random"
+            if ( class(start)=="list" ) f_init <- function() return(start)
+            if ( class(start)=="function" ) f_init <- start
+            stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
+                         chains=chains , cores=cores , iter=iter , control=control , init=f_init , ... )
+        }
     }
 
     formula_parsed <- list(
@@ -976,7 +1068,7 @@ ulam <- function( flist , data , pars , start , chains=1 , cores=1 , iter=1000 ,
             coef = coef,
             vcov = varcov,
             data = data,
-            start = start,
+            start = list( start ),
             pars = use_pars,
             formula = flist.orig,
             formula_parsed = formula_parsed

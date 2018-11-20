@@ -312,6 +312,21 @@ if ( FALSE ) {
         ),
         data=UCBadmit )
 
+    # version that saves the v vector by adding also to gen quants
+    # note "save>" syntax
+    z8c <- ulam(
+        alist(
+            admit ~ binomial(applications,p),
+            logit(p) <- v_mu[1] + v[dept,1] + (v_mu[2] + v[dept,2])*male,
+            save> matrix[dept,2]: v <- t(diag_pre_multiply( sigma , L_Rho ) * z),
+            matrix[2,dept]: z ~ normal( 0 , 1 ),
+            vector[2]: v_mu[[1]] ~ normal(0,4),
+            vector[2]: v_mu[[2]] ~ normal(0,1),
+            vector[2]: sigma ~ half_normal(0,1),
+            cholesky_factor_corr[2]: L_Rho ~ lkj_corr_cholesky( 2 )
+        ),
+        data=UCBadmit )
+
     z8b <- ulam(
         alist(
             admit ~ binomial(applications,p),

@@ -198,6 +198,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     mygrep <- function( target , replacement , x , add.par=TRUE ) {
         wild <- "[()=*+, ]"
         pattern <- paste( wild , target , wild , sep="" , collapse="" )
+        x <- concat( x , " ") # space buffer on end, so catch end symbols too
         m <- regexpr( pattern , x )
         if ( m==-1 ) return( x )
         s <- regmatches( x=x , m=m )
@@ -299,6 +300,9 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
                         if ( class(flist2[[j]])=="list" ) {
                             #flist2[[j]][[2]] <- gsub( LHS , RHSp , flist2[[j]][[2]] )
                             flist2[[j]][[2]] <- mygrep( LHS , RHS , flist2[[j]][[2]] , add.par=TRUE )
+                        } else {
+                            # could be another likelihood
+                            flist2[[j]] <- mygrep( LHS , RHS , flist2[[j]] , add.par=FALSE )
                         }
                     }
                 }
@@ -344,6 +348,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
             message( paste( "Sampling start values from priors for:" , paste(bad_pars,collapse=" ") ) )
         
         for ( k in bad_pars ) {
+            if ( k %in% names(data) ) next
             # scan formula for right prior
             for ( g in 2:length(flist) ) {
                 # check for `[`
@@ -446,6 +451,12 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     
     ########################################
     # call optim for search
+
+    if ( debug==TRUE ) {
+        print("trying optim now in list:")
+        print(flist2)
+    }
+
     fit <- try(
         suppressWarnings(optim( par=pars , fn=make_minuslogl , flist=flist2 , data=data , veclist=veclist , hessian=hessian , method=method , ... ))
         , silent=TRUE

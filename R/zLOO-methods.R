@@ -17,9 +17,9 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , ... ) {
     loo_list <- loo::loo(loglik_matrix)
 
     if ( pointwise==TRUE ) {
-        looIC <- as.vector( loo_list$pointwise[,3] )
+        looIC <- as.vector( loo_list$pointwise[,4] )
         lppd <- as.vector( loo_list$pointwise[,1] )
-        pD <- as.vector( loo_list$pointwise[,2] )
+        pD <- as.vector( loo_list$pointwise[,3] )
     } else {
         looIC <- loo_list$looic
         lppd <- loo_list$elpd_loo
@@ -66,6 +66,11 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
     return(looIC)
 })
 
+setMethod("LOO", "ulam",
+function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
+    return( LOO(object@stanfit,n=n,refresh=refresh,pointwise=pointwise,log_lik=log_lik,...) )
+})
+
 # extracts log_lik matrix from samples in a list
 setMethod("LOO", "list",
 function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
@@ -95,27 +100,29 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
 })
 
 setMethod("LOO", "map",
-function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
+function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
     
     # get log-likelihood matrix from sim method
     loglik_matrix <- sim(object,n=n,refresh=refresh,ll=TRUE,...)
     
-    loo_list <- loo::loo(loglik_matrix)
+    loo_list <- suppressWarnings( loo::loo(loglik_matrix) )
     
     if ( pointwise==TRUE ) {
-        looIC <- as.vector( loo_list$pointwise[,3] )
+        looIC <- as.vector( loo_list$pointwise[,4] )
         lppd <- as.vector( loo_list$pointwise[,1] )
-        pD <- as.vector( loo_list$pointwise[,2] )
+        pD <- as.vector( loo_list$pointwise[,3] )
     } else {
-        looIC <- loo_list$looic
-        lppd <- loo_list$elpd_loo
-        pD <- loo_list$p_loo
+        looIC <- loo_list$estimates[3,1]
+        lppd <- loo_list$estimates[1,1]
+        pD <- loo_list$estimates[2,1]
     }
     attr(looIC,"lppd") = lppd
     attr(looIC,"pLOO") = pD
+    attr(looIC,"diagnostics") = loo_list$diagnostics
     
     n_tot <- ncol(loglik_matrix)
-    attr(looIC,"se") = try(sqrt( n_tot*var2(as.vector( loo_list$pointwise[,3] )) ))
+    #attr(looIC,"se") = try(sqrt( n_tot*var2(as.vector( loo_list$pointwise[,4] )) ))
+    attr(looIC,"se") = loo_list$estimates[3,2]
     
     return(looIC)
 

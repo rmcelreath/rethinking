@@ -187,7 +187,7 @@ setMethod("traceplot", "ulam" , function(object,...) traceplot_ulam(object,...) 
 #rethink_palette <- c("#5BBCD6","#F98400","#F2AD00","#00A08A","#FF0000")
 rethink_palette <- c("#8080FF","#F98400","#F2AD00","#00A08A","#FF0000")
 rethink_cmyk <- c(col.alpha("black",0.25),"cyan")
-traceplot_ulam <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , lwd=0.5 , ... ) {
+traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , trim=100 , n_cols=3 , max_rows=5 , lwd=0.5 , lp=FALSE , ... ) {
     
     if ( !(class(object) %in% c("map2stan","ulam","stanfit")) ) stop( "requires map2stan or stanfit fit object" )
     
@@ -201,14 +201,15 @@ traceplot_ulam <- function( object , pars , col=rethink_palette , alpha=1 , bg=c
     
     # names
     dimnames <- attr(post,"dimnames")
-    chains <- dimnames$chains
+    n_chains <- length(dimnames$chains)
+    if ( missing(chains) ) chains <- 1:n_chains
     pars <- dimnames$parameters
-    chain.cols <- rep_len(col,length(chains))
+    chain.cols <- rep_len(col,n_chains)
     # cut out "dev" and "lp__"
     wdev <- which(pars=="dev")
     if ( length(wdev)>0 ) pars <- pars[-wdev]
     wlp <- which(pars=="lp__")
-    if ( length(wdev)>0 ) pars <- pars[-wlp]
+    if ( length(wlp)>0 & lp==FALSE ) pars <- pars[-wlp]
     
     # figure out grid and paging
     n_pars <- length( pars )
@@ -225,6 +226,7 @@ traceplot_ulam <- function( object , pars , col=rethink_palette , alpha=1 , bg=c
     n_warm <- object@sim$warmup
     wstart <- 1
     wend <- n_iter
+    if ( missing(window) ) window <- c(trim,n_iter)
     if ( !missing(window) ) {
         wstart <- window[1]
         wend <- window[2]
@@ -269,8 +271,9 @@ traceplot_ulam <- function( object , pars , col=rethink_palette , alpha=1 , bg=c
                     }
                 }
                 plot_make( pars[pi] , pi , n_eff , ... )
-                for ( j in 1:length(chains) ) {
-                    plot_chain( post[ , j , pi ] , j , ... )
+                for ( j in 1:n_chains ) {
+                    if ( j %in% chains )
+                        plot_chain( post[ , j , pi ] , j , ... )
                 }#j
             }
         }#i
@@ -279,5 +282,5 @@ traceplot_ulam <- function( object , pars , col=rethink_palette , alpha=1 , bg=c
     
 }
 
-setMethod( "plot" , "ulam" , function(x,y,...) precis_plot(precis(x),...) )
+setMethod( "plot" , "ulam" , function(x,y,...) precis_plot(precis(x,depth=y),...) )
 
