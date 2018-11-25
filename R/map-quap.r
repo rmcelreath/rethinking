@@ -23,7 +23,7 @@ flist_untag <- function(flist,eval=TRUE) {
 }
 
 # main event
-quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose=FALSE , ... ) {
+quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose=FALSE ,dofit=TRUE , ... ) {
     
     ########################################
     # check arguments
@@ -457,38 +457,41 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
         print(flist2)
     }
 
-    fit <- try(
-        suppressWarnings(optim( par=pars , fn=make_minuslogl , flist=flist2 , data=data , veclist=veclist , hessian=hessian , method=method , ... ))
-        , silent=TRUE
-    )
-    if ( class(fit)=="try-error" ) {
-        # something went wrong...try to figure it out
-        msg <- attr(fit,"condition")$message
-        
-        objnotfound <- grep( "object '.*' not found" , msg )
-        if ( length(objnotfound) > 0 ) {
-            # a parameter without prior or start value?
-            obj_name <- regmatches( msg , gregexpr( "'.*'" , msg ) )
-            out_msg <- paste( "Cannot find ",obj_name,".\nIf this is a parameter, try defining a prior for it or providing a start value.\nIf this is a variable, make sure it is in the data list." , collapse="" , sep="" )
-            stop( out_msg )
+    fit <- list()
+    if ( dofit==TRUE ) {
+        fit <- try(
+            suppressWarnings(optim( par=pars , fn=make_minuslogl , flist=flist2 , data=data , veclist=veclist , hessian=hessian , method=method , ... ))
+            , silent=TRUE
+        )
+        if ( class(fit)=="try-error" ) {
+            # something went wrong...try to figure it out
+            msg <- attr(fit,"condition")$message
+            
+            objnotfound <- grep( "object '.*' not found" , msg )
+            if ( length(objnotfound) > 0 ) {
+                # a parameter without prior or start value?
+                obj_name <- regmatches( msg , gregexpr( "'.*'" , msg ) )
+                out_msg <- paste( "Cannot find ",obj_name,".\nIf this is a parameter, try defining a prior for it or providing a start value.\nIf this is a variable, make sure it is in the data list." , collapse="" , sep="" )
+                stop( out_msg )
+            }
+            
+            objnotfound <- grep( "initial value in 'vmmin' is not finite" , msg )
+            if ( length(objnotfound) > 0 ) {
+                # missing values in data?
+                out_msg <- paste( msg,"\nThe start values for the parameters were invalid. This could be caused by missing values (NA) in the data or by start values outside the parameter constraints. If there are no NA values in the data, try using explicit start values." , collapse="" , sep="" )
+                stop( out_msg )
+            }
+            
+            objnotfound <- grep( "non-finite finite-difference value" , msg )
+            if ( length(objnotfound) > 0 ) {
+                # bad start values?
+                out_msg <- paste( msg,"\nStart values for parameters may be too far from MAP.\nTry better priors or use explicit start values.\nIf you sampled random start values, just trying again may work.\nStart values used in this attempt:\n", paste(names(start),"=",start,collapse="\n") , collapse="" , sep="" )
+                stop( out_msg )
+            }
+            
+            # not recognized
+            stop(msg)
         }
-        
-        objnotfound <- grep( "initial value in 'vmmin' is not finite" , msg )
-        if ( length(objnotfound) > 0 ) {
-            # missing values in data?
-            out_msg <- paste( msg,"\nThe start values for the parameters were invalid. This could be caused by missing values (NA) in the data or by start values outside the parameter constraints. If there are no NA values in the data, try using explicit start values." , collapse="" , sep="" )
-            stop( out_msg )
-        }
-        
-        objnotfound <- grep( "non-finite finite-difference value" , msg )
-        if ( length(objnotfound) > 0 ) {
-            # bad start values?
-            out_msg <- paste( msg,"\nStart values for parameters may be too far from MAP.\nTry better priors or use explicit start values.\nIf you sampled random start values, just trying again may work.\nStart values used in this attempt:\n", paste(names(start),"=",start,collapse="\n") , collapse="" , sep="" )
-            stop( out_msg )
-        }
-        
-        # not recognized
-        stop(msg)
     }
     
     ########################################
@@ -498,7 +501,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     #pars_vec <- pars_to_vectors( fit$pars , veclist )
     #pars_raw <- fit$pars
     
-    if ( hessian ) {
+    if ( hessian & dofit ) {
         vcov <- try( solve(fit$hessian) )
         if ( class(vcov)=="try-error" ) {
             warning( "Error when computing variance-covariance matrix (Hessian). Fit may not be reliable." )
@@ -510,18 +513,24 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     
     # compute minus log-likelihood at MAP, ignoring priors to do so
     # need this for correct deviance calculation, as deviance ignores priors
-    fit$minuslogl <- make_minuslogl( fit$par , flist=flist.ll , data=data , veclist=veclist )
+    fmll <- function() return(NULL)
+    if ( dofit==TRUE ) {
+        fit$minuslogl <- make_minuslogl( fit$par , flist=flist.ll , data=data , veclist=veclist )
     
-    # function to use later in computing DIC
-    fmll <- function(pars) make_minuslogl( pars , flist=flist.ll , data=data , veclist=veclist )
+        # function to use later in computing DIC
+        fmll <- function(pars) make_minuslogl( pars , flist=flist.ll , data=data , veclist=veclist )
+    }
     
     # rename any _._n parameters to [n]
-    coefs <- fit$par
-    for ( i in 1:length(coefs) ) {
-        a_split <- strsplit( names(coefs)[i] , idx_marker_string )[[1]]
-        if ( length(a_split)>1 ) {
-            new_name <- concat( a_split[1] , "[" , a_split[2] , "]" )
-            names(coefs)[i] <- new_name
+    coefs <- 0
+    if ( dofit==TRUE ) {
+        coefs <- fit$par
+        for ( i in 1:length(coefs) ) {
+            a_split <- strsplit( names(coefs)[i] , idx_marker_string )[[1]]
+            if ( length(a_split)>1 ) {
+                new_name <- concat( a_split[1] , "[" , a_split[2] , "]" )
+                names(coefs)[i] <- new_name
+            }
         }
     }
     
@@ -543,7 +552,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     attr(m,"veclist") <- veclist
     if (!missing(data)) attr(m,"nobs") = length(data[[1]])
     # check convergence and warn
-    xcheckconvergence(m)
+    if ( dofit==TRUE ) xcheckconvergence(m)
     # result
     m
 }

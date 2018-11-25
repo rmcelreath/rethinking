@@ -373,6 +373,9 @@ mcmcpairs <- function( x , alpha=0.7 , cex=0.7 , pch=16 , adj=1 , pars , n=500 ,
 # https://github.com/hadley/precis/blob/master/R/histospark.R
 sparks <- c("\u2581", "\u2582", "\u2583", "\u2585", "\u2587")
 histospark <- function(x, width = 10) {
+  if ( all(is.na(x)) ) {
+    return( paste0( rep(" ",width) , collapse="" ) )
+  }
   bins <- graphics::hist(x, breaks = width, plot = FALSE)
   factor <- cut(
     bins$counts / max(bins$counts),

@@ -303,22 +303,22 @@ extract_prior_ulam <- function( fit , n=1000 , distribution_library=ulam_dists ,
     result <- pars_list
 
     if ( FALSE ) {
-    # need to get name structure from posterior samples, so can do in same order later
-    post <- extract.samples(fit,n=3,...)
-    new_result <- list()
-    for ( i in 1:length(post) ) {
-        a_name <- names(post)[i]
-        if ( !is.null(result[[a_name]]) ) {
-            new_result[[ a_name ]] <- result[[ a_name ]]
-        }
-    }#i
-    result <- new_result
+        # need to get name structure from posterior samples, so can do in same order later
+        post <- extract.samples(fit,n=3,...)
+        new_result <- list()
+        for ( i in 1:length(post) ) {
+            a_name <- names(post)[i]
+            if ( !is.null(result[[a_name]]) ) {
+                new_result[[ a_name ]] <- result[[ a_name ]]
+            }
+        }#i
+        result <- new_result
 
-    # make sure each entry is an array, even if 1D
-    for ( i in 1:length(result) ) {
-        if ( is.null(dim(result[[i]])) )
-            result[[i]] <- as.array(result[[i]])
-    }
+        # make sure each entry is an array, even if 1D
+        for ( i in 1:length(result) ) {
+            if ( is.null(dim(result[[i]])) )
+                result[[i]] <- as.array(result[[i]])
+        }
     }
 
     return(result)
@@ -404,7 +404,7 @@ m <- map2stan(
         sigma_actor ~ dexp(1)
     ) ,
     data=d,
-    iter=1000 , chains=2 , cores=1 )
+    iter=1000 , chains=2 , cores=1 , sample=FALSE )
 
 prior <- extract.prior( m , n=1e4 )
 precis(prior,depth=2)

@@ -2076,6 +2076,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
             formula = flist.orig,
             formula_parsed = fp )
     }
+    attr(result,"generation") <- "map2stan2018"
 
     if ( rawstanfit==TRUE ) return(fit)
     

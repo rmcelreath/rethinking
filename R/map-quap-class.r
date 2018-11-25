@@ -65,7 +65,7 @@ setMethod("show", "map", function(object){
         print( object@formula[[i]] )
     }
     
-    cat("\nMAP values:\n")
+    cat("\nPosterior means:\n")
     print(coef(object))
     
     cat("\nLog-likelihood: ")
@@ -140,6 +140,8 @@ function(object,n=1e4,...){
         }#i
         result <- new_result
     }
+    model_name <- match.call()[[2]]
+    attr(result,"source") <- concat( "quap posterior: ", n , " samples from " , model_name )
     # return result
     result
 })

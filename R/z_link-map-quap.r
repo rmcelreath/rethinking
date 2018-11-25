@@ -1,4 +1,4 @@
-# function to compute value of linear models from map fit, over samples
+# function to compute value of linear models from quap (formerly map) fit, over samples
 
 
 
@@ -103,6 +103,25 @@ function( fit , data , n=1000 , post , refresh=0 , replace=list() , flatten=TRUE
     return(link_out)
 }
 )
+
+# method to take just a formula list - good for simulating from priors
+setMethod("link", "list",
+function( fit , data , n=1000 , post , refresh=0 , replace=list() , flatten=TRUE , ... ) {
+
+    # first do quap fit, but with dofit=FALSE
+    # just gives us the translated formula
+    fit <- quap( fit , data=data , dofit=FALSE )
+
+    # now extract prior
+    prior <- extract.prior(fit,n=n)
+
+    # run link
+
+    l <- link( fit , data=data , post=prior , n=n , refresh=refresh , replace=replace , flatten=flatten , ... )
+
+    return(l)
+
+})
 
 # TESTS
 if (FALSE) {

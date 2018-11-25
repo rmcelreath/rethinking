@@ -19,6 +19,12 @@ precis_show_old <- function( object ) {
 precis_show <- function( object ) {
     #print( round( object@output , object@digits ) )
     r <- format_show( object , digits=c('default__'=object@digits,'n_eff'=0) )
+    has_header <- !is.null( attr(object,"header") )
+    if ( has_header ) {
+        # show header
+        cat( attr(object,"header") )
+        cat( "\n" )
+    }
     print(r)
 }
 
@@ -151,6 +157,13 @@ setMethod("precis", "data.frame",
 function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
     plo <- (1-prob)/2
     phi <- 1 - plo
+    # replace any character or factor columns with NA numeric columns
+    # histospark will detect all NA and return blank line
+    for ( i in 1:ncol(object) ) {
+        if ( class(object[[i]]) %in% c("factor","character") ) {
+            object[[i]] <- as.numeric( rep( NA , nrow(object) ) )
+        }
+    }
     result <- data.frame(
         mean = apply(object,2,mean,na.rm=TRUE),
         sd = apply(object,2,sd,na.rm=TRUE),
@@ -162,6 +175,12 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
     colnames(result)[3:4] <- paste( c( plo , phi )*100 , "%" , sep="" )
 
     result <- precis_format( result , depth , sort , decreasing )
+
+    has_source <- !is.null(attr(object,"source"))
+    header_string <- concat( "'data.frame': " , nrow(object) , " obs. of ", ncol(object) , " variables:" )
+    if ( has_source )
+        header_string <- attr(object,"source")
+    attr(result,"header") <- header_string
 
     return( new( "precis" , result , digits=digits ) )
 })
@@ -190,6 +209,8 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
         }#n>1
     }#i
     # hand off to data frame method
+    if ( !is.null(attr(object,"source")) )
+        attr(result,"source") <- attr(object,"source")
     precis( result , depth , pars , prob , digits , sort, decreasing , ... )
 })
 
