@@ -37,7 +37,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     }
     if ( missing(start) ) start <- list()
     if ( missing(data) ) stop( "'data' required." )
-    if ( !( class(data) %in% c("list","data.frame") ) ) {
+    if ( !inherits(data, c("list","data.frame")) ) {
         stop( "'data' must be of class list or data.frame." )
     }
     

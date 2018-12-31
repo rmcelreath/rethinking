@@ -43,8 +43,7 @@ make.grid <- function( n ) {
 }
 
 dens <- function( x , adj=0.5 , norm.comp=FALSE , main="" , show.HPDI=FALSE , show.zero=FALSE , rm.na=TRUE , add=FALSE , ...) {
-    the.class <- class(x)[1]
-    if ( the.class=="data.frame" ) {
+    if ( inherits(x, "data.frame")) {
         # full posterior
         n <- ncol(x)
         cnames <- colnames(x)
