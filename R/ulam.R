@@ -4,9 +4,17 @@
 # allow explicit declarations
 # see tests at end of this file for examples
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , ... ) {
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , ... ) {
 
     data <- as.list(data)
+
+    if ( pre_scan_data==TRUE ) {
+        # pre-scan for index variables (integer) that are numeric by accident
+        for ( i in 1:length(data) ) {
+            if ( all( as.integer(data[[i]])==data[[i]] ) )
+                data[[i]] <- as.integer(data[[i]])
+        }
+    }
 
     ########################################
     # empty Stan code
@@ -212,6 +220,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     declare_templates <- list(
         real = list( patt="real<CONSTRAINT> NAME[DIM1]" , dims=1 ),
         vector = list( patt="vector<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
+        row_vector = list( patt="row_vector<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
         matrix = list( patt="matrix<CONSTRAINT>[DIM1,DIM2] NAME[DIM3]" , dims=3 ),
         int = list( patt="int<CONSTRAINT> NAME[DIM1]" , dims=1 ),
         corr_matrix = list( patt="corr_matrix<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
@@ -227,7 +236,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             symbol_list$dims <- list( symbol_list$dims , 1 )
 
         if ( class( symbol_list$dims ) == "name" ) {
-            # a grouping variable, so need to fetch its UNIQUE length
+            # has a grouping variable, so need to fetch its UNIQUE length
             ul <- length( unique( data[[ as.character(symbol_list$dims) ]] ) )
             symbol_list$dims <- list( "vector" , ul )
         }
@@ -251,9 +260,10 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 d <- symbol_list$dims[[i+1]]
                 if ( !is.null( data[[ as.character(d) ]] ) ) {
                     # either a grouping variable OR an index length (scalar)
-                    if ( length( data[[ as.character(d) ]] ) > 1 ) 
+                    if ( length( data[[ as.character(d) ]] ) > 1 ) {
                         # a grouping variable, so count number of unique values
                         d <- length(unique( data[[ as.character(d) ]] ))
+                    }
                     # if an index, don't need to do anything, converted to text later
                 }
                 dd <- as.character( d )
@@ -344,6 +354,9 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         # compose local assignment (usually a linear model) for model block
         # need to observe need for loop over assignment and insert [i] after the data symbols on right-hand side
         # when assignment is <<- instead then no loop (vectorized assignment)
+        # need to check also for some operator conversions R -> Stan:
+        #     %*% -> *
+        # can do this in text as last step? not elegant.
         the_dims <- symbols[[symbol]]$dims
         N <- NA
         if ( class(the_dims)=="character" ) {
@@ -428,6 +441,14 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 # prepend and close loop
                 out <- concat( loop_txt , out , indent , "}\n" )
             }
+
+        # finally check for any function conversions R -> Stan
+        R_to_Stan_f <- list( 
+            " %*% " = " * " ,
+            " as.vector(" = " to_vector("
+        )
+        for ( j in 1:length(R_to_Stan_f) )
+            out <- gsub( names(R_to_Stan_f)[j] , R_to_Stan_f[[j]] , out , fixed=TRUE )
 
         # all done
         return( out )
@@ -917,6 +938,10 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         if ( symbols[[i]]$type=="data" ) {
             Z <- compose_declaration( names(symbols)[i] , symbols[[i]] )
             m_data <- concat( m_data , indent , Z , ";\n" )
+            # check for type compatibility on R and Stan sides
+            stan_type <- symbols[[i]]$dims
+            if ( stan_type[[1]]=="int" )
+                data[[ names(symbols)[i] ]] <- as.integer( data[[ names(symbols)[i] ]] )
         }
         if ( symbols[[i]]$type=="par" ) {
             Z <- compose_declaration( names(symbols)[i] , symbols[[i]] )
@@ -1102,7 +1127,11 @@ link_ulam <- function( fit , data , post , simplify=TRUE , symbols , ... ) {
         return( f )
     }
 
-    if ( missing(data) ) data <- fit@data
+    use_orig_data <- FALSE
+    if ( missing(data) ) {
+        data <- fit@data
+        use_orig_data <- TRUE
+    }
     if ( missing(post) ) post <- extract.samples(fit@stanfit)
 
     # how many link functions?
@@ -1124,7 +1153,11 @@ link_ulam <- function( fit , data , post , simplify=TRUE , symbols , ... ) {
         if ( !(names( fit@formula_parsed$link_funcs )[j] %in% symbols) ) next
 
         # get number of cases for this symbol
-        n_cases <- fit@formula_parsed$link_funcs[[ j ]]$N
+        if ( use_orig_data==TRUE )
+            n_cases <- fit@formula_parsed$link_funcs[[ j ]]$N
+        else
+            # guess from length of data
+            n_cases <- length(data[[1]])
 
         # check whether this function contains symbols that need some dimensions added for samples
         symbols_so_far <- names(out)
@@ -1283,5 +1316,15 @@ sim_ulam <- function( fit , data , post , variable , n=1000 , replace=list() , .
     return(sim_out)
 }
 
-
+setMethod("nobs", "ulam", function (object, ...) { 
+    z <- attr(object,"nobs") 
+    if ( is.null(z) ) {
+        # try to get nobs from a link function
+        link_funcs <- object@formula_parsed$link_funcs
+        if ( length(link_funcs)>0 ) {
+            z <- link_funcs[[1]]$N
+        }
+    }
+    return(z)
+} )
 

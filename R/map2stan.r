@@ -1339,13 +1339,18 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
                 code_gq <- gsub( "OUTCOME" , outcome , code_gq , fixed=TRUE )
                 for ( j in 1:length(parstxt_L) ) {
                     parname <- as.character(parstxt_L[[j]])
+                    if ( parname %in% names(d) ) {
+                        # add [i]
+                        parname <- concat( parname , "[i]" )
+                    }
                     parpat <- concat( "PAR" , j )
                     code_model <- gsub( parpat , parname , code_model , fixed=TRUE )
                     code_gq <- gsub( parpat , parname , code_gq , fixed=TRUE )
                 }
                 # insert into Stan code
                 m_model_txt <- concat( m_model_txt , indent , code_model , "\n" )
-                m_gq <- concat( m_gq , indent , code_gq , "\n" )
+                if ( DIC==TRUE )
+                    m_gq <- concat( m_gq , indent , code_gq , "\n" )
                 
             } else {
             

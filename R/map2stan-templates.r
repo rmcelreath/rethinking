@@ -971,7 +971,7 @@ dev <- dev + (-2)*(log_sum_exp(bernoulli_lpmf(1|PAR1),
     bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3)));
 else
 dev <- dev + (-2)*(bernoulli_lpmf(0|PAR1) + binomial_lpmf(OUTCOME|PAR2,PAR3));",
-        num_pars = 2,
+        num_pars = 3,
         par_names = c("prob1","size","prob2"),
         par_bounds = c("",""),
         par_types = c("real","int","real"),

@@ -378,7 +378,7 @@ function( object , n=0 , refresh=0 , pointwise=FALSE , loglik=FALSE , ... ) {
 )
 
 setMethod("WAIC", "map",
-function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
+function( object , n=1000 , refresh=0 , pointwise=FALSE , post , ... ) {
     
     if ( !(class(object)%in%c("map")) ) stop("Requires map fit")
     
@@ -409,7 +409,7 @@ function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
     #lm_vals <- link( object , n=n , refresh=refresh , flatten=FALSE )
     
     # extract samples --- will need for inline parameters e.g. sigma in likelihood
-    post <- extract.samples( object , n=n )
+    if ( missing(post) ) post <- extract.samples( object , n=n )
     
     # compute log-lik at each sample
     #lik <- flist_untag(object@formula)[[1]]
@@ -423,7 +423,7 @@ function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
     pD_vec <- rep(NA,n_cases)
     for ( i in 1:n_cases ) {# for each case
         
-        vll <- var2(s[,i])
+        vll <- var(s[,i])
         pD <- pD + vll
         lpd <- log_sum_exp(s[,i]) - log(n_samples)
         lppd <- lppd + lpd
@@ -506,3 +506,15 @@ function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
     return(waic)
 } )
 
+# just the lppd --- Bayesian deviance
+lppd <- function( fit , ... ) {
+    ll <- sim( fit , ll=TRUE , ... )
+    n <- ncol(ll)
+    ns <- nrow(ll)
+    # compute log of average probability of data for each case i
+    # do on log scale, using log_sum_exp trick, 
+    # and taking average by subtracting log of number of samples
+    f <- function( i ) log_sum_exp( ll[,i] ) - log(ns)
+    lppd <- sapply( 1:n , f )
+    return(lppd)
+}

@@ -29,7 +29,7 @@ data(Primates301_vcov_matrix)
         \item group_size : Average social group size
         \item gestation : Length of gestation (days)
         \item weaning : At at weaning (days)
-        \item longevity : Maximum lifespan (days)
+        \item longevity : Maximum lifespan (months)
         \item sex_maturity : Age of sexual maturity (days)
         \item maternal_investment : Period of maternal investment (days) = gestation + weaning
     }

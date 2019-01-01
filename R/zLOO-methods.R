@@ -27,6 +27,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , ... ) {
     }
     attr(looIC,"lppd") = lppd
     attr(looIC,"pLOO") = pD
+    attr(looIC,"diagnostics") = loo_list$diagnostics
     
     n_tot <- ncol(loglik_matrix)
     attr(looIC,"se") = try(sqrt( n_tot*var2(as.vector( loo_list$pointwise[,3] )) ))
@@ -58,6 +59,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
     }
     attr(looIC,"lppd") = lppd
     attr(looIC,"pLOO") = pD
+    attr(looIC,"diagnostics") = loo_list$diagnostics
     
     n_tot <- ncol(ll_matrix)
     #attr(looIC,"se") = try(sqrt( n_tot*var(as.vector( loo_list$pointwise[,4] )) ))
@@ -92,6 +94,7 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
     }
     attr(looIC,"lppd") = lppd
     attr(looIC,"pLOO") = pD
+    attr(looIC,"diagnostics") = loo_list$diagnostics
     
     n_tot <- ncol(ll_matrix)
     attr(looIC,"se") = try(sqrt( n_tot*var2(as.vector( loo_list$pointwise[,3] )) ))
