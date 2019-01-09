@@ -396,6 +396,39 @@ ulam_dists <- list(
         constraints = c( NA , NA , "lower=0,upper=1" ),
         vectorized = TRUE
     ),
+    betabinomial = list(
+        # Stan uses alpha,beta parameterization
+        # need to make this into p,theta parameterization
+        # p = alpha/(alpha+beta)
+        # theta = alpha + beta
+        R_name = "dbetabinom",
+        Stan_name = "beta_binomial",
+        Stan_suffix = "lpmf",
+        pars = 3,
+        dims = c( "int" , "int" , "real" , "real" ),
+        constraints = c( NA , "lower=0" , "lower=0" ),
+        vectorized = TRUE ,
+        build = function( left , right , as_log_lik=FALSE ) {
+
+            # convert between parameterizations
+            # alpha = p*theta, beta = (1-p)*theta
+
+            # right: [[1]] dist, [[2]] size, [[3]] p, [[4]] theta
+            p_name <- as.character( right[[3]] )
+            theta_name <- as.character( right[[4]] )
+            right[[3]] <- concat( p_name , "*" , theta_name )
+            right[[4]] <- concat( "(1-" , p_name , ")*" , theta_name )
+            
+            # call DEFAULT function for rest
+            build_func <- distribution_library[["DEFAULT"]]$build
+            environment( build_func ) <- parent.env(environment())
+            out <- do.call( build_func , 
+                    list( left , right , dist_name="beta_binomial" , suffix="lpmf" , as_log_lik=as_log_lik , vectorized=TRUE ) , 
+                    envir=environment() , quote=TRUE )
+
+            return( out )
+        }
+    ),
     binomial_logit = list(
         R_name = "dbinom",
         Stan_name = "binomial_logit",
@@ -414,6 +447,15 @@ ulam_dists <- list(
         constraints = c( NA , "lower=0" ),
         vectorized = TRUE
     ),
+    gammapoisson = list(
+        R_name = "dgampois",
+        Stan_name = "neg_binomial_2", # mu/phi parameterization
+        Stan_suffix = "lpmf",
+        pars = 2,
+        dims = c( "int" , "real" , "real" ),
+        constraints = c( NA , "lower=0" , "lower=0" ),
+        vectorized = TRUE
+    ),
     exponential = list(
         R_name = "dexp",
         Stan_name = "exponential",
@@ -430,6 +472,15 @@ ulam_dists <- list(
         pars = 2,
         dims = c( "real" , "real" , "real" ),
         constraints = c( "lower=0,upper=1" , "lower=0" , "lower=0" ),
+        vectorized = TRUE
+    ),
+    dirichlet = list(
+        R_name = "ddirichlet", # in gtools
+        Stan_name = "dirichlet",
+        Stan_suffix = "lpdf",
+        pars = 1,
+        dims = c( "simplex" , "vector" ),
+        constraints = c( "lower=0,upper=1" , "lower=0" ),
         vectorized = TRUE
     ),
     cauchy = list(
@@ -609,6 +660,7 @@ ulam_dists <- list(
         }
     ),
     mixture = list(
+        # NOT YET IMPLEMENTED
         R_name = "dmixture",
         Stan_name = "mixture",
         Stan_suffix = "lpdf",
@@ -624,6 +676,8 @@ ulam_dists <- list(
         }
     ),
     custom = list(
+        # use '!Y' in formula to indicate location of outcome
+        # or can hard code location of outcome
         R_name = "dcustom",
         Stan_name = "custom",
         Stan_suffix = "lpdf",
@@ -654,8 +708,10 @@ ulam_dists <- list(
                 if ( is.null(max_index) ) max_index <- length( data[[ left[j] ]] )
 
                 # need right side without the custom() call
-                # first check symbols and add [i] where dim matches loop length
                 right_out <- right[[2]] # just inside custom()
+                # check for '!Y'
+                right_out <- hunt_bangY( right_out , left[j] )
+                # first check symbols and add [i] where dim matches loop length
                 sym <- get_all_symbols( right_out )
                 if ( length(sym)>0 )
                     for( k in sym ) {

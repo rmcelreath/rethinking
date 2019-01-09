@@ -1,10 +1,10 @@
 # my model summary function, précis
 
 precis.whitelist <- data.frame( 
-    class=c("map","map2stan","lm","glm","mle2","mer","bmer","polr","data.frame","clmm","clmm2","list","stanfit","lmerMod","glmerMod") , 
-    coef.method=c("coef","coef","coef","coef","coef","fixef.plus","fixef.plus","polr","chain","coef","coef","mcarray","stanfit","fixef.plus","fixef.plus") , 
-    vcov.method=c("vcov","vcov","vcov","vcov","vcov","vcov.VarCorr","vcov.VarCorr","vcov","chain","vcov","vcov","mcarray","stanfit","vcov.VarCorr","vcov.VarCorr") ,
-    nobs.method=c("nobs","nobs","nobs","nobs","mle2","mer","mer","nobs","chain","nobs","nobs","chain","stanfit","mer","mer")
+    class=c("map","map2stan","lm","glm","mle2","mer","bmer","polr","data.frame","clmm","clmm2","list","stanfit","lmerMod","glmerMod","ulam") , 
+    coef.method=c("coef","coef","coef","coef","coef","fixef.plus","fixef.plus","polr","chain","coef","coef","mcarray","stanfit","fixef.plus","fixef.plus","coef") , 
+    vcov.method=c("vcov","vcov","vcov","vcov","vcov","vcov.VarCorr","vcov.VarCorr","vcov","chain","vcov","vcov","mcarray","stanfit","vcov.VarCorr","vcov.VarCorr","vcov") ,
+    nobs.method=c("nobs","nobs","nobs","nobs","mle2","mer","mer","nobs","chain","nobs","nobs","chain","stanfit","mer","mer","nobs")
 )
 
 # precis class definition and show method
@@ -153,6 +153,14 @@ precis_format <- function( result , depth , sort , decreasing ) {
     return(result)
 }
 
+setMethod("precis", "numeric", 
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    oname <- deparse( match.call()[[2]] )
+    df <- list()
+    df[[oname]] <- object
+    precis( df , prob=prob , ... )
+} )
+
 setMethod("precis", "data.frame", 
 function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
     plo <- (1-prob)/2
@@ -213,6 +221,8 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
         attr(result,"source") <- attr(object,"source")
     precis( result , depth , pars , prob , digits , sort, decreasing , ... )
 })
+
+
 
 # template function for processing objects with coef and vcov methods
 xprecis_glm <- function( object , depth , pars , prob , digits , sort , decreasing , ... ) {

@@ -122,6 +122,9 @@ function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
     attr(looIC,"lppd") = lppd
     attr(looIC,"pLOO") = pD
     attr(looIC,"diagnostics") = loo_list$diagnostics
+
+    object_name <- deparse( match.call()[[2]] )
+    xcheckLOOk( loo_list$diagnostics$pareto_k , object_name )
     
     n_tot <- ncol(loglik_matrix)
     #attr(looIC,"se") = try(sqrt( n_tot*var2(as.vector( loo_list$pointwise[,4] )) ))
@@ -131,3 +134,17 @@ function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
 
 })
 
+# function to return pointwise k diagnostics
+LOOPk <- function( model , ... ) {
+    attributes( LOO(model,pointwise=TRUE) )$diagnostics$pareto_k
+}
+
+xcheckLOOk <- function( k_list , oname ) {
+    if ( any( k_list > 0.5 ) ) {
+        if ( any( k_list > 1 ) ) {
+            warning( concat("Some Pareto k diagnostics are very high (>1) in ",oname,".") )
+        } else {
+            warning( concat("Some Pareto k diagnostics are high (>0.5) in ",oname,".") )
+        }
+    }
+}

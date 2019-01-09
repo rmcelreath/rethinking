@@ -2,6 +2,16 @@
 
 # various utility functions
 
+# standardize and normalize
+normalize <- function(x) { x <- x - min(x); x/max(x); }
+standardize <- function(x) {
+    x <- scale(x)
+    z <- as.numeric(x)
+    attr(z,"scaled:center") <- attr(x,"scaled:center")
+    attr(z,"scaled:scale") <- attr(x,"scaled:scale")
+    return(z)
+}
+
 # set help to html
 htmlhelp <- function() options(help_type="html")
 

@@ -11,8 +11,22 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     if ( pre_scan_data==TRUE ) {
         # pre-scan for index variables (integer) that are numeric by accident
         for ( i in 1:length(data) ) {
-            if ( all( as.integer(data[[i]])==data[[i]] ) )
-                data[[i]] <- as.integer(data[[i]])
+            if ( all( as.integer(data[[i]])==data[[i]] ) ) {
+                #data[[i]] <- as.integer(data[[i]])
+                if ( class(data[[i]])!="integer" ) 
+                    if ( messages==TRUE ) {
+                    vn <- names(data)[i]
+                    message( "Cautionary note:" )
+                    message( concat( "Variable ", vn , " contains only integers but is not type 'integer'. If you intend it as an index variable, you should as.integer() it before passing to ulam." ) )
+                }
+            }
+        }
+        # pre-scan for any scale() processed variables that might need to be as.numeric()
+        for ( i in 1:length(data) ) {
+            if ( !is.null( attr(data[[i]],"scaled:center") ) ) {
+                # strip the scaling junk
+                data[[i]] <- as.numeric( data[[i]] )
+            }
         }
     }
 
@@ -55,6 +69,18 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         real = 1,
         vector = 1,
         matrix = 2
+    )
+
+    declare_templates <- list(
+        real = list( patt="real<CONSTRAINT> NAME[DIM1]" , dims=1 ),
+        vector = list( patt="vector<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
+        row_vector = list( patt="row_vector<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
+        matrix = list( patt="matrix<CONSTRAINT>[DIM1,DIM2] NAME[DIM3]" , dims=3 ),
+        int = list( patt="int<CONSTRAINT> NAME[DIM1]" , dims=1 ),
+        corr_matrix = list( patt="corr_matrix<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
+        cholesky_factor_corr = list( patt="cholesky_factor_corr<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
+        ordered = list( patt="ordered<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
+        simplex = list( patt="simplex[DIM1] NAME[DIM2]" , dims=2 )
     )
 
     # binary operators that may appear in linear models
@@ -217,16 +243,6 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         return( template )
     }
 
-    declare_templates <- list(
-        real = list( patt="real<CONSTRAINT> NAME[DIM1]" , dims=1 ),
-        vector = list( patt="vector<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
-        row_vector = list( patt="row_vector<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
-        matrix = list( patt="matrix<CONSTRAINT>[DIM1,DIM2] NAME[DIM3]" , dims=3 ),
-        int = list( patt="int<CONSTRAINT> NAME[DIM1]" , dims=1 ),
-        corr_matrix = list( patt="corr_matrix<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
-        cholesky_factor_corr = list( patt="cholesky_factor_corr<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
-        ordered = list( patt="ordered<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 )
-    )
     # gsub( "NAME" , "par" , "int NAME" , fixed=TRUE )
     compose_declaration <- function( symbol_name, symbol_list ) {
         # the_dims should be a list like: [[1]] "vector" [[2]] 5
@@ -350,6 +366,25 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         return( f )
     }
 
+    # recursively search formula for '!Y' and replace with new symbol
+    # used by custom template
+    hunt_bangY <- function( f , r ) {
+        if ( class( f )=="call" || class( f )=="(" ) {
+            if ( as.character( f[[1]] )=="!" ) {
+                # bang found - now check argument
+                arg <- deparse(f[[2]])
+                if ( arg=="Y" ) {
+                    # got it - now replace entire f (replace ! too)
+                    f <- as.name( r )
+                }
+            } else {
+                # need to drill down
+                for ( i in 1:length(f) ) f[[i]] <- hunt_bangY( f[[i]] , r )
+            }
+        }
+        return( f )
+    }
+
     compose_assignment <- function( symbol , fline ) {
         # compose local assignment (usually a linear model) for model block
         # need to observe need for loop over assignment and insert [i] after the data symbols on right-hand side
@@ -454,23 +489,28 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         return( out )
     }
 
-    register_data_var <- function( var ) {
+    register_data_var <- function( var_name ) {
 
         # get dims from data list
-        the_dims <- dim( data[[var]] )
-        if ( is.null(the_dims) ) the_dims <- length( data[[var]] )
-
+        the_dims <- dim( data[[var_name]] )
+        if ( is.null(the_dims) ) the_dims <- length( data[[var_name]] )
+        
         # try to determine Stan type from class
         stan_type <- "real"
-        if ( class( data[[var]] )=="integer" ) stan_type <- "int"
-        if ( class( data[[var]] )=="matrix" ) {
+        if ( class( data[[var_name]] )=="integer" ) stan_type <- "int"
+        if ( class( data[[var_name]] )=="matrix" ) {
             stan_type <- "matrix"
             the_dims <- list( stan_type , the_dims[1] , the_dims[2] )
         } else {
+            # numeric or integer
             the_dims <- list( stan_type , the_dims )
         }
+        # check for vector and call it a vector
+        if ( stan_type=="real" ) {
+            if ( the_dims[[2]] > 1 ) the_dims[[1]] <- "vector"
+        }
         # return list suitable to insert in symbols list
-        return( list( name=var , type="data" , dims=the_dims , constraint=NA ) )
+        return( list( name=var_name , type="data" , dims=the_dims , constraint=NA ) )
     }
 
     # adds those [TRUE,i] things in link functions
@@ -656,6 +696,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
 
     symbol_graph <- NULL
     symbol_lines <- NULL
+    nobs_save <- 0
     # how to read the symbol graph:
     # rows contain the columns
     # columns are contained in the rows
@@ -805,12 +846,15 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             built <- compose_distibution( left_symbol , flist[[i]] )
             m_model_txt <- concat( m_model_txt , built )
             # add log_lik to generated quantities?
+            # currently just uses first outcome --- for multiple outcome models, will need new code
             if ( i==1 && log_lik==TRUE ) {
                 # add by default
                 built <- compose_distibution( left_symbol , flist[[i]] , as_log_lik=TRUE )
                 m_gq2 <- concat( m_gq2 , built )
                 N <- symbols[[left_symbol]]$dims[[2]]
                 m_gq1 <- concat( m_gq1 , indent , "vector[" , N , "] log_lik;\n" )
+                # save N to attr so nobs/compare can get it later
+                nobs_save <- N
             }
         }#data
 
@@ -1074,8 +1118,12 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
 
         # compute expected values of parameters
         s <- summary(stanfit)$summary
-        s <- s[ -which( rownames(s)=="lp__" ) , ]
-        if ( log_lik==TRUE ) s <- s[ -which( rownames(s)=="log_lik" ) , ]
+        s <- s[ -which( rownames(s)=="lp__" ) , ] # clean out lp__
+        if ( log_lik==TRUE ) {
+            # clean out the log_lik entries - possibly very many
+            idx <- grep( "log_lik[" , rownames(s) , fixed=TRUE )
+            s <- s[ -idx , ]
+        }
         if ( !is.null(dim(s)) ) {
             coef <- s[,1]
             varcov <- matrix( s[,3]^2 , ncol=1 )
@@ -1099,6 +1147,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             formula_parsed = formula_parsed
         )
         attr(result,"generation") <- "ulam2018"
+        if ( nobs_save > 0 ) attr(result,"nobs") <- nobs_save
 
     }
 
@@ -1316,15 +1365,5 @@ sim_ulam <- function( fit , data , post , variable , n=1000 , replace=list() , .
     return(sim_out)
 }
 
-setMethod("nobs", "ulam", function (object, ...) { 
-    z <- attr(object,"nobs") 
-    if ( is.null(z) ) {
-        # try to get nobs from a link function
-        link_funcs <- object@formula_parsed$link_funcs
-        if ( length(link_funcs)>0 ) {
-            z <- link_funcs[[1]]$N
-        }
-    }
-    return(z)
-} )
+
 

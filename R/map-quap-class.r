@@ -87,7 +87,7 @@ setMethod("plot", "map" , function( x , ... ) {
 })
 
 setGeneric("extract.samples",
-function( object , n=10000 , clean.names=TRUE , ... ) {
+function( object , n=10000 , clean=TRUE , ... ) {
     #require(MASS)
     mu <- 0
     if ( class(object)[1] %in% c("mer","bmer","glmerMod","lmerMod") ) {
@@ -96,7 +96,7 @@ function( object , n=10000 , clean.names=TRUE , ... ) {
         mu <- xcoef(object)
     }
     result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
-    if ( clean.names==TRUE ) {
+    if ( clean==TRUE ) {
         # convert (Intercept) to Intercept
         for ( i in 1:ncol(result) ) {
             if ( colnames(result)[i] == "(Intercept)" ) {

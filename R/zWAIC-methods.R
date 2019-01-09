@@ -518,3 +518,8 @@ lppd <- function( fit , ... ) {
     lppd <- sapply( 1:n , f )
     return(lppd)
 }
+
+# method to extract penalty terms
+WAICp <- function( x , pointwise=TRUE , ... ) {
+    attr( WAIC(x,pointwise=pointwise,...) , "pWAIC" )
+}

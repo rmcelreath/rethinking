@@ -14,7 +14,7 @@ setMethod("coef", "ulam", function(object) {
 })
 
 setMethod("precis", "ulam",
-function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , lp__=FALSE , ... ) {
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , lp__=FALSE , omit=NULL ,... ) {
     low <- (1-prob)/2
     upp <- 1-low
     result <- summary(object@stanfit,pars=pars,probs=c(low,upp))$summary[,c(1,3:7)]
@@ -29,6 +29,13 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
         # remove dev and lp__ and log_lik from table
         result <- result[ -idx , ]
     }
+    # any pars to omit?
+    if ( !is.null(omit) ) {
+        for ( k in 1:length(omit) ) {
+            idx <- grep( omit[k] , rownames(result) , fixed=TRUE )
+            if ( length(idx)>0 ) result <- result[ -idx , ]
+        }
+    }
 
     result <- precis_format( result , depth , sort , decreasing )
 
@@ -37,13 +44,15 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
 
 
 setMethod("extract.samples","ulam",
-function(object,n,...) {
+function(object,n,clean=TRUE,...) {
     #require(rstan)
     p <- rstan::extract(object@stanfit,...)
     # get rid of dev and lp__
-    p[['dev']] <- NULL
-    p[['lp__']] <- NULL
-    p[['log_lik']] <- NULL
+    if ( clean==TRUE ) {
+        p[['dev']] <- NULL
+        p[['lp__']] <- NULL
+        p[['log_lik']] <- NULL
+    }
     # get rid of those ugly dimnames
     for ( i in 1:length(p) ) {
         attr(p[[i]],"dimnames") <- NULL
@@ -143,7 +152,7 @@ setMethod("summary", "ulam", function(object){
     
 })
 
-setMethod("pairs" , "ulam" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=16 , adj=1 , pars , ...) {
+setMethod("pairs" , "ulam" , function(x, n=200 , alpha=0.7 , cex=0.7 , pch=16 , adj=1 , pars , ...) {
     #require(rstan)
     if ( missing(pars) )
         posterior <- extract.samples(x)
@@ -283,4 +292,16 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
 }
 
 setMethod( "plot" , "ulam" , function(x,y,...) precis_plot(precis(x,depth=y),...) )
+
+setMethod("nobs", "ulam", function (object, ...) { 
+    z <- attr(object,"nobs") 
+    if ( is.null(z) ) {
+        # try to get nobs from a link function
+        link_funcs <- object@formula_parsed$link_funcs
+        if ( length(link_funcs)>0 ) {
+            z <- link_funcs[[1]]$N
+        }
+    }
+    return(z)
+} )
 
