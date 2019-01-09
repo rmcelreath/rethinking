@@ -22,7 +22,7 @@ denschart <- function (x, pars,
     par(cex = cex, yaxs = "i")
     if (class(x) %in% c("map2stan","map","stanfit")) {
         x <- extract.samples(x)
-        if ( class(x)=="data.frame" ) {
+        if ( inherits(x, "data.frame")) {
             x <- as.list(x)
             for ( i in 1:length(x) ) x[[i]] <- as.array(x[[i]])
         }

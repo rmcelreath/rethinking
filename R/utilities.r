@@ -76,7 +76,7 @@ progbar <- function( current , min=0 , max=100 , starttime , update.interval=100
 covmat <- function( m , digits=4 ) {
     # upper diag is covariances
     # lower diag is correlations
-    if ( class(m)[1]=="data.frame" ) mcov <- cov( m ) else mcov <- vcov(m)
+    if ( inherits(m, "data.frame") ) mcov <- cov( m ) else mcov <- vcov(m)
     mcor <- cov2cor( mcov )
     mcov[ lower.tri(mcov) ] <- NA
     mcor[ lower.tri(mcor) ] <- NA
@@ -99,9 +99,8 @@ chainmode <- function( chain , ... ) {
 PIprimes <- c(0.67,0.89,0.97) # my snarky prime valued percentiles
 HPDI <- function( samples , prob=0.89 ) {
     # require(coda)
-    class.samples <- class(samples)[1]
     coerce.list <- c( "numeric" , "matrix" , "data.frame" , "integer" , "array" )
-    if ( class.samples %in% coerce.list ) {
+    if ( inherits(samples, coerce.list) ) {
         # single chain for single variable
         samples <- coda::as.mcmc( samples )
     }
