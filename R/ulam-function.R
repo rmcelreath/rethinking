@@ -2,7 +2,7 @@
 # redesign for more direct to Stan
 # less reliance on GLM structure
 # allow explicit declarations
-# see tests at end of this file for examples
+# see tests in ulam-tests.R for examples
 
 ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , ... ) {
 

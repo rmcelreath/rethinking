@@ -1,8 +1,8 @@
 Package: rethinking
 Type: Package
 Title: Statistical Rethinking book package
-Version: 1.81
-Date: 2019-01-01
+Version: 1.82
+Date: 2019-01-20
 Author: Richard McElreath
 Maintainer: Richard McElreath <richard_mcelreath@eva.mpg.de>
 Imports: coda, MASS, mvtnorm, loo

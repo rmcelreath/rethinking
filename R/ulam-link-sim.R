@@ -40,7 +40,8 @@ link_ulam <- function( fit , data , post , simplify=TRUE , symbols , ... ) {
         symbols <- names( fit@formula_parsed$link_funcs )
     }
 
-    for ( j in 1:n_links ) {
+    # go backwards, so links further down in formula can be insterted above
+    for ( j in n_links:1 ) {
 
         if ( !(names( fit@formula_parsed$link_funcs )[j] %in% symbols) ) next
 
@@ -65,13 +66,14 @@ link_ulam <- function( fit , data , post , simplify=TRUE , symbols , ... ) {
                 the_env <- post
                 #the_env <- unlist( list( the_env , data[i,,drop=FALSE] ) , recursive=FALSE )
                 the_env <- unlist( list( the_env , data , i=i ) , recursive=FALSE )
-                if ( j > 1 ) {
+                if ( j < n_links ) {
                     # insert previous linear model results, in case used in later ones
-                    for ( k in 1:length(out) ) {
-                        lv_name <- names(out)[k]
-                        #the_env[[ lv_name ]] <- out[[k]][ , i ] # all samples, i-th case
-                        the_env[[ lv_name ]] <- out[[k]]
-                    }
+                    if ( length(out)>0 )
+                        for ( k in 1:length(out) ) {
+                            lv_name <- names(out)[k]
+                            #the_env[[ lv_name ]] <- out[[k]][ , i ] # all samples, i-th case
+                            the_env[[ lv_name ]] <- out[[k]]
+                        }
                 }
                 eval( f , envir=the_env ) 
             })
@@ -84,6 +86,11 @@ link_ulam <- function( fit , data , post , simplify=TRUE , symbols , ... ) {
         out[[ names( fit@formula_parsed$link_funcs )[j] ]] <- l
 
     }#j
+
+    # reverse order of elements in out
+    outn <- list()
+    for ( j in length(out):1 ) outn[[ names(out)[j] ]] <- out[[ j ]]
+    out <- outn
 
     n_links <- length(symbols)
 
@@ -169,44 +176,41 @@ sim_ulam <- function( fit , data , post , variable , n=1000 , replace=list() , .
     # need to select out s-th sample for each parameter in post
     # only need top-level parameters, so can coerce to data.frame?
     post2 <- as.data.frame(post)
+    cuts_name <- "cutpoints"
     for ( s in 1:n ) {
-        # build environment
-        #ndims <- length(dim(pred[[1]]))
-        #if ( ndims==2 )
-        #    elm <- pred[[1]][s,] # extract s-th sample case calculations
-        #if ( ndims==3 )
-        #    elm <- pred[[1]][s,,]
-        #elm <- list(elm)
-        #names(elm)[1] <- names(pred)[1]
         
-        elm <- list()
-        for ( j in 1:length(pred) ) {
-            ndims <- length(dim(pred[[j]]))
-            if ( ndims==2 )
-                elm[[j]] <- pred[[j]][s,]
-            if ( ndims==3 )
-                elm[[j]] <- pred[[j]][s,,]
-        }
-        names(elm) <- names(pred)
-        
-        e <- list( as.list(data) , as.list(post2[s,]) , as.list(elm) )
-        e <- unlist( e , recursive=FALSE )
-        # evaluate
+        # handle ordered logit as special case
+        # it is very fragile
         if ( flik=="dordlogit" ) {
-            n_outcome_vals <- dim( pred[[1]] )[3]
-            probs <- pred[[1]][s,,]
-            sim_out[s,] <- sapply( 
-                1:n_cases ,
-                function(i)
-                    sample( 1:n_outcome_vals , size=1 , replace=TRUE , prob=probs[i,] )
-            )
+            n_outcome_vals <- dim( post[[ cuts_name ]] )[2] + 1
+            phi <- pred[[1]][s,]
+            #probs <- pordlogit( 1:n_outcome_vals , phi , post[[ cuts_name ]][s,] )
+            #sim_out[s,] <- sapply( 
+            #    1:n_cases ,
+            #    function(i)
+            #        sample( 1:n_outcome_vals , size=1 , replace=TRUE , prob=probs[i,] )
+            #)
+            sim_out[s,] <- rordlogit( length(phi) , phi , post[[ cuts_name ]][s,] )
         } else {
+            # build environment
+            elm <- list()
+            for ( j in 1:length(pred) ) {
+                ndims <- length(dim(pred[[j]]))
+                if ( ndims==2 )
+                    elm[[j]] <- pred[[j]][s,]
+                if ( ndims==3 )
+                    elm[[j]] <- pred[[j]][s,,]
+            }
+            names(elm) <- names(pred)
+            # evaluate
+            e <- list( as.list(data) , as.list(post2[s,]) , as.list(elm) )
+            e <- unlist( e , recursive=FALSE )
             sim_out[s,] <- eval(parse(text=xeval),envir=e)
         }
     }
     
     return(sim_out)
 }
-setMethod( "sim" , "ulam" , function(fit,...) sim_ulam(fit,...) )
+setMethod( "sim" , "ulam" , function(fit,data,...) sim_ulam(fit,data,...) )
 
 

@@ -198,9 +198,23 @@ show.naive.posterior <- function( est , se , model=NULL , level=0.95 , xlab="est
 }
 
 # simple histogram
-simplehist <- function( x , round=TRUE , ylab="Frequency" , ... ) {
+simplehist <- function( x , round=TRUE , ylab="Frequency" , off=0.2 , lwd=3 , col=c("black",rangi2) , ... ) {
     if ( round==TRUE ) x <- round(x)
-    plot(table(x),ylab=ylab,...)
+    if ( is.null(dim(x)) ) {
+        y <- table(x)
+        plot(y,ylab=ylab,lwd=lwd,col=col[1],...)
+        return(invisible(y))
+    } else {
+        # show each column as different series of lines
+        Y <- sapply( 1:ncol(x) , function(i) table(x[,i]) )
+        if ( length(col) < ncol(x) ) col <- rep_len(col,ncol(x))
+        plot(NULL,ylab=ylab, xlim=range(x)+c(-1,1)*off , ylim=c(0,max(Y)),...)
+        for ( i in 1:ncol(x) ) {
+            xoff <- (i-1)*off
+            for ( j in 1:nrow(Y) ) lines( c(j,j)+xoff , c(0,Y[j,i]) , lwd=lwd , col=col[i] , ... )
+        }
+        return(invisible(Y))
+    }
 }
 
 simplehist_old <- function( x , ylab="Frequency" , xlab="Count" , ycounts=TRUE , adjust=1 , lcol="black" , bins=NULL , show.counts=0 , xlim=NULL , ylim=NULL , ... ) {

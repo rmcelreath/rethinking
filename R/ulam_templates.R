@@ -148,6 +148,15 @@ ulam_dists <- list(
         constraints = c( "lower=0" , NA , "lower=0" ),
         vectorized = TRUE
     ) ,
+    log_normal = list(
+        R_name = "dlnorm",
+        Stan_name = "lognormal",
+        Stan_suffix = "lpdf",
+        pars = 2,
+        dims = c( "real" , "real" , "real" ),
+        constraints = c( "lower=0" , NA , "lower=0" ),
+        vectorized = TRUE
+    ) ,
     # multi_normal can take (mu,Rho,sigma) or (mu,Sigma) or (mu,L_Sigma) as arguments
     # i.e. is overloaded
     multinormal1 = list(
@@ -614,12 +623,15 @@ ulam_dists <- list(
                 }
             }
 
+            out_head <- "target += "
+            if ( as_log_lik==TRUE ) out_head <- "log_lik[i] = "
+
             out <- concat( out , indent , "for ( i in 1:" , length(data[[ left ]]) , " ) {\n" )
 
             out <- concat( out , indent , indent , "if ( " , left , "[i]==0 )\n" )
-            out <- concat( out , inden(3) , "target += log_mix( " , p_symbol , " , 0 , poisson_lpmf(0|" , lambda_symbol , ") );\n" )
+            out <- concat( out , inden(3) , out_head , "log_mix( " , p_symbol , " , 0 , poisson_lpmf(0|" , lambda_symbol , ") );\n" )
             out <- concat( out , indent , indent , "if ( " , left , "[i] > 0 )\n" )
-            out <- concat( out , inden(3) , "target += log1m( " , p_symbol , " ) + poisson_lpmf(" , left , "[i] | " , lambda_symbol , " );\n" )
+            out <- concat( out , inden(3) , out_head , "log1m( " , p_symbol , " ) + poisson_lpmf(" , left , "[i] | " , lambda_symbol , " );\n" )
 
             out <- concat( out , indent , "}\n" )
 
