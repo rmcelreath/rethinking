@@ -132,7 +132,7 @@ precis_format <- function( result , depth , sort , decreasing ) {
         hits_idx <- which( hits > -1 )
         if ( length(hits_idx)>0 ) {
             result <- result[-hits_idx,]
-            message( paste( length(hits_idx) , "vector or matrix parameters omitted in display. Use depth=2 to show them." ) )
+            message( paste( length(hits_idx) , "vector or matrix parameters hidden. Use depth=2 to show them." ) )
         }
     }
     if ( depth==2 ) {
@@ -140,7 +140,7 @@ precis_format <- function( result , depth , sort , decreasing ) {
         hits_idx <- which( hits > -1 )
         if ( length(hits_idx)>0 ) {
             result <- result[-hits_idx,]
-            message( paste( length(hits_idx) , "matrix parameters omitted in display. Use depth=3 to show them." ) )
+            message( paste( length(hits_idx) , "matrix parameters hidden. Use depth=3 to show them." ) )
         }
     }
 

@@ -6,7 +6,17 @@
 
 ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , ... ) {
 
-    data <- as.list(data)
+    if ( !missing(data) )
+        data <- as.list(data)
+
+    # check for previous fit passed instead of formula
+    prev_stanfit <- FALSE
+    if ( class(flist)=="ulam" ) {
+        prev_stanfit <- TRUE
+        prev_stanfit_object <- flist@stanfit
+        if ( missing(data) ) data <- flist@data
+        flist <- flist@formula
+    }
 
     if ( pre_scan_data==TRUE ) {
         # pre-scan for index variables (integer) that are numeric by accident
@@ -1084,14 +1094,22 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
 
     # fire lasers
     if ( sample==TRUE ) {
-        if ( length(start)==0 )
-            stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
+        if ( length(start)==0 ) {
+            if ( prev_stanfit==FALSE )
+                stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
                          chains=chains , cores=cores , iter=iter , control=control , ... )
-        else {
+            else
+                stanfit <- stan( fit = prev_stanfit_object , data = data , pars=use_pars , 
+                         chains=chains , cores=cores , iter=iter , control=control , ... )
+        } else {
             f_init <- "random"
             if ( class(start)=="list" ) f_init <- function() return(start)
             if ( class(start)=="function" ) f_init <- start
-            stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
+            if ( prev_stanfit==FALSE )
+                stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
+                         chains=chains , cores=cores , iter=iter , control=control , init=f_init , ... )
+            else
+                stanfit <- stan( fit = prev_stanfit_object , data = data , pars=use_pars , 
                          chains=chains , cores=cores , iter=iter , control=control , init=f_init , ... )
         }
     }

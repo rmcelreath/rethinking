@@ -190,8 +190,6 @@ setMethod("pairs" , "ulam" , function(x, n=200 , alpha=0.7 , cex=0.7 , pch=16 , 
     pairs( posterior , cex=cex , pch=pch , upper.panel=panel.2d , lower.panel=panel.cor , diag.panel=panel.dens , ... )
 })
 
-setMethod("traceplot", "ulam" , function(object,...) traceplot_ulam(object,...) )
-
 # my trace plot function
 #rethink_palette <- c("#5BBCD6","#F98400","#F2AD00","#00A08A","#FF0000")
 rethink_palette <- c("#8080FF","#F98400","#F2AD00","#00A08A","#FF0000")
@@ -214,11 +212,13 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
     if ( missing(chains) ) chains <- 1:n_chains
     pars <- dimnames$parameters
     chain.cols <- rep_len(col,n_chains)
-    # cut out "dev" and "lp__"
+    # cut out "dev" and "lp__" and "log_lik"
     wdev <- which(pars=="dev")
     if ( length(wdev)>0 ) pars <- pars[-wdev]
     wlp <- which(pars=="lp__")
     if ( length(wlp)>0 & lp==FALSE ) pars <- pars[-wlp]
+    wlp <- grep( "log_lik" , pars , fixed=TRUE )
+    if ( length(wlp)>0 ) pars <- pars[-wlp]
     
     # figure out grid and paging
     n_pars <- length( pars )
@@ -290,6 +290,7 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
     }#k
     
 }
+setMethod("traceplot", "ulam" , function(object,...) traceplot_ulam(object,...) )
 
 setMethod( "plot" , "ulam" , function(x,y,...) precis_plot(precis(x,depth=y),...) )
 
