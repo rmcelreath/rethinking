@@ -66,7 +66,13 @@ function(object,n,clean=TRUE,...) {
             if ( n_dims==2 ) p[[i]] <- p[[i]][1:n,]
             if ( n_dims==3 ) p[[i]] <- p[[i]][1:n,,]
         }
+    } else {
+        n <- stan_total_samples(object@stanfit)
     }
+
+    model_name <- match.call()[[2]]
+    attr(p,"source") <- concat( "ulam posterior: ", n , " samples from " , model_name )
+
     return(p)
 }
 )

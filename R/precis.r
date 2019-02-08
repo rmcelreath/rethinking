@@ -302,6 +302,14 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
     result <- summary(object,pars=pars,probs=c(low,upp))$summary[,c(1,3:7)]
     result <- as.data.frame( result )
 
+    idx <- which( rownames(result) %in% c("dev","lp__") )
+    idx2 <- grep( "log_lik[" , rownames(result) , fixed=TRUE )
+    if ( length(idx2)>0 ) idx <- c( idx , idx2 )
+    if ( length(idx)>0 ) {
+        # remove dev and lp__ and log_lik from table
+        result <- result[ -idx , ]
+    }
+
     result <- precis_format( result , depth , sort , decreasing )
 
     return( new( "precis" , result , digits=digits ) )

@@ -9,7 +9,8 @@
 ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , 
   control=list(adapt_delta=0.95) , distribution_library=ulam_dists , 
   macro_library=ulam_macros , custom , declare_all_data=TRUE ,
-  log_lik=FALSE , sample=TRUE , messages=TRUE , ... )
+  log_lik=FALSE , sample=TRUE , sample_prior=FALSE , 
+  messages=TRUE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -28,6 +29,7 @@ ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 ,
   \item{declare_all_data}{When \code{TRUE}, all variables in the data list are declared in the Stan model code. When \code{FALSE}, only used variables are declared.}
   \item{log_lik}{Return log likelihood of each observation in samples. Used for calculating WAIC and LOO.}
   \item{sample}{If \code{FALSE}, builds Stan code without sampling}
+  \item{sample_prior}{If \code{TRUE}, removes data probabilities from model to sample only prior distribution of parameters. Used by corresponding \code{extract.prior} method.}
   \item{messages}{If \code{TRUE}, prints various internal steps to help with debugging}
   \item{...}{Additional arguments to pass to \code{\link{stan}}}
 }

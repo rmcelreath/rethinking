@@ -95,7 +95,30 @@ ulam_dists <- list(
         pars = 2,
         dims = c( "real" , "real" , "real" ),
         constraints = c( NA , NA , NA ),
-        vectorized = TRUE
+        vectorized = TRUE,
+        build = function( left , right , as_log_lik=FALSE ) {
+
+            # need to add lower,upper constraints on left variable
+
+            # right: [[1]] dist, [[2]] lower, [[3]] upper
+            low <- as.character( right[[2]] )
+            upp <- as.character( right[[3]] )
+            constraint_txt <- concat( "lower=",low,",upper=",upp )
+            left_name <- as.character( left[1] )
+
+            new_symbols <- symbols
+            new_symbols[[left_name]]$constraint <- constraint_txt
+            assign( "symbols" , new_symbols , inherits=TRUE )
+            
+            # call DEFAULT function for rest
+            build_func <- distribution_library[["DEFAULT"]]$build
+            environment( build_func ) <- parent.env(environment())
+            out <- do.call( build_func , 
+                    list( left , right , dist_name="uniform" , suffix="lpdf" , as_log_lik=as_log_lik , vectorized=TRUE ) , 
+                    envir=environment() , quote=TRUE )
+
+            return( out )
+        }
     ) ,
     normal = list(
         R_name = "dnorm",
@@ -119,7 +142,29 @@ ulam_dists <- list(
                         if ( dims[[1]]=="matrix" ) {
                             left <- concat( "to_vector( " , left , " )" )
                         }
-                    }
+                        # check if array --- currently arrays have character dims like '2,2,2'
+                        if ( dims[[1]]=="real" | dims[[1]]=="int" ) {
+                            if ( class(dims[[2]])=="character" ) {
+                                # see if contains a comma
+                                sr <- strsplit( dims[[2]] , "," )[[1]]
+                                if ( length(sr)>1 ) {
+                                    # contains at least one comma
+                                    # so need to loop over dimensions to assign prior
+                                    n_idx <- length(sr)
+                                    sr <- as.numeric(sr) # hope this works!
+                                    loop_txt <- concat( "for ( ix1 in 1:" , sr[1] , " ) " )
+                                    ix_txt <- "ix1"
+                                    if ( n_idx > 1 ) {
+                                        for ( xx in 2:n_idx ) {
+                                            loop_txt <- concat( loop_txt , "for ( ix",xx," in 1:" , sr[xx] , " ) " )
+                                            ix_txt <- concat( ix_txt , "," , "ix" , xx )
+                                        }#xx
+                                    }
+                                    left <- concat( loop_txt , left , "[" , ix_txt , "]" )
+                                }
+                            }
+                        }
+                    }#length(dims)>1
                 }
             }
 
@@ -312,6 +357,8 @@ ulam_dists <- list(
                 out <- concat( out , indent , "vector[" , n_vars , "] YY" )
                 if ( n_cases > 1 )
                     out <- concat( out , "[" , n_cases , "];\n" )
+                else
+                    out <- concat( out , ";\n" )
             }
 
             # do we need a local var for means?

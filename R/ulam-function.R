@@ -4,7 +4,7 @@
 # allow explicit declarations
 # see tests in ulam-tests.R for examples
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , ... ) {
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , sample_prior=FALSE , ... ) {
 
     if ( !missing(data) )
         data <- as.list(data)
@@ -849,7 +849,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
 
         }#par
 
-        if ( left_type=="data" ) {
+        if ( left_type=="data" & sample_prior==FALSE ) {
             for ( j in 1:length(left_symbol) )
                 symbols[[ left_symbol[j] ]] <- register_data_var( left_symbol[j] )
             # build text for model block

@@ -2,7 +2,8 @@
 
 setGeneric( "extract.prior",
 function( fit , n=1000 , pars , ... ) {
-    extract.samples(fit,n=n,pars=pars)
+    message(concat("No method defined for object of class ",class(fit),".\n"))
+    #extract.samples(fit,n=n,pars=pars)
 })
 
 setMethod( "extract.prior", "map",
@@ -111,6 +112,9 @@ function( fit , n=1000 , pars , ... ) {
         if ( is.null(dim(result[[i]])) )
             result[[i]] <- as.array(result[[i]])
     }
+
+    model_name <- match.call()[[2]]
+    attr(result,"source") <- concat( "quap prior: ", n , " samples from " , model_name )
 
     return(result)
 })
@@ -255,7 +259,18 @@ function( fit , n=1000 , ... ) {
 
 })
 
-extract_prior_ulam <- function( fit , n=1000 , distribution_library=ulam_dists , ... ) {
+extract_prior_ulam <- function( fit , n=1000 , iter=2*n , chains=1 , ... ) {
+    # call ulam with formula in fit, but setting sample_prior=TRUE
+    mp <- ulam( fit@formula, data=fit@data , iter=iter, chains=chains , sample_prior=TRUE , ... )
+    p <- extract.samples(mp)
+    model_name <- match.call()[[2]]
+    attr(p,"source") <- concat( "ulam prior: ", n , " samples from " , model_name )
+    return(invisible(p))
+}
+setMethod( "extract.prior", "ulam", extract_prior_ulam )
+
+# NYI - older prototype
+extract_prior_ulam_proto <- function( fit , n=1000 , distribution_library=ulam_dists , ... ) {
 
     # args must be a list of arguments to density function
     # can contain vectors
