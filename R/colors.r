@@ -20,3 +20,4 @@ col.dist <- function( x , mu=0 , sd=1 , col="slateblue" ) {
 }
 
 rangi2 <- col.desat( "blue" , 0.5 )
+grau <- function( alpha=0.5 ) col.alpha( "black" , alpha )

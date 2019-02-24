@@ -405,6 +405,7 @@ ulam_dists <- list(
             }
 
             # finally, the distribution statement
+            
             out_var <- "YY"
             if ( length(left)==1 ) out_var <- left[1]
             if ( flag_data_outcome==TRUE ) {
@@ -415,12 +416,20 @@ ulam_dists <- list(
             }
             MU_var <- "MU"
             if ( length(MU)==1 ) MU_var <- MU[1]
-            out <- concat( out , indent , out_var , " ~ multi_normal( " , MU_var , " , " , SIGMA , " );\n" )
+
+            if ( as_log_lik==FALSE ) {
+
+                out <- concat( out , indent , out_var , " ~ multi_normal( " , MU_var , " , " , SIGMA , " );\n" )
+
+            } else {
+                out <- concat( out , indent , "log_lik = multi_normal_lpdf( " , out_var , " | " , MU_var , " , " , SIGMA , " );\n" )
+            }
 
             # close local environment, if necessary
             if ( length(MU)>1 || length(left)>1 ) {
                 out <- concat( out , indent , "}\n" )
             }
+
 
             return( out )
         }

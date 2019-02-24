@@ -1031,12 +1031,13 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 m_model_declare <- concat( m_model_declare , indent , Z , ";\n" )
             }
 
-            if ( log_lik==TRUE & the_block=="model" ) {
+            if ( log_lik==TRUE & the_block %in% c("model","save") ) {
                 # also add to generated quantities
                 m_gq1 <- concat( m_gq1 , indent , Z , ";\n" )
                 pars_omit <- c( pars_omit , left_symbol ) # mark to omit from returned samples
             }
             # compose link function
+            if ( the_block=="model" )
             link_funcs[[ left_symbol ]] <- compose_link_func( symbols[[left_symbol]]$right_iparsed , symbols[[left_symbol]]$link , N=symbols[[left_symbol]]$link_N )
         }
     }#i
