@@ -408,7 +408,7 @@ ulam_dists <- list(
             
             out_var <- "YY"
             if ( length(left)==1 ) out_var <- left[1]
-            if ( flag_data_outcome==TRUE ) {
+            if ( flag_data_outcome==TRUE || symbols[[ left[1] ]]$dims[[1]]=="matrix" ) {
                 if ( symbols[[ left[1] ]]$dims[[1]]=="matrix" ) {
                     N_out <- symbols[[ left[1] ]]$dims[[2]]
                     out_var <- concat( "for ( i in 1:" , N_out , " ) " , out_var , "[i,:]" )
@@ -537,6 +537,18 @@ ulam_dists <- list(
         pars = 2,
         dims = c( "real" , "real" , "real" ),
         constraints = c( "lower=0,upper=1" , "lower=0" , "lower=0" ),
+        vectorized = TRUE
+    ),
+    # version of beta with p,theta
+    # p = alpha/(alpha+beta)
+    # theta = alpha + beta
+    beta2 = list(
+        R_name = "dbeta2",
+        Stan_name = "beta",
+        Stan_suffix = "lpdf",
+        pars = 2,
+        dims = c( "real" , "real" , "real" ),
+        constraints = c( "lower=0,upper=1" , "lower=0,upper=1" , "lower=0" ),
         vectorized = TRUE
     ),
     dirichlet = list(
@@ -835,6 +847,17 @@ ulam_macros <- list(
             return( f )
         }
     ),
+    # shortcut for multiply_lower_tri_self_transpose(L_Rho)
+    Chol_to_Corr = list(
+        build = function( f , n ) {
+            # f is entire formula
+            # n is line with macro in it
+            L_symbol <- deparse( f[[n]][[3]][[2]] )
+            new_right <- concat( "multiply_lower_tri_self_transpose( " , L_symbol , " )" )
+            f[[n]][[3]] <- parse( text=new_right )[[1]]
+            return( f )
+        }
+    ),
     multi_normal_NC = list(
         build = function( f , n ) {
             # f is entire formula
@@ -860,11 +883,14 @@ ulam_macros <- list(
 
             # (1) make sure left side symbol is declared as vector of same length as x_obs
             merge_symbol <- get_left_symbol( ff )
+            xobs_symbol <- as.character( ff[[3]] )[2]
+            #print(str(merge_symbol))
             if ( is.null(attr(merge_symbol,"dims")) ) {
-                xobs_symbol <- as.character( ff[[3]] )[2]
                 N <- length( data[[ xobs_symbol ]] )
                 new_left <- concat( "vector[",N,"]: " , merge_symbol )
                 f[[n]][[2]] <- parse( text=new_left )[[1]]
+            } else {
+                N <- attr(merge_symbol,"dims")[[2]] # should be length of vector
             }
 
             # (2) replace NAs with a unique flag value - flag not used, just good for bookkeeping
