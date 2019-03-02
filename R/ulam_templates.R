@@ -408,8 +408,13 @@ ulam_dists <- list(
             
             out_var <- "YY"
             if ( length(left)==1 ) out_var <- left[1]
-            if ( flag_data_outcome==TRUE || symbols[[ left[1] ]]$dims[[1]]=="matrix" ) {
-                if ( symbols[[ left[1] ]]$dims[[1]]=="matrix" ) {
+            l1dims <- symbols[[ left[1] ]]$dims
+            out_mat <- FALSE
+            if ( class(l1dims) != "name" ) {
+                if ( l1dims[[1]]=="matrix" ) out_mat <- TRUE
+            }
+            if ( flag_data_outcome==TRUE || out_mat==TRUE ) {
+                if ( out_mat==TRUE ) {
                     N_out <- symbols[[ left[1] ]]$dims[[2]]
                     out_var <- concat( "for ( i in 1:" , N_out , " ) " , out_var , "[i,:]" )
                 }
