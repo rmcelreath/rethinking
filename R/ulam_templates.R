@@ -744,22 +744,6 @@ ulam_dists <- list(
             return( out )
         }
     ),
-    mixture = list(
-        # NOT YET IMPLEMENTED
-        R_name = "dmixture",
-        Stan_name = "mixture",
-        Stan_suffix = "lpdf",
-        pars = 2,
-        dims = c( NA , "vector" , "vector" ),
-        constraints = c( NA , "lower=0,upper=1" , NA ),
-        vectorized = FALSE,
-        build = function( left , right , as_log_lik=FALSE ) {
-            
-            out <- ""
-
-            return(out)
-        }
-    ),
     custom = list(
         # use '!Y' in formula to indicate location of outcome
         # or can hard code location of outcome
@@ -816,6 +800,134 @@ ulam_dists <- list(
                     }#k
                 right_out <- deparse( right_out , width.cutoff=500 )
                 if ( length(right_out)>1 ) right_out <- paste( right_out , collapse="" )
+
+                # outcome var and distribution name
+                if ( as_log_lik==FALSE ) {
+                    out <- concat( out , "    " , "for ( i in 1:" , max_index , " ) " )
+                    if ( do_iff == TRUE )
+                        out <- concat( out , "\n" , inden(2) , "if ( " , deparse(iff_out) , " ) " )
+                    out <- concat( out , "target += " , right_out , ";\n" )
+                } else {
+                    # log_lik expressions never vectorized, because vectorized distributions return a sum of log_likelihoods, and we need individual terms
+                    out <- concat( out , "    " , "for ( i in 1:" , max_index , " ) " )
+                    if ( do_iff == TRUE )
+                        out <- concat( out , "\n" , inden(2) , "if ( " , deparse(iff_out) , " ) " )
+                    out <- concat( out , "log_lik[i] = " , right_out , ";\n" )
+                }
+
+            }#j
+            return( out )
+        }
+    ),
+    mixture = list(
+        # custom finite mixtures
+        # format: y ~ mixture( theta , term1 , term2 , ... )
+        # where theta has length 1 (for 2 terms) or same length as term count
+        R_name = "dmixture",
+        Stan_name = "mixture",
+        Stan_suffix = "lpdf",
+        pars = 2,
+        dims = c( NA , NA , NA ),
+        constraints = c( NA , NA , NA ),
+        vectorized = FALSE,
+        build = function( left , right , as_log_lik=FALSE ) {
+
+            out <- ""
+            vectorized <- FALSE
+
+            for ( j in 1:length(left) ) {
+
+                # check for any multiple choice flags on left symbol
+                do_iff <- FALSE
+                if( !is.null( attr( left , "iff" ) ) ) {
+                    # need to add index to symbols in condition
+                    iff_out <- attr( left , "iff" )
+                    symlist <- unique( c( left[j] , names(data) , names(symbols) ) )
+                    iff_out <- nest_indexes( iff_out , symlist )
+                    do_iff <- TRUE
+                }
+
+                # in case of explicit loop, need max index
+                # for matrices & arrays, loop over first index only
+                max_index <- dim( data[[ left[j] ]] )[1]
+                if ( is.null(max_index) ) max_index <- length( data[[ left[j] ]] )
+
+                # need right side without the mixture() call
+
+                # figure out how many terms we are mixing over
+                theta <- right[[2]]
+                n_terms <- length(right) - 2 # minus mixture and theta argument
+                terms <- list()
+                for ( i in 1:n_terms ) terms[[i]] <- right[[2+i]]
+
+                # check for '!Y'
+                #right_out <- hunt_bangY( right_out , left[j] )
+
+                # process each term
+                # all of these end up inside log_mix or log_sum_exp
+                # so need to be ordinary log-prob terms to add to target
+                for ( i in 1:n_terms ) {
+                    # need to add _lpdf or _lpmf to any distribution names
+                    front <- terms[[i]][[1]]
+                    front_dist <- get_dist_template( as.character(front) )
+                    terms[[i]][[1]] <- as.name( concat( front_dist$Stan_name , "_" , front_dist$Stan_suffix ) )
+
+                    # also need to insert left symbol as first argument
+                    # also need |
+                    # can replace 2nd item term with `|` call
+                    terms[[i]][[2]] <- call( "|" , as.name( left[j] ) , terms[[i]][[2]] )
+
+                    # check symbols and add [i] where dim matches loop length
+                    sym <- get_all_symbols( terms[[i]] )
+                    if ( length(sym)>0 )
+                        for( k in sym ) {
+                            if ( k == left[j] ) 
+                                terms[[i]] <- nest_indexes( terms[[i]] , left[j] )
+                            else {
+                                # not left symbol, so check dims
+                                if ( k %in% names(symbols) ) {
+                                    if ( class(symbols[[k]]$dims) == "list" ) {
+                                        # need length
+                                        the_dim <- symbols[[k]]$dims[[2]]
+                                        if ( the_dim == max_index )
+                                            terms[[i]] <- nest_indexes( terms[[i]] , k )
+                                    }
+                                }# in symbols
+                                if ( k %in% names(data) ) {
+                                    # might be data, but not used already in formula
+                                    the_dim <- length( data[[k]] )
+                                    if ( the_dim == max_index )
+                                        terms[[i]] <- nest_indexes( terms[[i]] , k )
+                                }
+                            }
+                        }#k
+                    terms[[i]] <- deparse( terms[[i]] , width.cutoff=500 )
+                    if ( length(terms[[i]])>1 ) terms[[i]] <- paste( terms[[i]] , collapse="" )
+                }
+
+                # now need to put the terms together inside either log_mix (2 terms) or log_sum_exp
+                # if log_sum_exp, need to add log(theta[n]) to each
+                if ( n_terms>2 ) right_out <- "log_sum_exp( "
+                else {
+                    # log_mix
+                    # theta might be observed (measurement error)
+                    theta_suffix <- ""
+                    if ( !is.null( data[[ deparse(theta) ]] ) ) {
+                        if ( length(data[[ deparse(theta) ]]) == max_index )
+                            theta_suffix <- "[i]"
+                    }
+                    right_out <- concat( "log_mix( " , deparse(theta) , theta_suffix , " , " )
+                }
+                for ( i in 1:n_terms ) {
+                    if ( n_terms>2 ) {
+                        # add log(theta[n]) to front of term
+                        log_pre <- concat( "log( " , deparse(theta) , "[" , i , "] ) + " )
+                        terms[[i]] <- concat( log_pre , terms[[i]] )
+                    }
+                    right_out <- concat( right_out , terms[[i]] )
+                    if ( i < n_terms ) right_out <- concat( right_out , " , " )
+                }
+                right_out <- concat( right_out , " )" )
 
                 # outcome var and distribution name
                 if ( as_log_lik==FALSE ) {

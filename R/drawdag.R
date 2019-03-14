@@ -1,6 +1,6 @@
 # my DAG drawing function to extend dagitty plot method
 
-drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="black"  , cex=1 , lwd=1.5 , goodarrow=TRUE , xlim , ylim , ... ){ 
+drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="black" , cex=1 , lwd=1.5 , goodarrow=TRUE , xlim , ylim , shapes , col_shapes , radius=3 , ... ){ 
     require(dagitty)
     x <- as.dagitty( x )
     dagitty:::.supportsTypes(x,c("dag","mag","pdag"))
@@ -90,11 +90,39 @@ drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="b
             col=c( col_arrow , col_segment )[1+(acode[i]==0)], 
             code=acode[i], length=0.1, lwd=1+(acode[i]==0) )
     }
+    
+    # node shapes?
+    # should be named list with "c" for circle or "b" for box
+    if ( !missing(shapes) ) {
+        for ( i in 1:length(shapes) ) {
+            the_label <- names(shapes)[i]
+            j <- which( labels==the_label )
+            if ( missing(col_shapes) ) col_shapes <- col_labels[ min(j,length(col_labels)) ]
+            if ( length(j)>0 ) {
+                cpch <- 1
+                if ( shapes[[i]]=="fc" ) cpch <- 16
+                if ( shapes[[i]] %in% c("c","fc") ) 
+                    #circle( coords$x[the_label] , -coords$y[the_label] , r=radius , lwd=lwd , col=col_shapes )
+                    points( coords$x[the_label] , -coords$y[the_label] , cex=radius , lwd=lwd , col=col_shapes , pch=cpch )
+                
+
+            }
+        }#i
+    }
+    # node labels
     text( coords$x, -coords$y[labels], labels , cex=cex , col=col_labels )
+}
+
+circle <- function( x , y , r=1 , npts=100 , ... ) {
+    theta <- seq( 0, 2*pi , length = npts )
+    lines( x = x + r * cos(theta) , y = y + r * sin(theta) , ... )
 }
 
 # test code
 if (FALSE) {
+
+plot( NULL , xlim=c(-1,1) , ylim=c(-1,1) )
+circle( 0 , 0 , 1 )
 
 library(rethinking)
 library(dagitty)

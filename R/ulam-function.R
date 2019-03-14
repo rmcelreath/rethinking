@@ -4,7 +4,7 @@
 # allow explicit declarations
 # see tests in ulam-tests.R for examples
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , sample_prior=FALSE , ... ) {
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , sample_prior=FALSE , ... ) {
 
     if ( !missing(data) )
         data <- as.list(data)
@@ -14,6 +14,12 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     if ( class(flist)=="ulam" ) {
         prev_stanfit <- TRUE
         prev_stanfit_object <- flist@stanfit
+        if ( missing(data) ) data <- flist@data
+        flist <- flist@formula
+    }
+
+    # check for quap/map formula
+    if ( class(flist)=="map" ) {
         if ( missing(data) ) data <- flist@data
         flist <- flist@formula
     }
@@ -793,6 +799,14 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             template <- get_dist_template( the_dist[1] )
 
             constraint <- template$constraints[1] # implied constraint
+            # check for custom contraint
+            if ( !missing(constraints) ) {
+                for ( kk in 1:length(constraints) ) {
+                    if ( names(constraints)[kk]==left_symbol[1] ) {
+                        constraint <- constraints[[kk]] # should be text
+                    }
+                }#kk
+            }
             
             if ( !is.null( attr(left_symbol,"dims") ) ) 
                 # dims must have been explicit and already parsed by get_left_symbol
@@ -1096,10 +1110,9 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     # fire lasers
     if ( sample==TRUE ) {
         if ( length(start)==0 ) {
-            if ( prev_stanfit==FALSE )
-                stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
-                         chains=chains , cores=cores , iter=iter , control=control , ... )
-            else
+            if ( prev_stanfit==FALSE ) {
+                    stanfit <- stan( model_code = model_code , data = data , pars=use_pars , chains=chains , cores=cores , iter=iter , control=control , ... )
+            } else
                 stanfit <- stan( fit = prev_stanfit_object , data = data , pars=use_pars , 
                          chains=chains , cores=cores , iter=iter , control=control , ... )
         } else {

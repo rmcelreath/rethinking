@@ -8,13 +8,12 @@
 \usage{
 ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , 
   control=list(adapt_delta=0.95) , distribution_library=ulam_dists , 
-  macro_library=ulam_macros , custom , declare_all_data=TRUE ,
-  log_lik=FALSE , sample=TRUE , sample_prior=FALSE , 
-  messages=TRUE , ... )
+  macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , 
+  sample=TRUE , messages=TRUE , pre_scan_data=TRUE , sample_prior=FALSE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
-  \item{flist}{A formula or list of formulas that define the likelihood and priors. Can also pass in a \code{map} model fit. See details.}
+  \item{flist}{A formula or list of formulas that define the likelihood and priors. Can also pass in a \code{quap} or a previous \code{ulam} model fit. See details.}
   \item{data}{A data frame or list containing the data}
   \item{pars}{Optional: character vector of parameters to return samples for}
   \item{pars_omit}{Optional: character vector of parameters to exclude from samples}

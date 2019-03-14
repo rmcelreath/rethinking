@@ -17,6 +17,18 @@ if ( FALSE ) {
     UCBadmit$dept <- rep( 1:6 , each=2 )
     UCBadmit$applicant.gender <- NULL
 
+    # quap to ulam
+    z <- quap(
+        alist(
+            admit ~ dbinom(applications,p),
+            logit(p) <- a,
+            a ~ dnorm(0,4)
+        ),
+        data=UCBadmit )
+    
+    zz <- ulam( z )
+
+    # binomial
     z <- ulam(
         alist(
             admit ~ binomial(applications,p),
@@ -25,6 +37,16 @@ if ( FALSE ) {
         ),
         data=UCBadmit , sample=FALSE , log_lik=TRUE )
     check_hash( stancode(z) , "2b8d92e0c80cffd990a526556c72308e" )
+
+    # abitrary constraints
+    z <- ulam(
+        alist(
+            admit ~ binomial(applications,p),
+            logit(p) <- a,
+            a ~ normal(0,4)
+        ),
+        constraints=list(a="lower=0"),
+        data=UCBadmit , sample=FALSE , log_lik=TRUE )
 
     # test to make sure constant '1' in binomial here isn't [i]'d in log_lik code
     data( chimpanzees )
@@ -98,9 +120,50 @@ if ( FALSE ) {
         data=UCBadmit , sample=FALSE )
 
     # discrete? need to mix over different terms
+    library(rethinking)
+    data( UCBadmit )
+    UCBadmit$male <- as.integer( ifelse( UCBadmit$applicant.gender=="male" , 1 , 0 ) )
+    UCBadmit$dept <- rep( 1:6 , each=2 )
+    UCBadmit$applicant.gender <- NULL
     UCBadmit$male2 <- UCBadmit$male
     UCBadmit$male2[1:2] <- (-1) # missingness code
     UCBadmit$male2 <- as.integer(UCBadmit$male2)
+
+    z <- ulam(
+        alist(
+            admit|male2==-1 ~ mixture(  
+                phi_male , 
+                binomial( applications , p_m1 ) , 
+                binomial( applications , p_m0) ),
+            admit|male2>-1 ~ binomial( applications , p ),
+            logit(p) <- a[dept] + b*male2,
+            logit(p_m1) <- a[dept] + b*1,
+            logit(p_m0) <- a[dept] + b*0,
+            male2|male2>-1 ~ bernoulli( phi_male ),
+            phi_male ~ beta(2,2),
+            a[dept] ~ normal(0,4),
+            b ~ normal(0,1)
+        ),
+        data=UCBadmit , sample=FALSE , log_lik=TRUE )
+
+    z <- ulam(
+        alist(
+            admit|male2==-1 ~ mixture(  
+                phi_male , 
+                binomial( applications , p_m2 ) ,
+                binomial( applications , p_m1 ) , 
+                binomial( applications , p_m0) ),
+            admit|male2>-1 ~ binomial( applications , p ),
+            logit(p) <- a[dept] + b*male2,
+            logit(p_m1) <- a[dept] + b*1,
+            logit(p_m0) <- a[dept] + b*0,
+            male2|male2>-1 ~ bernoulli( phi_male ),
+            phi_male ~ beta(2,2),
+            a[dept] ~ normal(0,4),
+            b ~ normal(0,1)
+        ),
+        data=UCBadmit , sample=FALSE , log_lik=TRUE )
+
     z2d <- ulam(
         alist(
             admit|male2==-1 ~ custom( log_mix( 
