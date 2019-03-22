@@ -1,4 +1,4 @@
-"tooth.class";"specimen";"num.amtl";"sockets";"age";"stdev.age";"prob.male";"genus";"pop"
+"tooth_class";"specimen";"num_amtl";"sockets";"age";"stdev_age";"prob_male";"genus";"population"
 "Anterior";"AMNH99.1/100";0;12;279;309;0.5;"Homo sapiens";"Alaska"
 "Posterior";"AMNH99.1/100";0;12;279;309;0.5;"Homo sapiens";"Alaska"
 "Premolar";"AMNH99.1/100";0;8;279;309;0.5;"Homo sapiens";"Alaska"
