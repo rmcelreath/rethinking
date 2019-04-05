@@ -312,3 +312,5 @@ setMethod("nobs", "ulam", function (object, ...) {
     return(z)
 } )
 
+
+
