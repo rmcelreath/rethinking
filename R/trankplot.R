@@ -5,10 +5,11 @@
 
 # convert matrix to a matrix of ranks (over entire matrix)
 rank_mat <- function( x ) {
+    if ( class(x)=="numeric" ) x <- array( x , dim=c(length(x),1) )
     matrix( rank(x) , ncol=ncol(x) )
 }
 
-trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , lwd=1.5 , lp=FALSE  , axes=FALSE , ... ) {
+trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , lwd=1.5 , lp=FALSE  , axes=FALSE , off=0 , ... ) {
     
     if ( !(class(object) %in% c("map2stan","ulam","stanfit")) ) stop( "requires map2stan, ulam or stanfit object" )
     
@@ -24,6 +25,9 @@ trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , 
     # names
     dimnames <- attr(post,"dimnames")
     n_chains <- length(dimnames$chains)
+
+    if ( n_chains==1 ) stop( "trankplot requires more than one chain." )
+
     if ( missing(chains) ) chains <- 1:n_chains
     n_chains <- length(chains)
     pars <- dimnames$parameters
@@ -92,7 +96,7 @@ trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , 
         for ( i in chains ) {
             x <- c( breaks[1] , rep( breaks[2:(nb-1)] , each=2 ) , breaks[nb] )
             y <- rep( r[ 1:(nb-1) ,i] , each=2 )
-            lines( x , y , col=col.alpha(chain.cols[i],alpha) , lwd=lwd )
+            lines( x + (i-1)*off , y , col=col.alpha(chain.cols[i],alpha) , lwd=lwd )
         }#i
     }
     
