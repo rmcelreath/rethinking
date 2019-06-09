@@ -346,9 +346,7 @@ setMethod("pairs" , "map2stan" , function(x, n=500 , alpha=0.7 , cex=0.7 , pch=1
 })
 
 # my trace plot function
-#rethink_palette <- c("#5BBCD6","#F98400","#F2AD00","#00A08A","#FF0000")
-rethink_palette <- c("#8080FF","#F98400","#F2AD00","#00A08A","#FF0000")
-rethink_cmyk <- c(col.alpha("black",0.25),"cyan")
+
 tracerplot <- function( object , pars , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , lwd=0.5 , ... ) {
     
     if ( !(class(object) %in% c("map2stan","stanfit")) ) stop( "requires map2stan or stanfit fit object" )

@@ -21,3 +21,7 @@ col.dist <- function( x , mu=0 , sd=1 , col="slateblue" ) {
 
 rangi2 <- col.desat( "blue" , 0.5 )
 grau <- function( alpha=0.5 ) col.alpha( "black" , alpha )
+
+#rethink_palette <- c("#5BBCD6","#F98400","#F2AD00","#00A08A","#FF0000")
+rethink_palette <- c("#8080FF","#F98400","#00A08A","#E2AD00","#FF0000")
+rethink_cmyk <- c(col.alpha("black",0.25),"cyan")

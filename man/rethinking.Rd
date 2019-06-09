@@ -4,15 +4,15 @@
 \docType{package}
 \title{Statistical Rethinking package}
 \description{
-  This package accompanies a book and course on Bayesian data analysis, featured MAP estimation through \code{\link{map}} and Hamiltonian Monte Carlo through \code{\link{map2stan}}. 
+  This package accompanies a book and course on Bayesian data analysis, featured MAP estimation through \code{\link{quap}} and Hamiltonian Monte Carlo through \code{\link{ulam}}. 
 }
 
 \details{
   \tabular{ll}{
     Package: \tab rethinking\cr
     Type: \tab Package\cr
-    Version: \tab 1.70\cr
-    Date: \tab 21 Aug 2017\cr
+    Version: \tab 1.88\cr
+    Date: \tab 02 April 2019\cr
     License: \tab GPL-3 \cr
   }
   
@@ -27,7 +27,7 @@
 \examples{}  
 
 \seealso{
-  \code{\link{map}}, \code{\link{map2stan}} 
+  \code{\link{quap}}, \code{\link{ulam}} 
 } 
 \keyword{rethinking} 
 \keyword{package} 

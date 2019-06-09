@@ -46,6 +46,14 @@ if ( FALSE ) {
             a ~ normal(0,4)
         ),
         constraints=list(a="lower=0"),
+        data=UCBadmit , sample=TRUE , log_lik=FALSE , chains=4 )
+
+    z <- ulam(
+        alist(
+            admit ~ binomial(applications,p),
+            logit(p) <- a,
+            a ~ normal(0,4)
+        ),
         data=UCBadmit , sample=FALSE , log_lik=TRUE )
 
     # test to make sure constant '1' in binomial here isn't [i]'d in log_lik code
@@ -360,7 +368,7 @@ if ( FALSE ) {
             sigma ~ half_normal(0,1),
             Rho ~ lkjcorr( 2 )
         ),
-        data=UCBadmit )
+        data=UCBadmit , chains=4 )
 
     z8 <- ulam(
         alist(
@@ -373,7 +381,7 @@ if ( FALSE ) {
             vector[2]: sigma ~ half_normal(0,1),
             cholesky_factor_corr[2]: L_Rho ~ lkj_corr_cholesky( 2 )
         ),
-        data=UCBadmit )
+        data=UCBadmit , chains=4 )
 
     # version that saves the v vector by adding also to gen quants
     # note "save>" syntax

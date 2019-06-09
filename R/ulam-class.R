@@ -197,9 +197,6 @@ setMethod("pairs" , "ulam" , function(x, n=200 , alpha=0.7 , cex=0.7 , pch=16 , 
 })
 
 # my trace plot function
-#rethink_palette <- c("#5BBCD6","#F98400","#F2AD00","#00A08A","#FF0000")
-rethink_palette <- c("#8080FF","#F98400","#F2AD00","#00A08A","#FF0000")
-rethink_cmyk <- c(col.alpha("black",0.25),"cyan")
 traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , trim=100 , n_cols=3 , max_rows=5 , lwd=0.5 , lp=FALSE , ... ) {
     
     if ( !(class(object) %in% c("map2stan","ulam","stanfit")) ) stop( "requires map2stan or stanfit fit object" )
@@ -311,4 +308,6 @@ setMethod("nobs", "ulam", function (object, ...) {
     }
     return(z)
 } )
+
+
 

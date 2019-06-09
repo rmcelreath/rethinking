@@ -1,5 +1,27 @@
 # plotting
 
+xkcd_lines <- function( x , y , col="black" , lwd=5 , lwdbg=10 , adj=500 , seg=50 ) {
+    len <- length(x);
+    if ( len==2 ) {
+        # segment single line so there will be some jigger
+        x_new <- seq( from=x[1] , to=x[2] , length.out=seg )
+        y_new <- seq( from=y[1] , to=y[2] , length.out=seg )
+        x <- x_new
+        y <- y_new
+        len <- length(x)
+    }
+    rg <- par("usr");
+    yjitter <- (rg[4] - rg[3]) / adj;
+    xjitter <- (rg[2] - rg[1]) / adj;
+    x_mod <- x + rnorm(len) * xjitter;
+    y_mod <- y + rnorm(len) * yjitter;
+    if ( lwdbg > 0 ) lines(x_mod, y_mod, col='white', lwd=lwdbg );
+    lines(x_mod, y_mod, col=col, lwd=lwd );
+}
+
+# plot( NULL , xlim=c(0,1), ylim=c(0,1) )
+# xkcd_line( c(0,1) , c(0,1) )
+ 
 set_nice_margins <- function() {
     par_mf <- par("mfrow","mfcol")
     if ( all(unlist(par_mf)==1) ) {
