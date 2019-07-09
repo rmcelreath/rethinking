@@ -98,8 +98,12 @@ dashboard <- function( fit , warmup=FALSE , plot=TRUE , trank=TRUE ) {
         if ( sum(x[,5])>10 ) text( 0.5 , 0.2 , "Check yourself before\nyou wreck yourself" , cex=1.5 )
 
         # three trace plots with lowest n_eff
-        plot_make( "log-probability" , "lp__" , y$summary["lp__","n_eff"] )
-        for ( nc in 1:n_chains ) plot_chain( post[, nc , "lp__" ] , nc )
+        if ( trank==TRUE ) {
+            trankplot( fit , pars="lp__" , lp=TRUE , add=TRUE )
+        } else {
+            plot_make( "log-probability" , "lp__" , y$summary["lp__","n_eff"] )
+            for ( nc in 1:n_chains ) plot_chain( post[, nc , "lp__" ] , nc )
+        }
     }
     # invisible result
     invisible(x)

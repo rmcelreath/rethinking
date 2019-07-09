@@ -204,24 +204,25 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
     if ( class(object) %in% c("map2stan","ulam") ) object <- object@stanfit
 
     # get all chains, not mixed, from stanfit
-    if ( missing(pars) )
+    if ( missing(pars) ) {
         post <- extract(object,permuted=FALSE,inc_warmup=TRUE)
-    else
+        dimnames <- attr(post,"dimnames")
+        pars <- dimnames$parameters
+        # cut out "dev" and "lp__" and "log_lik"
+        wdev <- which(pars=="dev")
+        if ( length(wdev)>0 ) pars <- pars[-wdev]
+        wlp <- which(pars=="lp__")
+        if ( length(wlp)>0 & lp==FALSE ) pars <- pars[-wlp]
+        wlp <- grep( "log_lik" , pars , fixed=TRUE )
+        if ( length(wlp)>0 ) pars <- pars[-wlp]
+    } else
         post <- extract(object,pars=pars,permuted=FALSE,inc_warmup=TRUE)
     
     # names
     dimnames <- attr(post,"dimnames")
     n_chains <- length(dimnames$chains)
     if ( missing(chains) ) chains <- 1:n_chains
-    pars <- dimnames$parameters
     chain.cols <- rep_len(col,n_chains)
-    # cut out "dev" and "lp__" and "log_lik"
-    wdev <- which(pars=="dev")
-    if ( length(wdev)>0 ) pars <- pars[-wdev]
-    wlp <- which(pars=="lp__")
-    if ( length(wlp)>0 & lp==FALSE ) pars <- pars[-wlp]
-    wlp <- grep( "log_lik" , pars , fixed=TRUE )
-    if ( length(wlp)>0 ) pars <- pars[-wlp]
     
     # figure out grid and paging
     n_pars <- length( pars )
@@ -246,7 +247,7 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
     
     # worker
     plot_make <- function( main , par , neff , ... ) {
-        ylim <- c( min(post[wstart:wend,,par]) , max(post[wstart:wend,,par]) )
+        ylim <- c( min(post[wstart:wend,,pars[par]]) , max(post[wstart:wend,,pars[par]]) )
         plot( NULL , xlab="" , ylab="" , type="l" , xlim=c(wstart,wend) , ylim=ylim , ... )
         # add polygon here for warmup region?
         diff <- abs(ylim[1]-ylim[2])
@@ -285,7 +286,7 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
                 plot_make( pars[pi] , pi , n_eff , ... )
                 for ( j in 1:n_chains ) {
                     if ( j %in% chains )
-                        plot_chain( post[ , j , pi ] , j , ... )
+                        plot_chain( post[ , j , pars[pi] ] , j , ... )
                 }#j
             }
         }#i
@@ -295,7 +296,7 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
 }
 setMethod("traceplot", "ulam" , function(object,...) traceplot_ulam(object,...) )
 
-setMethod( "plot" , "ulam" , function(x,y,...) precis_plot(precis(x,depth=y),...) )
+setMethod( "plot" , "ulam" , function(x,depth=1,...) precis_plot(precis(x,depth=depth),...) )
 
 setMethod("nobs", "ulam", function (object, ...) { 
     z <- attr(object,"nobs") 
