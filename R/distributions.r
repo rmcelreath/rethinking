@@ -383,7 +383,7 @@ rmvnorm2 <- function( n , Mu=rep(0,length(sigma)) , sigma=rep(1,length(Mu)) , Rh
         if ( z==0 ) z <- 1
         return(z)
     }
-    if ( ldim(Mu)>1 || ldim(sigma)>1 || ldim(Rho)>1 ) {
+    if ( ldim(Mu)>1 || ldim(sigma)>1 || ldim(Rho)>2 ) {
         m <- 0 # dimension of multi_normal
         mR <- 0 # dim of Rho
         # vectorization needed

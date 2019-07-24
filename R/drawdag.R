@@ -163,6 +163,7 @@ dag_arc <- function (x1, y1, x2, y2, xm, ym, col = "gray", length = 0.1,
 
 # function to map coordinates from dag x to reduced dag y
 # returns new dagitty
+# used by drawopenpaths
 dag_copy_coords <- function( x , y ) {
     orig <- coordinates(x)
     in_dag <- names( coordinates(y)$x )
