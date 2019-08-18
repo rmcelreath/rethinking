@@ -5,6 +5,8 @@ page 42: Just below R code box 2.6, the text says that map requires a list of st
 
 page 87: The marginal description of the model reads "mu ~ dnorm(156, 10)" but the model is Normal(178, 20). Same error on p 95 and in code 4.38. It is corrected in code 4.39.
 
+page 91: `mu=coef(m4.1), Sigma=vcov(m4.1)` should be `mean=coef(m4.1), sigma=vcov(m4.1)`
+
 page 95-96: dnorm(156,100) should be dnorm(178,100) in both model presentation and then R code on top of page 96.
 
 page 103, R code 4.50: The ``post`` object implied here is the one from R code 4.46: ``post <- extract.samples(m4.3)``.
