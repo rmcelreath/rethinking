@@ -43,11 +43,11 @@ drawopenpaths( x , Z=list() , col_arrow="red" , ... )
 \seealso{}
 \examples{
 \dontrun{
-library(dagitty)
-library(shape)
+
 ex1 <- dagitty("dag {
     X [exposure]
     Y [outcome]
+    U [unobserved]
     Z -> X -> Y
     X <- U -> Y
 }")
@@ -58,7 +58,7 @@ drawdag( ex1 )
 drawdag( ex1 )
 drawopenpaths( ex1 ) # open backdoor
 
-drawdag( ex1 , col_arrow="gray" , shapes=list(U="c") )
+drawdag( ex1 , col_arrow="gray" )
 drawopenpaths( ex1 , Z=list("U") ) # closed backdoor
 }
 }

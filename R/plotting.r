@@ -1,6 +1,6 @@
 # plotting
 
-xkcd_lines <- function( x , y , col="black" , lwd=5 , lwdbg=10 , adj=500 , seg=50 ) {
+lines_xkcd <- function( x , y , col="black" , lwd=5 , lwdbg=10 , adj=500 , seg=50 ) {
     len <- length(x);
     if ( len==2 ) {
         # segment single line so there will be some jigger

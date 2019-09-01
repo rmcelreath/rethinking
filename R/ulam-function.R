@@ -4,7 +4,7 @@
 # allow explicit declarations
 # see tests in ulam-tests.R for examples
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , sample_prior=FALSE , ... ) {
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , ... ) {
 
     if ( !missing(data) )
         data <- as.list(data)
@@ -29,11 +29,15 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         for ( i in 1:length(data) ) {
             if ( all( as.integer(data[[i]])==data[[i]] ) ) {
                 #data[[i]] <- as.integer(data[[i]])
-                if ( class(data[[i]])!="integer" ) 
-                    if ( messages==TRUE ) {
-                    vn <- names(data)[i]
-                    message( "Cautionary note:" )
-                    message( concat( "Variable ", vn , " contains only integers but is not type 'integer'. If you intend it as an index variable, you should as.integer() it before passing to ulam." ) )
+                if ( class(data[[i]])!="integer" ) {
+                    if ( coerce_int==TRUE ) {
+                        data[[i]] <- as.integer(data[[i]])
+                    }
+                    if ( messages==TRUE & coerce_int==FALSE ) {
+                        vn <- names(data)[i]
+                        message( "Cautionary note:" )
+                        message( concat( "Variable ", vn , " contains only integers but is not type 'integer'. If you intend it as an index variable, you should as.integer() it before passing to ulam." ) )
+                    }
                 }
             }
         }
@@ -72,6 +76,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
 
     # inverse link list
     inverse_links <- list(
+        exp = 'log',
         log = 'exp',
         logit = 'inv_logit',
         logodds = 'inv_logit',

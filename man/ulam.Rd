@@ -9,7 +9,8 @@
 ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , 
   control=list(adapt_delta=0.95) , distribution_library=ulam_dists , 
   macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , 
-  sample=TRUE , messages=TRUE , pre_scan_data=TRUE , sample_prior=FALSE , ... )
+  sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , 
+  sample_prior=FALSE , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -28,6 +29,9 @@ ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 ,
   \item{declare_all_data}{When \code{TRUE}, all variables in the data list are declared in the Stan model code. When \code{FALSE}, only used variables are declared.}
   \item{log_lik}{Return log likelihood of each observation in samples. Used for calculating WAIC and LOO.}
   \item{sample}{If \code{FALSE}, builds Stan code without sampling}
+  \item{messages}{Show various warnings and informational messages}
+  \item{pre_scan_data}{Scan data at start to (1) check for variables that are integer but not type integer and (2) strip any scale() attributes}
+  \item{coerce_int}{If \code{pre_scan_data}, forces integer variables to be type integer}
   \item{sample_prior}{If \code{TRUE}, removes data probabilities from model to sample only prior distribution of parameters. Used by corresponding \code{extract.prior} method.}
   \item{messages}{If \code{TRUE}, prints various internal steps to help with debugging}
   \item{...}{Additional arguments to pass to \code{\link{stan}}}

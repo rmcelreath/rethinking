@@ -499,6 +499,38 @@ ulam_dists <- list(
             return( out )
         }
     ),
+    gamma2 = list(
+        # Stan uses shape,inv-scale parameterization
+        # need to make this into mu,scale parameterization
+        # alpha = mu/theta
+        # beta = 1/theta
+        R_name = "dgamma2",
+        Stan_name = "gamma",
+        Stan_suffix = "lpdf",
+        pars = 2,
+        dims = c( "real" , "real" , "real" ),
+        constraints = c( "lower=0" , "lower=0" , "lower=0" ),
+        vectorized = TRUE ,
+        build = function( left , right , as_log_lik=FALSE ) {
+
+            # convert between parameterizations
+
+            # right: [[1]] dist, [[2]] mu [[3]] theta
+            mu_name <- as.character( right[[2]] )
+            theta_name <- as.character( right[[3]] )
+            right[[2]] <- concat( mu_name , "/" , theta_name )
+            right[[3]] <- concat( "1/" , theta_name )
+            
+            # call DEFAULT function for rest
+            build_func <- distribution_library[["DEFAULT"]]$build
+            environment( build_func ) <- parent.env(environment())
+            out <- do.call( build_func , 
+                    list( left , right , dist_name="gamma" , suffix="lpdf" , as_log_lik=as_log_lik , vectorized=TRUE ) , 
+                    envir=environment() , quote=TRUE )
+
+            return( out )
+        }
+    ),
     binomial_logit = list(
         R_name = "dbinom",
         Stan_name = "binomial_logit",

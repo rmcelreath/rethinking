@@ -9,7 +9,7 @@ rank_mat <- function( x ) {
     matrix( rank(x) , ncol=ncol(x) )
 }
 
-trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , lwd=1.5 , lp=FALSE  , axes=FALSE , off=0 , add=FALSE , ... ) {
+trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , lwd=1.5 , lp=FALSE  , axes=FALSE , off=0 , add=FALSE , stacked=FALSE , ... ) {
     
     if ( !(class(object) %in% c("map2stan","ulam","stanfit")) ) stop( "requires map2stan, ulam or stanfit object" )
     
@@ -81,6 +81,7 @@ trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , 
     # worker
     plot_make <- function( main , par , neff , ... ) {
         ylim <- range(h[,,par])
+        if ( stacked==TRUE ) ylim[2] <- ylim[2] * ( length(chains) - 1 )
         if ( axes==TRUE )
             plot( NULL , xlab="" , ylab="" , bty="l" , xlim=range(breaks) , ylim=ylim , ... )
         else
@@ -94,11 +95,23 @@ trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , 
     nb <- length(breaks)
     plot_trank <- function( r , ... ) {
         # rank draws from all chains
-        for ( i in chains ) {
-            x <- c( breaks[1] , rep( breaks[2:(nb-1)] , each=2 ) , breaks[nb] )
-            y <- rep( r[ 1:(nb-1) ,i] , each=2 )
-            lines( x + (i-1)*off , y , col=col.alpha(chain.cols[i],alpha) , lwd=lwd )
-        }#i
+        if ( stacked==FALSE ) {
+            for ( i in chains ) {
+                x <- c( breaks[1] , rep( breaks[2:(nb-1)] , each=2 ) , breaks[nb] )
+                y <- rep( r[ 1:(nb-1) ,i] , each=2 )
+                lines( x + (i-1)*off , y , col=col.alpha(chain.cols[i],alpha) , lwd=lwd )
+            }#i
+        } else {
+            # stacked version
+            ysum <- 0
+            for ( i in chains ) {
+                x <- c( breaks[1] , rep( breaks[2:(nb-1)] , each=2 ) , breaks[nb] )
+                y <- rep( r[ 1:(nb-1) ,i] , each=2 )
+                ysum <- y + ysum
+                print(str(ysum))
+                lines( x + (i-1)*off , ysum , col=col.alpha(chain.cols[i],alpha) , lwd=lwd )
+            }#i
+        }
     }
     
     # fetch n_eff
