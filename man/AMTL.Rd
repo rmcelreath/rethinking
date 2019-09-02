@@ -18,7 +18,7 @@ data(AMTL)
         \item num_amtl : Number of teeth missing of given class
         \item sockets : number of observable sockets that could be scored for missing teeth
         \item age : Estimated age of speciment at death
-        \item stdev_age : Assigned uncertainty of age
+        \item stdev_age : Assigned uncertainty of age at death
         \item prob_male : Estimate of sex of specimen
         \item genus : Specimen genus, one of Homo, Pan, Papio, or Pongo
         \item population : Region specimen originates from

@@ -8,13 +8,28 @@ drawdag <- function( x ,
     edge.color="black" , 
     edge.width=1.5,
     edge.arrow.width=1.2 , 
+    edge.arrow.size=0.7 ,
     interact=FALSE ,
     ... ) {
+    x <- as.dagitty(x)
+    # extract edges and nodes
     the_edges <- dagitty::edges(x)
     the_vars <- unique( c( levels(the_edges[[1]]) , levels(the_edges[[2]]) ) )
     # translate edges list to adjacency matrix
     n <- length(the_vars)
     adjmat <- adjmat_from_dag( x )
+    # existing coordinates?
+    coords <- coordinates( x )
+    if ( all( !is.na(coords$x) ) ) {
+        # coordinates complete - convert to matrix
+        # y axis in dagitty is flipped
+        layout <- matrix( NA , nrow=n , ncol=2 )
+        for ( i in 1:n ) {
+            xx <- coords$x[[ the_vars[i] ]]
+            yy <- (-1)*coords$y[[ the_vars[i] ]]
+            layout[i,] <- c(xx,yy)
+        }
+    }
     # draw
     mgraph <- graph_from_adjacency_matrix( adjmat , mode="directed" )
     the_shapes <- rep("none",n)
@@ -33,7 +48,8 @@ drawdag <- function( x ,
             vertex.size = vertex.size , 
             vertex.shape = the_shapes ,
             vertex.label.family = vertex.label.family ,
-            edge.arrow.size = 0.6 , 
+            edge.arrow.size = edge.arrow.size , 
+            edge.arrow.width = edge.arrow.width ,
             edge.curved = edge.curved , 
             edge.color = edge.color ,
             edge.width = edge.width ,
@@ -98,6 +114,11 @@ sketchdag <- function( x , cleanup=1 , plot=TRUE , rescale=FALSE , grid=0.2 , ..
         return(pts)
 }
 
+# function to take causalfusion.net graph and convert to dagitty object
+fusion_to_dagitty <- function(  ) {
+    
+}
+
 # test code
 if (FALSE) {
 
@@ -113,7 +134,11 @@ if (FALSE) {
         X <- U -> Y
     }")
 
+    coordinates(exdag) <- list(x=c(U=1,X=1,Y=2,Z=0),y=c(U=0,X=1,Y=1,Z=1))
+    drawdag(exdag,margin=-0.25,edge.curve=0.1 )
+
     l <- drawdag( exdag , layout=layout_in_circle )
+    l <- drawdag( exdag , layout=layout_nicely )
     drawdag( exdag , layout=l )
 
     exdag2 <- dagitty( 'dag {
@@ -123,11 +148,11 @@ if (FALSE) {
         RG -> "G*"
     }')
 
-    drawdag( exdag2 )
+    drawdag( exdag2 , edge.curve=0.2 )
 
     l <- sketchdag( exdag2 )
     drawdag( exdag2 , layout=round(l,2) )
 
-    sketchdag( exdag2 , asp=0.6 )
+    sketchdag( exdag2 , asp=0.8 )
 
 }
