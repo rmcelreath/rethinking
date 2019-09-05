@@ -5,7 +5,7 @@ Version: 1.90
 Date: 2019-08-04
 Author: Richard McElreath
 Maintainer: Richard McElreath <richard_mcelreath@eva.mpg.de>
-Imports: coda, MASS, mvtnorm, loo, shape, igraph
+Imports: coda, MASS, mvtnorm, loo, shape
 Depends: rstan (>= 2.10.0), parallel, methods, stats, graphics, dagitty
 Description: Utilities for fitting and comparing models
 License: GPL (>= 3)
