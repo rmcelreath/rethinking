@@ -25,7 +25,7 @@ You'll need to install ``rstan`` first. Go to ``http://mc-stan.org`` and follow 
 
 Then you can install ``rethinking`` from within R using:
 ```
-install.packages(c("coda","mvtnorm","devtools","loo"))
+install.packages(c("coda","mvtnorm","devtools","loo","dagitty"))
 library(devtools)
 devtools::install_github("rmcelreath/rethinking",ref="Experimental")
 ```
