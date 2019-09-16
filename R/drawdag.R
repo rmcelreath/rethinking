@@ -1,6 +1,6 @@
 # my DAG drawing function to extend dagitty plot method
 
-drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="black" , cex=1 , lwd=1.5 , goodarrow=TRUE , xlim , ylim , shapes , col_shapes , radius=3 , add=FALSE , xkcd=FALSE , latent_mark="c" , ... ){ 
+drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="black" , cex=1 , lwd=1.5 , goodarrow=TRUE , xlim , ylim , shapes , col_shapes , radius=3.5 , add=FALSE , xkcd=FALSE , latent_mark="c" , ... ){ 
     require(dagitty)
     x <- as.dagitty( x )
     dagitty:::.supportsTypes(x,c("dag","mag","pdag"))
@@ -29,6 +29,15 @@ drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="b
         ylim <- c(-max(coords$y+wy/2),-min(coords$y-wy/2))
     if (add==FALSE ) plot( NA, xlim=xlim, ylim=ylim, xlab="", ylab="", bty="n",
         xaxt="n", yaxt="n" )
+    # for each variable marked latent, set to draw with circle
+    unobs_vars <- latents(x)
+    if ( length(unobs_vars)>0 & !is.null(latent_mark) ) {
+        if ( missing(shapes) ) shapes <- list()
+        for ( uv in unobs_vars ) {
+            if ( is.null(shapes[[uv]]) )
+                shapes[[ uv ]] <- latent_mark
+        }
+    }
     # review node labels for subscript _
     xlabels <- lapply( labels , function(l) {
             lr <- l
@@ -46,6 +55,12 @@ drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="b
         function(s) max( strheight(s) , yybuffer ) )
     names(wx) <- labels
     names(wy) <- labels
+    if ( length(unobs_vars)>0 & !is.null(latent_mark) ) {
+        # check for latent vars and increase space buffer
+        wx[ unobs_vars ] <- xxbuffer*2.1
+        wy[ unobs_vars ] <- yybuffer*1.1
+    }
+    # edges
     asp <- par("pin")[1]/diff(par("usr")[1:2]) /
         (par("pin")[2]/diff(par("usr")[3:4]))
     ex <- edges(x)
@@ -92,16 +107,6 @@ drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="b
     directed <- acode==2 & !has.control.point
     undirected <- acode==0 & !has.control.point
 
-    # for each variable marked latent, set to draw with circle
-    unobs_vars <- latents(x)
-    if ( length(unobs_vars)>0 & !is.null(latent_mark) ) {
-        if ( missing(shapes) ) shapes <- list()
-        for ( uv in unobs_vars ) {
-            if ( is.null(shapes[[uv]]) )
-                shapes[[ uv ]] <- latent_mark
-        }
-    }
-
     arr.width <- 0.15
     arr.type <- "curved"
     arr.adj <- 1
@@ -145,6 +150,7 @@ drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="b
                 if ( shapes[[i]]=="fc" ) cpch <- 16
                 if ( shapes[[i]] %in% c("c","fc") ) 
                     #circle( coords$x[the_label] , -coords$y[the_label] , r=radius , lwd=lwd , col=col_shapes )
+                    # draw circle with point so it has correct aspect ratio
                     points( coords$x[the_label] , -coords$y[the_label] , cex=radius , lwd=lwd , col=col_shapes , pch=cpch )
             }
         }#i
@@ -236,11 +242,12 @@ coordinates( plant_dag ) <- list( x=c(h0=0,t=2,f=1,h1=1) , y=c(h0=0,t=0,f=1,h1=2
 drawdag( plant_dag , cex=1.2 , col_labels=c("red","black","red","red") , col_arrow=c("red","black","red") , goodarrow=TRUE )
 
 exdag <- dagitty( "dag {
+    U [unobserved]
     z -> x -> y
     x <- U -> y
 }")
 coordinates( exdag ) <- list( x=c(z=0,x=1,y=2,U=1.5) , y=c(z=0,x=0,y=0,U=-1) )
-drawdag( exdag )
+drawdag( exdag , radius=3.8 )
 
 # drawing paths
 

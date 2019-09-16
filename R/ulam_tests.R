@@ -12,6 +12,20 @@ if ( FALSE ) {
             stop( concat( "Hashes not identical:" , paste( match.call() , collapse=" , " ) ) )
     }
 
+    # dbeta2 test
+
+    y <- rbeta2( 100 , 0.3 , 3 )
+
+    z <- ulam(
+        alist(
+            y ~ dbeta2( p , theta ),
+            logit(p) <- a,
+            a ~ normal(0,1.5),
+            theta ~ exponential(1)
+        ), data=list(y=y) , sample=TRUE )
+
+    # binom tests
+
     data( UCBadmit )
     UCBadmit$male <- as.integer( ifelse( UCBadmit$applicant.gender=="male" , 1 , 0 ) )
     UCBadmit$dept <- rep( 1:6 , each=2 )

@@ -586,7 +586,27 @@ ulam_dists <- list(
         pars = 2,
         dims = c( "real" , "real" , "real" ),
         constraints = c( "lower=0,upper=1" , "lower=0,upper=1" , "lower=0" ),
-        vectorized = TRUE
+        vectorized = TRUE,
+        build = function( left , right , as_log_lik=FALSE ) {
+
+            # convert between parameterizations
+            # alpha = p*theta, beta = (1-p)*theta
+
+            # right: [[1]] dist, [[2]] p, [[3]] theta
+            p_name <- as.character( right[[2]] )
+            theta_name <- as.character( right[[3]] )
+            right[[2]] <- concat( p_name , "*" , theta_name )
+            right[[3]] <- concat( "(1-" , p_name , ")*" , theta_name )
+            
+            # call DEFAULT function for rest
+            build_func <- distribution_library[["DEFAULT"]]$build
+            environment( build_func ) <- parent.env(environment())
+            out <- do.call( build_func , 
+                    list( left , right , dist_name="beta" , suffix="lpdf" , as_log_lik=as_log_lik , vectorized=TRUE ) , 
+                    envir=environment() , quote=TRUE )
+
+            return( out )
+        }
     ),
     dirichlet = list(
         R_name = "ddirichlet", # in gtools
