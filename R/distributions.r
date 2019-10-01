@@ -453,3 +453,16 @@ rmvnorm2 <- function( n , Mu=rep(0,length(sigma)) , sigma=rep(1,length(Mu)) , Rh
     }
 }
 
+# student t
+dstudent <- function(x,nu=2,mu=0,sigma=1,log=FALSE) {
+    #y <- gamma((nu+1)/2)/(gamma(nu/2)*sqrt(pi*nu)*sigma) * ( 1 + (1/nu)*((x-mu)/sigma)^2 )^(-(nu+1)/2)
+    y <- lgamma((nu+1)/2) - lgamma(nu/2) - 0.5*log(pi*nu) - log(sigma) + (-(nu+1)/2)*log( 1 + (1/nu)*((x-mu)/sigma)^2 )
+    if ( log==FALSE ) y <- exp(y)
+    return(y)
+}
+
+rstudent <- function(n,nu=2,mu=0,sigma=1) {
+    y <- rt(n,df=nu)
+    y <- y*sigma + mu
+    return(y)
+}

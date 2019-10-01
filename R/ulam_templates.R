@@ -637,7 +637,7 @@ ulam_dists <- list(
         vectorized = TRUE
     ) ,
     student_t = list(
-        R_name = "dt",
+        R_name = "dstudent",
         Stan_name = "student_t",
         Stan_suffix = "lpdf",
         pars = 3, # nu, mu, sigma

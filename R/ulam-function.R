@@ -922,6 +922,8 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                             }
                         }
                     }#ii
+                    # if still NA at this point, then maybe no prior for symbol
+                    if ( is.na(the_dims) ) stop(concat("Unable to determine type and dimensions for ",left_symbol[1])," - Do all parameters have priors?")
                     if ( the_dims==1 )
                         the_dims <- "real"
                     else

@@ -1,11 +1,13 @@
 \name{AMTL}
 \alias{AMTL}
+\alias{AMTL_short}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Ante-mortem Tooth Loss Data}
 \description{
   Data from four primate genera on tooth loss and its relationship to age and sex. Used for measurement error example in the textbook.
 }
 \usage{
+data(AMTL_short)
 data(AMTL)
 }
 %- maybe also 'usage' for other objects documented here.

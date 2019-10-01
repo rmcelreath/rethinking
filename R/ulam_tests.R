@@ -12,6 +12,26 @@ if ( FALSE ) {
             stop( concat( "Hashes not identical:" , paste( match.call() , collapse=" , " ) ) )
     }
 
+    # student t test
+
+    library(rethinking)
+    data(Howell1)
+    d <- Howell1
+    d2 <- d[ d$age >= 18 , ]
+
+    z <- ulam(
+      alist(
+        height ~ student_t( nu, mu , sigma ) ,
+        mu <- a + b*weight ,
+        a ~ normal( 178 , 20 ) ,
+        b ~ normal( 0 , 1 ) ,
+        sigma ~ cauchy( 0 , 2),
+        nu ~ gamma(2, 0.1)
+      ) , warmup=1000,iter=2000,chains=2,cores=2,
+    data=d2 )
+
+    sim2<-sim(t2)
+
     # dbeta2 test
 
     y <- rbeta2( 100 , 0.3 , 3 )
@@ -21,6 +41,23 @@ if ( FALSE ) {
             y ~ dbeta2( p , theta ),
             logit(p) <- a,
             a ~ normal(0,1.5),
+            theta ~ exponential(1)
+        ), data=list(y=y) , sample=TRUE )
+
+    # test "no prior" error
+    z <- ulam(
+        alist(
+            y ~ dbeta2( p , theta ),
+            logit(p) <- a,
+            #a ~ normal(0,1.5),
+            theta ~ exponential(1)
+        ), data=list(y=y) , sample=TRUE )
+
+    z <- ulam(
+        alist(
+            y ~ dbeta2( p , theta ),
+            #logit(p) <- a,
+            #a ~ normal(0,1.5),
             theta ~ exponential(1)
         ), data=list(y=y) , sample=TRUE )
 
