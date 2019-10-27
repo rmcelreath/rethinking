@@ -22,8 +22,7 @@ ICweights( dev )
 \details{
   This function computes WAIC and optionally DIC values for fit models and returns a table sorted by ascending values. Each row in this table is a model, and the various columns provide WAIC, effective numbers of parameters, model weights, and standard errors.
   
-  The \code{compareIC} object implements a \code{plot} method for graphic display of the information criteria. In this output, the filled points are the in-sample deviance values. The open points are the values of the information criterion. The line segments show the standard errors of the information criterion.
-  These are the values of the \code{SE} slot. The lighter line segments with the triangles on it represent the standard error of the difference in information criterion between models.
+  The \code{compareIC} object implements a \code{plot} method for graphic display of the information criteria. In these figures, the filled points are the in-sample deviance values. The triangles and open points are the values of the information criterion. The black line segments show the standard errors of the information criterion (\code{SE} slot). The grey line segments represent the standard error of the difference in information criterion between models (\code{dSE} slot).
 }
 \value{
 An object of class \code{compareIC} with slots \code{output} (table of results) and \code{dSE} (matrix of standard errors of differences in IC between pairs of models).
