@@ -80,3 +80,55 @@ HMC2 <- function (U, grad_U, epsilon, L, current_q , ... ) {
         accept = accept , 
         dH = H1 - H0 ) )
 }
+
+HMC_2D_sample <- function( n=100 , U , U_gradient , step , L , start=c(0,0) , xlim=c(-5,5) , ylim=c(-4,4) , xlab="x" , ylab="y" , draw=TRUE , draw_contour=TRUE , nlvls=15 , adj_lvls=1 , ... ) {
+    
+    Q <- list()
+    Q$q <- start
+    xr <- xlim
+    yr <- ylim
+
+    if ( draw==TRUE ) plot( NULL , xlab=xlab , ylab=ylab , xlim=xlim, ylim=ylim )
+
+    if ( draw==TRUE & draw_contour==TRUE ) {
+        # draw contour
+        zr <- 1
+        y_seq <- seq(from=yr[1]-zr,to=yr[2]+zr,length.out=50) 
+        x_seq <- seq(from=xr[1]-zr,to=xr[2]+zr,length.out=50) 
+        z5 <- matrix(NA,length(x_seq),length(y_seq))
+        for ( i in 1:length(x_seq) )
+            for ( j in 1:length(y_seq) )
+                z5[i,j] <- U( c( x_seq[i] , y_seq[j] ) , ... )
+        lz5 <- log(z5)
+        lvls <- exp( pretty( range(lz5), nlvls ) )
+        cl <- contourLines( x_seq , y_seq , z5 , level=lvls*adj_lvls )
+        for ( i in 1:length(cl) ) lines( cl[[i]]$x , cl[[i]]$y , col=col.alpha("black",0.6) , lwd=0.5 )
+    }
+
+    n_samples <- n
+    a <- rep(NA,n_samples)
+    dH <- rep(NA,n_samples) # energy
+    path_col <- col.alpha("black",0.3)
+    xpos <- c(1,3,4,2)
+    points( Q$q[1] , Q$q[2] , pch=4 , col="black" )
+    post <- matrix(NA,nrow=n,ncol=2)
+
+    for ( i in 1:n_samples ) {
+        Q <- HMC2( U , U_gradient , epsilon=step , L=L , current_q=Q$q )
+        if ( n_samples < 100 ) {
+          # draw paths
+          lines( Q$traj[,1] , Q$traj[,2] , col=path_col , lwd=2 )
+        }
+        r <- min(abs(Q$dH),1)
+        ptcol <- rgb( r , 0 , 0 )
+        ptcol <- "black"
+        points( Q$traj[L+1,1] , Q$traj[L+1,2] , pch=ifelse( Q$accept==1 , 16 , 1 ) , col=ptcol , cex=ifelse( Q$accept==1 , 0.7 , 1 ) , lwd=1.5 )
+        dH[i] <- Q$dH
+        a[i] <- Q$accept
+        if ( a[i]==1 ) {
+            post[i,] <- Q$q
+        }
+    }
+    
+    return( invisible( post ) )
+}

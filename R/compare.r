@@ -73,10 +73,10 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
             }#j
         }#i
     }
-    if ( the_func=="LOO" ) {
+    if ( the_func=="LOO" | the_func=="PSIS" ) {
         # use LOO
-        LOO.list <- lapply( L , function(z) LOO( z , n=n , refresh=refresh , pointwise=TRUE ) )
-        p.list <- sapply( LOO.list , function(x) sum(attr(x,"pLOO")) )
+        LOO.list <- lapply( L , function(z) PSIS( z , n=n , refresh=refresh , pointwise=TRUE ) )
+        p.list <- sapply( LOO.list , function(x) sum(attr(x,"pPSIS")) )
         se.list <- sapply( LOO.list , function(x) attr(x,"se") )
         IC.list <- sapply( LOO.list , sum )
         # compute SE of differences between adjacent models from top to bottom in ranking
@@ -91,7 +91,7 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
             }#j
         }#i
     }
-    if ( !(the_func %in% c("DIC","WAIC","LOO")) ) {
+    if ( !(the_func %in% c("DIC","WAIC","LOO","PSIS")) ) {
         # unrecognized IC function; just wing it
         IC.list <- lapply( L , function(z) func( z ) )
     }
@@ -110,13 +110,13 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
         result <- data.frame( WAIC=IC.list , pWAIC=p.list , dWAIC=dIC , 
                               weight=w.IC , SE=se.list , dSE=dSEcol )
     }
-    if ( the_func=="LOO" ) {
+    if ( the_func=="LOO" | the_func=="PSIS" ) {
         topm <- which( dIC==0 )
         dSEcol <- dSE.matrix[,topm]
-        result <- data.frame( LOO=IC.list , pLOO=p.list , dLOO=dIC , 
+        result <- data.frame( PSIS=IC.list , pPSIS=p.list , dPSIS=dIC , 
                               weight=w.IC , SE=se.list , dSE=dSEcol )
     }
-    if ( !(the_func %in% c("DIC","WAIC","LOO")) ) {
+    if ( !(the_func %in% c("DIC","WAIC","LOO","PSIS")) ) {
         result <- data.frame( IC=IC.list , dIC=dIC , weight=w.IC )
     }
     
@@ -124,6 +124,7 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
     
     if ( !is.null(sort) ) {
         if ( sort!=FALSE ) {
+            if ( the_func=="LOO" ) the_func <- "PSIS" # must match header
             if ( sort=="WAIC" ) sort <- the_func
             result <- result[ order( result[[sort]] ) , ]
         }

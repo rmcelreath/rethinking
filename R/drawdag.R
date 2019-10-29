@@ -2,6 +2,16 @@
 
 drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="black" , cex=1 , lwd=1.5 , goodarrow=TRUE , xlim , ylim , shapes , col_shapes , radius=3.5 , add=FALSE , xkcd=FALSE , latent_mark="c" , ... ){ 
     require(dagitty)
+
+    # check for list of DAGs
+    if ( class(x)=="list" ) {
+        n <- length(x)
+        y <- make.grid(n)
+        par(mfrow=y)
+        for ( i in 1:n ) drawdag( x[[i]] , ... )
+        return(invisible(NULL))
+    }
+
     x <- as.dagitty( x )
     dagitty:::.supportsTypes(x,c("dag","mag","pdag"))
     coords <- coordinates( x )
@@ -63,7 +73,7 @@ drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="b
     # edges
     asp <- par("pin")[1]/diff(par("usr")[1:2]) /
         (par("pin")[2]/diff(par("usr")[3:4]))
-    ex <- edges(x)
+    ex <- dagitty::edges(x)
     ax1 <- rep(0,nrow(ex))
     ax2 <- rep(0,nrow(ex))
     ay1 <- rep(0,nrow(ex))

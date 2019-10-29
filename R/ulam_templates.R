@@ -439,6 +439,242 @@ ulam_dists <- list(
             return( out )
         }
     ) ,
+    # multi_normal that takes cholecky factor instead of covariance matrix
+    multinormal_chol = list(
+        R_name = "dmvnorm",
+        Stan_name = "multi_normal_cholesky",
+        Stan_suffix = "lpdf",
+        pars = 2,
+        dims = c( "vector" , "vector" , "matrix" ),
+        constraints = c( NA , NA , NA ),
+        vectorized = TRUE,
+        build = function( left , right , as_log_lik=FALSE ) {
+
+            flag_data_outcome <- FALSE
+            if ( left[1] %in% names(data) ) flag_data_outcome <- TRUE
+
+            # need to figure out dimension of distribution
+            # can do so from either length of vector on left or length of MU or size of SIGMA/RHO
+            n_vars <- length(left)
+            n_cases <- 1
+            if ( n_vars > 1 ) {
+                # two possibilities:
+                # (1) dims could have any grouping variable to tell us how many cases
+                # (2) dims are just the rows in the table
+                if ( !is.null(attr(left,"dims")) ) {
+                    # must be a grouping variable?
+                    n_cases <- length( unique( data[[ as.character( attr(left,"dims") ) ]] ) )
+                } else {
+                    # consider dims in symbol list
+                    the_dims <- symbols[[ left[1] ]]$dims
+                    # fetch case count
+                    n_cases <- as.numeric( the_dims[[2]] )
+                }
+            }
+            
+            SIGMA <- as.character( right[[3]] )
+            if ( length(right)==4 ) {
+                # correlation matrix and vector of scales
+                # so compose into covariance matrix
+                SIGMA <- concat( "quad_form_diag(" , as.character(right[[3]]) , " , " , as.character(right[[4]]) , ")" )
+            }
+
+            MU <- as.character( right[[2]] )
+            # check for c() and cbind() style vector of means
+            if ( class( right[[2]] )=="call" ) {
+                if ( as.character(right[[2]][[1]]) %in% c( "c" , "cbind" ) ) {
+                    MU <- MU[-1] # -1 removes "c"
+                    n_vars <- length(MU)
+                } else {
+                    stop( concat( "Something unexpected: " , deparse(right) ) )
+                }
+            }
+
+            if ( n_vars==1 ) {
+                # still haven't figured out dimensions
+                # check explicit dims on left side variable
+                if ( !is.null(attr(left,"dims")) ) {
+                    dims <- attr(left,"dims")
+                    if ( dims[[1]]=="vector" )
+                        n_vars <- dims[[2]]
+                    # check cases too
+                    if ( length(dims)==3 ) {
+                        n_cases <- length( unique( data[[ as.character( dims[[3]] ) ]] ) )
+                    }
+                }
+            }
+
+            #print(n_vars)
+            #print(n_cases)
+
+            # try to set dimensions on any Rho, sigma, SIGMA parameters
+            if ( length(right)==4 ) {
+                # have Rho, sigma as parameters
+                Rho_name <- as.character( right[[3]] )
+                sigma_name <- as.character( right[[4]] )
+                # try to find in symbols list (in parent calling environment)
+                # should have access, since build() is called with parent.env(environment())
+                if ( !is.null( symbols[[Rho_name]] ) ) {
+                    dims <- symbols[[Rho_name]]$dims
+                    if ( !is.null(dims) ) {
+                        if ( class(dims)=="character" || length(dims)==1 ) {
+                            new_symbols <- symbols
+                            new_symbols[[Rho_name]]$dims <- list( "corr_matrix" , n_vars )
+                            assign( "symbols" , new_symbols , inherits=TRUE )
+                        }
+                    } else {
+                        # null so do all the dims
+                        new_symbols <- symbols
+                        new_symbols[[Rho_name]]$dims <- list( "corr_matrix" , n_vars )
+                        assign( "symbols" , new_symbols , inherits=TRUE )
+                    }
+                }
+                if ( !is.null( symbols[[sigma_name]] ) ) {
+                    dims <- symbols[[sigma_name]]$dims
+                    if ( !is.null(dims) ) {
+                        if ( class(dims)=="character" || length(dims)==1 ) {
+                            new_symbols <- symbols
+                            new_symbols[[sigma_name]]$dims <- list( "vector" , n_vars )
+                            assign( "symbols" , new_symbols , inherits=TRUE )
+                        }
+                    } else {
+                        # null so do all the dims
+                        new_symbols <- symbols
+                        new_symbols[[sigma_name]]$dims <- list( "vector" , n_vars )
+                        assign( "symbols" , new_symbols , inherits=TRUE )
+                    }
+                }
+            } else {
+                # have only SIGMA covariance parameter
+                SIGMA_name <- as.character( right[[3]] )
+                if ( !is.null( symbols[[SIGMA_name]] ) ) {
+                    dims <- symbols[[SIGMA_name]]$dims
+                    if ( !is.null(dims) ) {
+                        if ( class(dims)=="character" || length(dims)==1 ) {
+                            new_symbols <- symbols
+                            new_symbols[[SIGMA_name]]$dims <- list( "cov_matrix" , n_vars )
+                            assign( "symbols" , new_symbols , inherits=TRUE )
+                        }
+                    } else {
+                        # null so do all the dims
+                        new_symbols <- symbols
+                        new_symbols[[SIGMA_name]]$dims <- list( "cov_matrix" , n_vars )
+                        assign( "symbols" , new_symbols , inherits=TRUE )
+                    }
+                }
+            }
+
+            # check for zero mean
+            if ( length(MU)==1 )
+                if ( MU=="0" ) {
+                    MU <- concat( "rep_vector(0," , n_vars , ")" )
+                }
+
+            # now build text
+            # local model block code constructs vector for left side
+            #{
+            #    vector[2] YY[6];
+            #    vector[2] MU;
+            #    MU = [mu1,mu2]';
+            #    for ( j in 1:6 )
+            #        YY[j] = [ a[j] , b[j] ]';
+            #    YY ~ multi_normal_lpdf( MU , quad_form_diag(Rho,sigma) );
+            #}
+
+            out <- ""
+            indent <- "    "
+            # do we need a {} environment?
+            if ( length(MU)>1 || length(left)>1 ) {
+                out <- concat( out , indent , "{\n" )
+            }
+
+            # do we need a local var for left side?
+            if ( length(left) > 1 ) {
+                out <- concat( out , indent , "vector[" , n_vars , "] YY" )
+                if ( n_cases > 1 )
+                    out <- concat( out , "[" , n_cases , "];\n" )
+                else
+                    out <- concat( out , ";\n" )
+            }
+
+            # do we need a local var for means?
+            if ( length(MU)>1 ) {
+                # what is length of each element?
+                # should either be 1 or same as n_cases
+                vlen <- 1
+                vdims <- symbols[[ MU[1] ]]$dims
+                if ( class(vdims)=="list" ) {
+                    vlen <- vdims[[2]]
+                    if ( vlen != n_cases ) warning( "multi_normal mean vector has length > 1 but not same length as outcome" )
+                }
+                # build text
+                out <- concat( out , indent , "vector[" , n_vars , "] MU" )
+                if ( vlen > 1 ) 
+                    out <- concat( out , "[" , vlen , "];\n" )
+                else
+                    out <- concat( out , ";\n" )
+                # assign it too
+                vsuf <- ""
+                if ( vlen==1 )
+                    out <- concat( out , indent , "MU = [ " )
+                else {
+                    out <- concat( out , indent , "for ( j in 1:" , vlen , " ) " )
+                    out <- concat( out , "MU[j] = [ " )
+                    vsuf <- "[j]"
+                }
+                for ( j in 1:length(MU) ) {
+                    out <- concat( out , MU[j] , vsuf )
+                    if ( j < length(MU) ) out <- concat( out , " , " )
+                }
+                out <- concat( out , " ]';\n" )
+            }
+
+            # loop to populate local for left side
+            if ( length(left)>1 && n_cases>1 ) {
+                out <- concat( out , indent , "for ( j in 1:" , n_cases , " ) " )
+                out <- concat( out , "YY[j] = [ " )
+                for ( j in 1:n_vars ) {
+                    out <- concat( out , left[j] , "[j]" )
+                    if ( j < n_vars ) out <- concat( out , " , " )
+                }
+                out <- concat( out , " ]';\n")
+            }
+
+            # finally, the distribution statement
+            
+            out_var <- "YY"
+            if ( length(left)==1 ) out_var <- left[1]
+            l1dims <- symbols[[ left[1] ]]$dims
+            out_mat <- FALSE
+            if ( class(l1dims) != "name" ) {
+                if ( l1dims[[1]]=="matrix" ) out_mat <- TRUE
+            }
+            if ( flag_data_outcome==TRUE || out_mat==TRUE ) {
+                if ( out_mat==TRUE ) {
+                    N_out <- symbols[[ left[1] ]]$dims[[2]]
+                    out_var <- concat( "for ( i in 1:" , N_out , " ) " , out_var , "[i,:]" )
+                }
+            }
+            MU_var <- "MU"
+            if ( length(MU)==1 ) MU_var <- MU[1]
+
+            if ( as_log_lik==FALSE ) {
+
+                out <- concat( out , indent , out_var , " ~ multi_normal_cholesky( " , MU_var , " , " , SIGMA , " );\n" )
+
+            } else {
+                out <- concat( out , indent , "log_lik = multi_normal_cholesky_lpdf( " , out_var , " | " , MU_var , " , " , SIGMA , " );\n" )
+            }
+
+            # close local environment, if necessary
+            if ( length(MU)>1 || length(left)>1 ) {
+                out <- concat( out , indent , "}\n" )
+            }
+
+
+            return( out )
+        }
+    ) ,
     bernoulli = list(
         R_name = "dbern",
         Stan_name = "bernoulli",
@@ -1073,7 +1309,10 @@ ulam_macros <- list(
             new_dat <- data
             new_dat[[ xobs_symbol ]][ NA_idx ] <- flag
             miss_indexes_name <- concat( xobs_symbol , "_missidx" )
-            new_dat[[ miss_indexes_name ]] <- NA_idx
+            # as.array conversion to fix case with a single missing value
+            # otherwise doesn't declare int[] properly
+            # integer(1d) array is later detected in ulam() and declared as type "int_array"
+            new_dat[[ miss_indexes_name ]] <- as.array( NA_idx )
             assign( "data" , new_dat , inherits=TRUE )
 
             # (3) insert the miss_indexes symbol into the call as first argument (Stan will need it)
@@ -1113,6 +1352,22 @@ ulam_macros <- list(
           K[i, i] = sq_alpha + delta;
           for (j in (i + 1):N) {
             K[i, j] = sq_alpha * exp(-sq_rho * square(x[i,j]) );
+            K[j, i] = K[i, j];
+          }
+        }
+        K[N, N] = sq_alpha + delta;
+        return K;
+    }"
+    ),
+    cov_GPL1 = list(
+        functions = "
+    matrix cov_GPL1(matrix x, real sq_alpha, real sq_rho, real delta) {
+        int N = dims(x)[1];
+        matrix[N, N] K;
+        for (i in 1:(N-1)) {
+          K[i, i] = sq_alpha + delta;
+          for (j in (i + 1):N) {
+            K[i, j] = sq_alpha * exp(-sq_rho * x[i,j] );
             K[j, i] = K[i, j];
           }
         }

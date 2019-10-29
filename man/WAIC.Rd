@@ -1,13 +1,13 @@
 \name{WAIC}
-\alias{WAIC}\alias{DIC}\alias{LOO}
+\alias{WAIC}\alias{DIC}\alias{PSIS}\alias{LOO}
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Information Criteria and Pareto-Smoothed Importance Sampling Cross-Validation}
 \description{
-  Computes WAIC, DIC, and PSIS-LOO for \code{map} and \code{map2stan} model fits. In addition, WAIC and PSIS-LOO can be calculated for Stan model fits (see details).
+  Computes WAIC, DIC, and PSIS cross validation for \code{quap}, \code{map2stan}, \code{ulam} model fits. In addition, WAIC and PSIS can be calculated for \code{stan} model fits (see details).
 }
 \usage{
 WAIC( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... )
-LOO( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... )
+PSIS( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... )
 DIC( object , ... )
 }
 %- maybe also 'usage' for other objects documented here.
@@ -19,7 +19,7 @@ DIC( object , ... )
   \item{...}{Other parameters to pass to specific methods}
 }
 \details{
-  These functions use the samples and model definition from a \code{map} or \code{map2stan} fit to compute the Widely Applicable Information Criterion (WAIC), Deviance Information Criterion (DIC), or Pareto-smoothed importance-sampling leave-one-out cross-validation estimate (PSIS-LOO). 
+  These functions use the samples and model definition to compute the Widely Applicable Information Criterion (WAIC), Deviance Information Criterion (DIC), or Pareto-smoothed importance-sampling cross-validation estimate (PSIS). 
   
   WAIC is an estimate of out-of-sample relative K-L divergence (KLD), and it is defined as:
 
@@ -27,11 +27,11 @@ DIC( object , ... )
 
   Components \code{lppd} (log pointwise predictive density) and \code{pWAIC} (the effective number of parameters) are reported as attributes. See Gelman et al 2013 for definitions and formulas. This function uses the variance definition for \code{pWAIC}.
 
-  PSIS-LOO is another estimate of out-of-sample relative K-L divergence. It is computed by the \code{loo} package. See Vehtari et al 2015 for definitions and computation.
+  PSIS is another estimate of out-of-sample relative K-L divergence. It is computed by the \code{loo} package. See Vehtari et al 2015 for definitions and computation.
 
-  In practice, WAIC and PSIS-LOO are extremely similar estimates of KLD.
+  In practice, WAIC and PSIS are extremely similar estimates of KLD.
 
-  Both WAIC and LOO have methods for \code{stanfit} models, provided the posterior contains a log-likelihood matrix (samples on rows, observations on columns) named \code{log_lik}. See example.
+  Both WAIC and PSIS have methods for \code{stanfit} models, provided the posterior contains a log-likelihood matrix (samples on rows, observations on columns) named \code{log_lik}. See example.
 }
 \value{
 }
@@ -43,7 +43,7 @@ Gelman, A., J. Hwang, and A. Vehtari. 2013. Understanding predictive information
 Vehtari, A., A. Gelman, and J. Gabry. 2015. Efficient implementation of leave-one-out cross-validation and WAIC for evaluating fitted Bayesian models.
 }
 \author{Richard McElreath}
-\seealso{\code{\link{map}}, \code{\link{map2stan}}, \code{\link{link}}, \code{\link{loo}}}
+\seealso{\code{\link{quap}}, \code{\link{ulam}}, \code{\link{link}}, \code{\link{loo}}}
 \examples{
 \dontrun{
 library(rethinking)
@@ -80,7 +80,7 @@ generated quantities{
     vector[N] log_lik;
     for ( i in 1:N ) {
         p[i] = a + bP * prosoc[i];
-        log_lik[i] = binomial_logit_lpmf( y[i] , 1 , p[i] );
+        log_lik[i] = binomial_logit_lpmf( y[i] | 1 , p[i] );
     }
 }
 '
@@ -89,7 +89,7 @@ m1s <- stan( model_code=m1s_code , data=dat , chains=2 , iter=2000 )
 
 WAIC(m1s)
 
-LOO(m1s)
+PSIS(m1s)
 }
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

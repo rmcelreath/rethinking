@@ -3,13 +3,19 @@
 
 setGeneric("LOO",
 function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
-    message( concat("No LOO method for object of class '",class(object),"'. Returning AIC instead.") )
+    message( concat("No PSIS method for object of class '",class(object),"'. Returning AIC instead.") )
     AIC(object)
 }
 )
 
-setMethod("LOO", "map2stan",
-function( object , n=0 , refresh=0.1 , pointwise=FALSE , ... ) {
+setGeneric("PSIS",
+function( object , n=1000 , refresh=0.1 , pointwise=FALSE , ... ) {
+    message( concat("No PSIS method for object of class '",class(object),"'. Returning AIC instead.") )
+    AIC(object)
+}
+)
+
+PSIS_map2stan <- function( object , n=0 , refresh=0.1 , pointwise=FALSE , ... ) {
     
     # get log-likelihood matrix from WAIC method
     loglik_matrix <- WAIC(object,n=n,refresh=refresh,loglik=TRUE,...)
@@ -28,17 +34,20 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , ... ) {
     attr(looIC,"lppd") = lppd
     attr(looIC,"pLOO") = pD
     attr(looIC,"diagnostics") = loo_list$diagnostics
+
+    xcheckLOOk( loo_list$diagnostics$pareto_k )
     
     n_tot <- ncol(loglik_matrix)
     attr(looIC,"se") = try(sqrt( n_tot*var2(as.vector( loo_list$pointwise[,3] )) ))
     
     return(looIC)
 
-})
+}
+setMethod("LOO","map2stan", PSIS_map2stan )
+setMethod("PSIS", "map2stan", PSIS_map2stan )
 
 # extracts log_lik matrix from stanfit and computes LOO
-setMethod("LOO", "stanfit",
-function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
+PSIS_stanfit <- function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
     if ( !is.null(extract.samples(object)[[log_lik]]) )
         ll_matrix <- loo::extract_log_lik( object , merge_chains=FALSE )
     else
@@ -60,22 +69,26 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
     attr(looIC,"lppd") = lppd
     attr(looIC,"pLOO") = pD
     attr(looIC,"diagnostics") = loo_list$diagnostics
+
+    xcheckLOOk( loo_list$diagnostics$pareto_k )
     
     n_tot <- ncol(ll_matrix)
     #attr(looIC,"se") = try(sqrt( n_tot*var(as.vector( loo_list$pointwise[,4] )) ))
     attr(looIC,"se") = loo_list$estimates[3,2]
     
     return(looIC)
-})
+}
+setMethod("PSIS", "stanfit", PSIS_stanfit )
+setMethod("LOO", "stanfit", PSIS_stanfit )
 
-setMethod("LOO", "ulam",
-function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
-    return( LOO(object@stanfit,n=n,refresh=refresh,pointwise=pointwise,log_lik=log_lik,...) )
-})
+PSIS_ulam <- function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
+    return( PSIS(object@stanfit,n=n,refresh=refresh,pointwise=pointwise,log_lik=log_lik,...) )
+}
+setMethod("LOO", "ulam", PSIS_ulam)
+setMethod("PSIS", "ulam", PSIS_ulam)
 
 # extracts log_lik matrix from samples in a list
-setMethod("LOO", "list",
-function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
+PSIS_list <- function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ... ) {
     if ( !is.null(object[[log_lik]]) )
         ll_matrix <- object[[log_lik]]
     else
@@ -95,15 +108,18 @@ function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , ...
     attr(looIC,"lppd") = lppd
     attr(looIC,"pLOO") = pD
     attr(looIC,"diagnostics") = loo_list$diagnostics
+
+    xcheckLOOk( loo_list$diagnostics$pareto_k )
     
     n_tot <- ncol(ll_matrix)
     attr(looIC,"se") = try(sqrt( n_tot*var2(as.vector( loo_list$pointwise[,3] )) ))
     
     return(looIC)
-})
+}
+setMethod("LOO", "list",PSIS_list)
+setMethod("PSIS", "list",PSIS_list)
 
-setMethod("LOO", "map",
-function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
+PSIS_quap <- function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
     
     # get log-likelihood matrix from sim method
     loglik_matrix <- sim(object,n=n,refresh=refresh,ll=TRUE,...)
@@ -123,8 +139,8 @@ function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
     attr(looIC,"pLOO") = pD
     attr(looIC,"diagnostics") = loo_list$diagnostics
 
-    object_name <- deparse( match.call()[[2]] )
-    xcheckLOOk( loo_list$diagnostics$pareto_k , object_name )
+    #object_name <- deparse( match.call()[[2]] )
+    xcheckLOOk( loo_list$diagnostics$pareto_k )
     
     n_tot <- ncol(loglik_matrix)
     #attr(looIC,"se") = try(sqrt( n_tot*var2(as.vector( loo_list$pointwise[,4] )) ))
@@ -132,19 +148,21 @@ function( object , n=1000 , refresh=0 , pointwise=FALSE , ... ) {
     
     return(looIC)
 
-})
+}
+setMethod("LOO", "map", PSIS_quap)
+setMethod("PSIS", "map", PSIS_quap)
 
 # function to return pointwise k diagnostics
-LOOPk <- function( model , ... ) {
-    attributes( LOO(model,pointwise=TRUE) )$diagnostics$pareto_k
+PSISk <- function( model , ... ) {
+    round( attributes( PSIS(model,pointwise=TRUE) )$diagnostics$pareto_k , 2 )
 }
 
-xcheckLOOk <- function( k_list , oname ) {
+xcheckLOOk <- function( k_list ) {
     if ( any( k_list > 0.5 ) ) {
         if ( any( k_list > 1 ) ) {
-            warning( concat("Some Pareto k diagnostics are very high (>1) in ",oname,".") )
+            warning( concat("Some Pareto k values are very high (>1). Use PSISk to inspect individual points.") )
         } else {
-            warning( concat("Some Pareto k diagnostics are high (>0.5) in ",oname,".") )
+            warning( concat("Some Pareto k values are high (>0.5). Use PSISk to inspect individual points.") )
         }
     }
 }
