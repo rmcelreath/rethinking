@@ -102,7 +102,7 @@ setMethod( "link" , "ulam" , function(fit ,data ,...) link_ulam(fit,data,...) )
 
 # sim method assumes outcome var is first var on left in formula line 1
 # can use variable argument to specify any other variable
-sim_ulam <- function( fit , data , post , variable , n=1000 , replace=list() , ... ) {
+sim_ulam <- function( fit , data , post , vars , variable , n=1000 , replace=list() , ... ) {
     
     ########################################
     # check arguments
@@ -211,6 +211,61 @@ sim_ulam <- function( fit , data , post , variable , n=1000 , replace=list() , .
     
     return(sim_out)
 }
-setMethod( "sim" , "ulam" , function(fit,data,...) sim_ulam(fit,data,...) )
+
+sim_ulam_new <- function( fit , data , post , vars , variable , n=1000 , replace=list() , debug=FALSE , ll=FALSE , refresh=0 , ... ) {
+    
+    ########################################
+    # check arguments
+    if ( missing(data) ) {
+        data <- fit@data
+    } else {
+        # make sure it's a list, otherwise can't hold sample matrices from sims
+        data <- as.list(data)
+        # check for vars to sim that are not in data list
+        if ( !missing(vars) ) {
+            for ( i in 1:length(vars) ) {
+                if ( !(vars[i] %in% names(data)) ) {
+                    # insert dummy for var - will get simulated over later
+                    data[[ vars[i] ]] <- rep( 0 , length(data[[1]]) )
+                }
+            }#i
+        }
+    }
+
+    if ( n==0 ) {
+        n <- stan_total_samples(fit@stanfit)
+    } else {
+        tot_samples <- stan_total_samples(fit@stanfit)
+        n <- min(n,tot_samples)
+    }
+    
+    if ( missing(post) ) {
+        post <- extract.samples(fit,n=n)
+    } else {
+        n <- dim(post[[1]])[1]
+        if ( is.null(n) ) n <- length(post[[1]])
+    }
+
+    # variables to sim
+    if ( missing(vars) ) {
+        # extract likelihood, assuming it is first element of formula
+        lik <- flist_untag(fit@formula)[[1]]
+        # discover outcome
+        vars <- as.character(lik[[2]])
+    } else {
+        # vars listed
+        if ( debug==TRUE ) print(vars)
+    }
+
+    # loop over vars
+    sim_vars <- sim_core( fit=fit , data=data , post=post , vars=vars , n=n , refresh=refresh , replace=replace , debug=debug , ll=ll , ... )
+    
+    # result
+    if ( length(sim_vars)==1 ) sim_vars <- sim_vars[[1]]
+    return( sim_vars )
+
+}
+
+setMethod( "sim" , "ulam" , function(fit,data,...) sim_ulam_new(fit,data,...) )
 
 

@@ -28,8 +28,16 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         # pre-scan for character variables and remove
         x_to_remove <- c()
         for ( i in 1:length(data) ) {
-            if ( class(data[[i]]) %in% c("character","factor") ) {
+            if ( class(data[[i]]) =="character" ) {
                 x_to_remove <- c( x_to_remove , names(data)[i] )
+            }
+            if ( class(data[[i]]) =="factor" ) {
+                if ( coerce_int==FALSE )
+                    x_to_remove <- c( x_to_remove , names(data)[i] )
+                else {
+                    # coerce factor to index variable
+                    data[[i]] <- as.integer( data[[i]] )
+                }
             }
         }#i
         if ( length(x_to_remove)>0 ) {
@@ -43,7 +51,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         # pre-scan for index variables (integer) that are numeric by accident
         for ( i in 1:length(data) ) {
             if ( class(data[[i]])!="character" ) {
-                if ( all( as.integer(data[[i]])==data[[i]] ) ) {
+                if ( all( as.integer(data[[i]])==data[[i]] , na.rm=TRUE ) ) {
                     #data[[i]] <- as.integer(data[[i]])
                     if ( class(data[[i]])!="integer" & class(data[[i]])!="matrix" ) {
                         if ( coerce_int==TRUE ) {

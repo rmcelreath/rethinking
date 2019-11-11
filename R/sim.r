@@ -6,55 +6,11 @@ function( fit , data , n=1000 , ... ) {
 }
 )
 
-setMethod("sim", "map",
-function( fit , data , n=1000 , post , vars , ll=FALSE , refresh=0 , replace=list() , debug=FALSE , ... ) {
-    # when ll=FALSE, simulates sampling, one sample for each sample in posterior
-    # when ll=TRUE, computes loglik of each observation, for each sample in posterior
+# function at heart of all sim methods
+sim_core <- function( fit , data , post , vars , n , refresh=0 , replace=list() , debug=FALSE , ll=FALSE , ... ) {
 
-    # vars argument optional
-    # when missing, simulations only first observed variable in formula
-    # when present, should be a character vector naming variables to simulate, in order to simulate them
-    # order matters, because some may be needed for the others to simulate right
-    
-    ########################################
-    # check arguments
-    if ( class(fit)!="map" ) stop("Requires map/quap fit")
-    if ( missing(data) ) {
-        data <- fit@data
-    } else {
-        # make sure it's a list, otherwise can't hold sample matrices from sims
-        data <- as.list(data)
-        # check for vars to sim that are not in data list
-        if ( !missing(vars) ) {
-            for ( i in 1:length(vars) ) {
-                if ( !(vars[i] %in% names(data)) ) {
-                    # insert dummy for var - will get simulated over later
-                    data[[ vars[i] ]] <- rep( 0 , length(data[[1]]) )
-                }
-            }#i
-        }
-    }
-    
-    if ( missing(post) ) {
-        post <- extract.samples(fit,n=n)
-    } else {
-        n <- dim(post[[1]])[1]
-        if ( is.null(n) ) n <- length(post[[1]])
-    }
-    
-    # variables to sim
-    if ( missing(vars) ) {
-        # extract likelihood, assuming it is first element of formula
-        lik <- flist_untag(fit@formula)[[1]]
-        # discover outcome
-        vars <- as.character(lik[[2]])
-    } else {
-        # vars listed
-        if ( debug==TRUE ) print(vars)
-    }
-
-    # loop over vars
     sim_vars <- list()
+
     for ( var in vars ) {
 
         # find a distribtional assignment with var on left
@@ -206,6 +162,60 @@ function( fit , data , n=1000 , post , vars , ll=FALSE , refresh=0 , replace=lis
         data[[ var ]] <- sim_out # make available to subsequent vars
 
     }#var
+
+    return(sim_vars)
+
+}
+
+setMethod("sim", "map",
+function( fit , data , n=1000 , post , vars , ll=FALSE , refresh=0 , replace=list() , debug=FALSE , ... ) {
+    # when ll=FALSE, simulates sampling, one sample for each sample in posterior
+    # when ll=TRUE, computes loglik of each observation, for each sample in posterior
+
+    # vars argument optional
+    # when missing, simulations only first observed variable in formula
+    # when present, should be a character vector naming variables to simulate, in order to simulate them
+    # order matters, because some may be needed for the others to simulate right
+    
+    ########################################
+    # check arguments
+    if ( class(fit)!="map" ) stop("Requires map/quap fit")
+    if ( missing(data) ) {
+        data <- fit@data
+    } else {
+        # make sure it's a list, otherwise can't hold sample matrices from sims
+        data <- as.list(data)
+        # check for vars to sim that are not in data list
+        if ( !missing(vars) ) {
+            for ( i in 1:length(vars) ) {
+                if ( !(vars[i] %in% names(data)) ) {
+                    # insert dummy for var - will get simulated over later
+                    data[[ vars[i] ]] <- rep( 0 , length(data[[1]]) )
+                }
+            }#i
+        }
+    }
+    
+    if ( missing(post) ) {
+        post <- extract.samples(fit,n=n)
+    } else {
+        n <- dim(post[[1]])[1]
+        if ( is.null(n) ) n <- length(post[[1]])
+    }
+    
+    # variables to sim
+    if ( missing(vars) ) {
+        # extract likelihood, assuming it is first element of formula
+        lik <- flist_untag(fit@formula)[[1]]
+        # discover outcome
+        vars <- as.character(lik[[2]])
+    } else {
+        # vars listed
+        if ( debug==TRUE ) print(vars)
+    }
+
+    # loop over vars
+    sim_vars <- sim_core( fit=fit , data=data , post=post , vars=vars , n=n , refresh=refresh , replace=replace , debug=debug , ll=ll , ... )
     
     # result
     if ( length(sim_vars)==1 ) sim_vars <- sim_vars[[1]]
