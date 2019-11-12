@@ -2,7 +2,7 @@
 
 context('ulam')
 library(rethinking)
-library(openssl) # for md5 hash
+# library(openssl) # for md5 hash
 
 expect_equiv_eps <- function( x , y , eps=0.01 ) {
     expect_equivalent( x , y , tolerance=eps )
@@ -39,4 +39,23 @@ rm(mt)
 rm(d)
 rm(d2)
 gc()
+
+# pareto
+
+set.seed(49283)
+y <- rpareto(1e3,1,1)
+mp <- ulam(
+    alist(
+        y ~ pareto(1,alpha),
+        alpha ~ exponential(1)
+    ) , data=list(y=y) , chains=1 )
+
+test_that("Pareto regression code match",
+    expect_known_hash( mp@model , "7d9808c554" )
+)
+
+test_that("Pareto regression post match",
+    expect_equiv_eps( round(coef(mp),2) , 1.01 )
+)
+
 

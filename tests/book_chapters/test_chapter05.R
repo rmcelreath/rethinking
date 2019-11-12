@@ -1,4 +1,4 @@
-# test_dir('rethinking/tests/testthat',reporter="summary")
+# test_dir('rethinking/tests/book_chapters',reporter="summary")
 
 context('chapter 5')
 library(rethinking)
@@ -293,6 +293,7 @@ d$house <- sample( rep(1:4,each=8) , size=nrow(d) )
 ## R code 5.53
 test_that("R code 5.53", {
 
+    set.seed(63)
     m5.10 <- quap(
     alist(
         K ~ dnorm( mu , sigma ),
@@ -303,6 +304,6 @@ test_that("R code 5.53", {
     ) , data=d )
 
     expect_equiv_eps( round(coef(m5.10),2) , 
-        c(-0.45,  0.44,  0.64, -0.70 , 0.24 ,-0.02 , 0.22 ,-0.50 , 0.63 ) )
+        c(-0.42,  0.38 , 0.57, -0.51, -0.10 ,-0.20, -0.16 , 0.49 , 0.66) )
 })
 

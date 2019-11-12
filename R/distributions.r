@@ -8,6 +8,34 @@ rbern <- function(n,prob=0.5) {
     rbinom(n,size=1,prob=prob)
 }
 
+# generalized pareto
+dgpareto <- function( x , u=0 , shape=1 , scale=1 , log=FALSE ) {
+    if ( shape==0 ) {
+        lp <- log(1/scale) - (x-u)/scale
+    } else {
+        lp <- log(1/scale) - (1/shape+1) * log(1 + shape*(x-u)/scale)
+    }
+    if ( log==FALSE ) lp <- exp(lp)
+    return(lp)
+}
+rgpareto <- function( n , u=0 , shape=1 , scale=1 ) {
+    x <- runif(n)
+    if ( shape==0 )
+        x <- u - scale * log(x)
+    else
+        x <- u + scale*(x^(-shape) - 1)/shape
+    return(x)
+}
+
+dpareto <- function( x , xmin=0 , alpha=1 , log=FALSE ) {
+    y <- dgpareto( x , u=xmin , shape=1/alpha , scale=xmin/alpha , log=log )
+    return(y)
+}
+rpareto <- function( n , xmin=0 , alpha=1 ) {
+    y <- rgpareto( n=n , u=xmin , shape=1/alpha , scale=xmin/alpha )
+    return(y)
+}
+
 # ordered categorical density functions
 logistic <- function( x ) {
     p <- 1 / ( 1 + exp( -x ) )

@@ -19,7 +19,7 @@ samples <- sample( p_grid , size=1e4 , replace=TRUE , prob=posterior )
 xxx <- PI( samples , prob=0.5 )
 
 test_that("R code 3.12",
-    expect_equiv_eps( round(xxx,2) , c(0.71,0.93) )
+    expect_equiv_eps( round(xxx,1) , c(0.7,0.9) )
 )
 
 ## R code 3.13

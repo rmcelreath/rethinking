@@ -27,6 +27,18 @@ sim_core <- function( fit , data , post , vars , n , refresh=0 , replace=list() 
         lik <- f
         outcome <- var
         flik <- as.character(lik[[3]][[1]])
+        # check whether we must convert from Stan-name distribution to R-name distribution
+        first_char <- substr( flik , 1 , 1 )
+        if ( first_char != "d" | flik=="dirichlet" ) {
+            # loop over templates and get matching dfoo name
+            for ( ii in 1:length( ulam_dists ) ) {
+                aStanName <- ulam_dists[[ii]]$Stan_name
+                if ( aStanName==flik ) {
+                    flik <- ulam_dists[[ii]]$R_name
+                    break
+                }
+            }#ii
+        }
         # get simulation partner function
         rlik <- flik
         if ( ll==FALSE ) substr( rlik , 1 , 1 ) <- "r"
@@ -45,6 +57,9 @@ sim_core <- function( fit , data , post , vars , n , refresh=0 , replace=list() 
                 if ( size_sym > 1 ) aggregated_binomial <- TRUE
             }
         }
+
+        # disabling aggregated binom code for now
+        aggregated_binomial <- FALSE
         
         # pull out parameters in likelihood
         pars <- vector(mode="list",length=length(lik[[3]])-1)
@@ -117,7 +132,7 @@ sim_core <- function( fit , data , post , vars , n , refresh=0 , replace=list() 
 
             # evaluate
             sim_out[s,] <- eval( parse( text=xeval ) , envir=e )
-        }
+        }#s
         if ( debug==TRUE ) print(str(e))
         
         # check for aggregated binomial outcome

@@ -803,6 +803,15 @@ ulam_dists <- list(
         constraints = c( "lower=0" , "lower=0" ),
         vectorized = TRUE
     ),
+    pareto1 = list(
+        R_name = "dpareto",
+        Stan_name = "pareto",
+        Stan_suffix = "lpdf",
+        pars = 2,
+        dims = c( "real" , "real" ),
+        constraints = c( "lower=0" , "lower=0" ),
+        vectorized = TRUE
+    ),
     beta = list(
         R_name = "dbeta",
         Stan_name = "beta",
