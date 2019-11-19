@@ -6,6 +6,8 @@ page 42: Just below R code box 2.6, the text says that map requires a list of st
 page 83: Overthinking: Model definition to Bayes' theorem again: first term of the numerator and denominator might best be parenthesized to unambiguously discourage factoring in the prior once for each observation (i times), i.e.,
 <a href="https://www.codecogs.com/eqnedit.php?latex=${\left(\Pi_i\text{Normal}(h_i\mid\mu,\sigma))&space;\text{Normal}(\mu\mid&space;178,20)&space;\text{Uniform}(\sigma\mid&space;0,50)\right)&space;}" target="_blank"><img src="https://latex.codecogs.com/gif.latex?${\left(\Pi_i\text{Normal}(h_i\mid\mu,\sigma))&space;\text{Normal}(\mu\mid&space;178,20)&space;\text{Uniform}(\sigma\mid&space;0,50)\right)&space;}" title="${\left(\Pi_i\text{Normal}(h_i\mid\mu,\sigma)) \text{Normal}(\mu\mid 178,20) \text{Uniform}(\sigma\mid 0,50) }" /></a>
 
+An alternative is to put the prior before the data probability (e.g., see page 2 of http://www.stats.ox.ac.uk/~steffen/teaching/bs2HT9/kalman.pdf)
+
 page 87: The marginal description of the model reads "mu ~ dnorm(156, 10)" but the model is Normal(178, 20). Same error on p 95 and in code 4.38. It is corrected in code 4.39.
 
 page 95-96: dnorm(156,100) should be dnorm(178,100) in both model presentation and then R code on top of page 96.
