@@ -377,21 +377,42 @@ multilogistic <- function( x , lambda=1 , diff=TRUE , log=FALSE ) {
 softmax <- function( ... ) {
     X <- list(...)
     K <- length(X)
-    X <- as.data.frame(X)
-    N <- nrow(X)
-    if ( N==1 ) {
-        # just a vector of probabilities
-        f <- exp( X[1,] )
-        denom <- sum(f)
-        p <- as.numeric(f/denom)
-        return(p)
+    if ( K==1 ) {
+        X <- X[[1]]
+        # vector or matrix?
+        if ( is.null(dim(X)) ) {
+            # vector
+            f <- exp( X )
+            denom <- sum(f)
+            p <- as.numeric(f/denom)
+            return(p)
+        } else {
+            # matrix - columns should be outcomes
+            N <- nrow(X)
+            f <- lapply( 1:N , function(i) exp(X[i,]) )
+            denom <- sapply( 1:N , function(i) sum(f[[i]]) )
+            p <- sapply( 1:N , function(i) unlist(f[[i]])/denom[i] )
+            p <- t(as.matrix(p))
+            return(p)
+        }
     } else {
-        f <- lapply( 1:N , function(i) exp(X[i,]) )
-        denom <- sapply( 1:N , function(i) sum(f[[i]]) )
-        p <- sapply( 1:N , function(i) unlist(f[[i]])/denom[i] )
-        p <- t(as.matrix(p))
-        colnames(p) <- NULL
-        return(p)
+        # comma separated inputs
+        X <- as.data.frame(X)
+        N <- nrow(X)
+        if ( N==1 ) {
+            # just a vector of probabilities
+            f <- exp( X[1,] )
+            denom <- sum(f)
+            p <- as.numeric(f/denom)
+            return(p)
+        } else {
+            f <- lapply( 1:N , function(i) exp(X[i,]) )
+            denom <- sapply( 1:N , function(i) sum(f[[i]]) )
+            p <- sapply( 1:N , function(i) unlist(f[[i]])/denom[i] )
+            p <- t(as.matrix(p))
+            colnames(p) <- NULL
+            return(p)
+        }
     }
 }
 

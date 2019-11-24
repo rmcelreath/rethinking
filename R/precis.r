@@ -206,7 +206,7 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
 })
 
 setMethod("precis", "list", 
-function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , hist=TRUE , ... ) {
     # coerce to data frame and format row names for vectors/matrices to [] style
     result <- as.data.frame( object , stringsAsFactors = FALSE )
     # since data frame conversion vectorizes matrices, need to treat each variable
@@ -231,7 +231,7 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
     # hand off to data frame method
     if ( !is.null(attr(object,"source")) )
         attr(result,"source") <- attr(object,"source")
-    precis( result , depth , pars , prob , digits , sort, decreasing , ... )
+    precis( result , depth , pars , prob , digits , sort, decreasing , hist=hist , ... )
 })
 
 

@@ -14,7 +14,7 @@ setMethod( "show" , "compareIC" , function(object) {
 } )
 
 # new compare function, defaulting to WAIC
-compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh=0 , warn=TRUE ) {
+compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh=0 , warn=TRUE , result_order=c(1,5,3,6,2,4) ) {
 
     # retrieve list of models
     L <- list(...)
@@ -114,6 +114,8 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
             result <- result[ order( result[[sort]] ) , ]
         }
     }
+
+    result <- result[ , result_order ]
     
     new( "compareIC" , result , dSE=dSE.matrix )
 }

@@ -7,6 +7,8 @@ expect_equiv_eps <- function( x , y , eps=0.01 ) {
     expect_equivalent( x , y , tolerance=eps )
 }
 
+set.seed(39487)
+
 ## R code 3.11
 p_grid <- seq( from=0 , to=1 , length.out=1000 )
 prior <- rep(1,1000)
@@ -23,6 +25,7 @@ test_that("R code 3.12",
 )
 
 ## R code 3.13
+rm(xxx)
 xxx <- HPDI( samples , prob=0.5 )
 
 test_that("R code 3.13",

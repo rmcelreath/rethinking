@@ -909,8 +909,22 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         }#par
 
         if ( left_type=="data" & sample_prior==FALSE ) {
-            for ( j in 1:length(left_symbol) )
+
+            # first check for implied Stan type for left var
+            the_dist <- as.character( flist[[i]][[3]] ) # will be a character vector including pars
+            template <- get_dist_template( the_dist[1] )
+            out_type <- template$dims[1] # Stan type
+
+            # now process each var on left side
+            for ( j in 1:length(left_symbol) ) {
+                if ( !is.na(out_type) ) {
+                    if ( out_type=="real" ) 
+                        data[[ left_symbol[j] ]] <- as.numeric(data[[ left_symbol[j] ]])
+                    if ( out_type=="int" ) 
+                        data[[ left_symbol[j] ]] <- as.integer(data[[ left_symbol[j] ]])
+                }
                 symbols[[ left_symbol[j] ]] <- register_data_var( left_symbol[j] )
+            }
             # build text for model block
             built <- compose_distibution( left_symbol , flist[[i]] )
             m_model_txt <- concat( m_model_txt , built )

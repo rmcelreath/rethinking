@@ -198,6 +198,8 @@ test_that("R code 7.27",{
 test_that("R code 7.30",{
     set.seed(92)
     waic_m6.6 <- WAIC( m6.6 , pointwise=TRUE )$WAIC
+    waic_m6.8 <- WAIC( m6.8 , pointwise=TRUE )$WAIC
+    n <- length(waic_m6.6)
     diff_m6.6_m6.8 <- waic_m6.6 - waic_m6.8
     xxx <- sqrt( n*var( diff_m6.6_m6.8 ) )
     expect_equiv_eps( xxx , 4.858914 )

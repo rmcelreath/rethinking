@@ -1,6 +1,6 @@
 
 # new link function
-link_ulam <- function( fit , data , post , simplify=TRUE , symbols , ... ) {
+link_ulam <- function( fit , data , post , flatten=TRUE , symbols , ... ) {
 
     nest_commas <- function( f , symbols ) {
         if ( class( f )=="call" || class( f )=="(" ) {
@@ -94,7 +94,7 @@ link_ulam <- function( fit , data , post , simplify=TRUE , symbols , ... ) {
 
     n_links <- length(symbols)
 
-    if ( simplify==TRUE && n_links==1 ) out <- out[[1]]
+    if ( flatten==TRUE && n_links==1 ) out <- out[[1]]
 
     return(out)
 }
@@ -249,7 +249,8 @@ sim_ulam_new <- function( fit , data , post , vars , variable , n=1000 , replace
     # variables to sim
     if ( missing(vars) ) {
         # extract likelihood, assuming it is first element of formula
-        lik <- flist_untag(fit@formula)[[1]]
+        #lik <- flist_untag(fit@formula)[[1]]
+        lik <- fit@formula[[1]]
         # discover outcome
         vars <- as.character(lik[[2]])
     } else {
