@@ -35,11 +35,17 @@ function( object , n=0 , refresh=0 , pointwise=FALSE , log_lik="log_lik" , ... )
     } else {
         waic <- waic_vec
     }
-    attr(waic,"lppd") = lpd
-    attr(waic,"pWAIC") = pD
-    attr(waic,"se") = try(sqrt( n_obs*var2(waic_vec) ))
+    #attr(waic,"lppd") = lpd
+    #attr(waic,"pWAIC") = pD
+    #attr(waic,"se") = try(sqrt( n_obs*var2(waic_vec) ))
     
-    return(waic)
+    result <- data.frame( 
+        WAIC=waic , 
+        lppd=lpd , 
+        penalty=pD ,
+        std_err=try(sqrt( n_obs*var2(waic_vec) )) )
+
+    return(result)
 })
 
 # extracts log_lik matrix from stanfit and computes WAIC
@@ -68,11 +74,17 @@ function( object , n=0 , refresh=0 , pointwise=FALSE , log_lik="log_lik" , ... )
     } else {
         waic <- waic_vec
     }
-    attr(waic,"lppd") = lpd
-    attr(waic,"pWAIC") = pD
-    attr(waic,"se") = try(sqrt( n_obs*var2(waic_vec) ))
+    #attr(waic,"lppd") = lpd
+    #attr(waic,"pWAIC") = pD
+    #attr(waic,"se") = try(sqrt( n_obs*var2(waic_vec) ))
+
+    result <- data.frame( 
+        WAIC=waic , 
+        lppd=lpd , 
+        penalty=pD ,
+        std_err=try(sqrt( n_obs*var2(waic_vec) )) )
     
-    return(waic)
+    return(result)
 })
 
 # extracts log_lik matrix from extracted samples in a list
@@ -103,11 +115,17 @@ function( object , n=0 , refresh=0 , pointwise=FALSE , log_lik="log_lik" , ... )
     } else {
         waic <- waic_vec
     }
-    attr(waic,"lppd") = lpd
-    attr(waic,"pWAIC") = pD
-    attr(waic,"se") = try(sqrt( n_obs*var2(waic_vec) ))
+    #attr(waic,"lppd") = lpd
+    #attr(waic,"pWAIC") = pD
+    #attr(waic,"se") = try(sqrt( n_obs*var2(waic_vec) ))
+
+    result <- data.frame( 
+        WAIC=waic , 
+        lppd=lpd , 
+        penalty=pD ,
+        std_err=try(sqrt( n_obs*var2(waic_vec) )) )
     
-    return(waic)
+    return(result)
 })
 
 setMethod("nobs","stanfit",
@@ -129,12 +147,17 @@ function( object , n=0 , refresh=0 , pointwise=FALSE , loglik=FALSE , ... ) {
     if ( !is.null(attr(object,"WAIC")) & loglik==FALSE ) {
         # already have it stored in object, so just return it
         old_waic <- attr(object,"WAIC")
-        if ( length(old_waic) > 1 ) {
+        if ( nrow(old_waic) > 1 ) {
             if ( pointwise==FALSE ) {
-                new_waic <- sum(old_waic)
-                attr(new_waic,"lppd") <- sum(unlist(attr(old_waic,"lppd")))
-                attr(new_waic,"pWAIC") <- sum(unlist(attr(old_waic,"pWAIC")))
-                attr(new_waic,"se") <- attr(old_waic,"se")
+                #new_waic <- sum(old_waic)
+                #attr(new_waic,"lppd") <- sum(unlist(attr(old_waic,"lppd")))
+                #attr(new_waic,"pWAIC") <- sum(unlist(attr(old_waic,"pWAIC")))
+                #attr(new_waic,"se") <- attr(old_waic,"se")
+                new_waic <- data.frame( 
+                    WAIC = sum( old_waic$WAIC ),
+                    lppd = sum( old_waic$lppd ),
+                    penalty = sum( old_waic$penalty ),
+                    std_err = old_waic$std_err[1] )
                 return( new_waic )
             } else {
                 # return pointwise
@@ -361,14 +384,20 @@ function( object , n=0 , refresh=0 , pointwise=FALSE , loglik=FALSE , ... ) {
     } else {
         waic <- (-2)*( lppd - pD )
     }
-    attr(waic,"lppd") = lppd
-    attr(waic,"pWAIC") = pD
+    #attr(waic,"lppd") = lppd
+    #attr(waic,"pWAIC") = pD
     
     n_tot <- length(waic_vec)
-    attr(waic,"se") = try(sqrt( n_tot*var2(waic_vec) ))
+    #attr(waic,"se") = try(sqrt( n_tot*var2(waic_vec) ))
+
+    result <- data.frame( 
+        WAIC=waic , 
+        lppd=lppd , 
+        penalty=pD ,
+        std_err=try(sqrt( n_tot*var2(waic_vec) )) )
     
     if ( loglik==FALSE )
-        return(waic)
+        return(result)
     else {
         if ( length(ll_matrix)==1 ) ll_matrix <- ll_matrix[[1]]
         return(ll_matrix)
@@ -441,11 +470,17 @@ function( object , n=1000 , refresh=0 , pointwise=FALSE , post , ... ) {
     } else {
         waic <- (-2)*( lppd - pD )
     }
-    attr(waic,"lppd") = lppd
-    attr(waic,"pWAIC") = pD
-    attr(waic,"se") = try(sqrt( n_cases*var2(waic_vec) ))
+    #attr(waic,"lppd") = lppd
+    #attr(waic,"pWAIC") = pD
+    #attr(waic,"se") = try(sqrt( n_cases*var2(waic_vec) ))
+
+    result <- data.frame( 
+        WAIC=waic , 
+        lppd=lppd , 
+        penalty=pD ,
+        std_err=try(sqrt( n_cases*var2(waic_vec) )) )
     
-    return(waic)
+    return(result)
     
 }
 )
@@ -521,5 +556,5 @@ lppd <- function( fit , ... ) {
 
 # method to extract penalty terms
 WAICp <- function( x , pointwise=TRUE , ... ) {
-    attr( WAIC(x,pointwise=pointwise,...) , "pWAIC" )
+    WAIC(x,pointwise=pointwise,...)$penalty
 }

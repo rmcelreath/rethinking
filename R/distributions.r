@@ -8,6 +8,34 @@ rbern <- function(n,prob=0.5) {
     rbinom(n,size=1,prob=prob)
 }
 
+# generalized pareto
+dgpareto <- function( x , u=0 , shape=1 , scale=1 , log=FALSE ) {
+    if ( shape==0 ) {
+        lp <- log(1/scale) - (x-u)/scale
+    } else {
+        lp <- log(1/scale) - (1/shape+1) * log(1 + shape*(x-u)/scale)
+    }
+    if ( log==FALSE ) lp <- exp(lp)
+    return(lp)
+}
+rgpareto <- function( n , u=0 , shape=1 , scale=1 ) {
+    x <- runif(n)
+    if ( shape==0 )
+        x <- u - scale * log(x)
+    else
+        x <- u + scale*(x^(-shape) - 1)/shape
+    return(x)
+}
+
+dpareto <- function( x , xmin=0 , alpha=1 , log=FALSE ) {
+    y <- dgpareto( x , u=xmin , shape=1/alpha , scale=xmin/alpha , log=log )
+    return(y)
+}
+rpareto <- function( n , xmin=0 , alpha=1 ) {
+    y <- rgpareto( n=n , u=xmin , shape=1/alpha , scale=xmin/alpha )
+    return(y)
+}
+
 # ordered categorical density functions
 logistic <- function( x ) {
     p <- 1 / ( 1 + exp( -x ) )
@@ -349,21 +377,42 @@ multilogistic <- function( x , lambda=1 , diff=TRUE , log=FALSE ) {
 softmax <- function( ... ) {
     X <- list(...)
     K <- length(X)
-    X <- as.data.frame(X)
-    N <- nrow(X)
-    if ( N==1 ) {
-        # just a vector of probabilities
-        f <- exp( X[1,] )
-        denom <- sum(f)
-        p <- as.numeric(f/denom)
-        return(p)
+    if ( K==1 ) {
+        X <- X[[1]]
+        # vector or matrix?
+        if ( is.null(dim(X)) ) {
+            # vector
+            f <- exp( X )
+            denom <- sum(f)
+            p <- as.numeric(f/denom)
+            return(p)
+        } else {
+            # matrix - columns should be outcomes
+            N <- nrow(X)
+            f <- lapply( 1:N , function(i) exp(X[i,]) )
+            denom <- sapply( 1:N , function(i) sum(f[[i]]) )
+            p <- sapply( 1:N , function(i) unlist(f[[i]])/denom[i] )
+            p <- t(as.matrix(p))
+            return(p)
+        }
     } else {
-        f <- lapply( 1:N , function(i) exp(X[i,]) )
-        denom <- sapply( 1:N , function(i) sum(f[[i]]) )
-        p <- sapply( 1:N , function(i) unlist(f[[i]])/denom[i] )
-        p <- t(as.matrix(p))
-        colnames(p) <- NULL
-        return(p)
+        # comma separated inputs
+        X <- as.data.frame(X)
+        N <- nrow(X)
+        if ( N==1 ) {
+            # just a vector of probabilities
+            f <- exp( X[1,] )
+            denom <- sum(f)
+            p <- as.numeric(f/denom)
+            return(p)
+        } else {
+            f <- lapply( 1:N , function(i) exp(X[i,]) )
+            denom <- sapply( 1:N , function(i) sum(f[[i]]) )
+            p <- sapply( 1:N , function(i) unlist(f[[i]])/denom[i] )
+            p <- t(as.matrix(p))
+            colnames(p) <- NULL
+            return(p)
+        }
     }
 }
 

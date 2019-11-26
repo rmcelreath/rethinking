@@ -3,15 +3,13 @@
 
 
 setMethod("link", "map",
-function( fit , data , n=1000 , post , refresh=0 , replace=list() , flatten=TRUE , ... ) {
+function( fit , data , n=1000 , post , refresh=0 , replace=list() , flatten=TRUE , debug=FALSE , ... ) {
     
     if ( class(fit)!="map" ) stop("Requires map fit")
     if ( missing(data) ) {
         data <- fit@data
     } else {
-        # make sure all variables same length
-        # weird vectorization errors otherwise
-        #data <- as.data.frame(data)
+        if ( debug==TRUE ) print(str(data))
     }
     
     if ( missing(post) ) 
@@ -40,6 +38,7 @@ function( fit , data , n=1000 , post , refresh=0 , replace=list() , flatten=TRUE
     link_out <- vector(mode="list",length=nlm)
     
     # for each linear model, compute value for each sample
+
     for ( i in 1:nlm ) {
         ref_inc <- floor(n*refresh)
         ref_next <- ref_inc
@@ -60,8 +59,21 @@ function( fit , data , n=1000 , post , refresh=0 , replace=list() , flatten=TRUE
             if ( flik=="dpois" ) lm <- as.character( fit@formula[[1]][[3]][[2]] )
         }
         # empty matrix to hold samples-by-cases values of linear model
-        value <- matrix(NA,nrow=n,ncol=length(data[[1]]))
+        n_cases <- 0
+        dims <- dim( data[[1]] )
+        if ( length(dims)==1 ) n_cases <- dims[1]
+        if ( is.null(dims) ) n_cases <- length(data[[1]])
+        if ( length(dims)==2 ) {
+            # a matrix of samples?
+            if ( length(dims)==2 & dims[1]==n ) 
+                n_cases <- dims[2]
+            else
+                n_cases <- dims[1] # prob just a scaled var
+        }
+        value <- matrix(NA,nrow=n,ncol=n_cases)
+
         # for each sample
+        idat <- data
         for ( s in 1:n ) {
             # refresh progress display
             if ( refresh > 0 ) {
@@ -87,7 +99,18 @@ function( fit , data , n=1000 , post , refresh=0 , replace=list() , flatten=TRUE
                 # matrix
                 if ( length(dims)==3 ) init[[par_name]] <- post[[par_name]][s,,]
             }#j
-            e <- list( as.list(data) , as.list(init) )
+            # for data, check if any of it are samples (passed from sim maybe)
+            
+            for ( j in 1:length(data) ) {
+                var_name <- names(data)[ j ]
+                dims <- dim( data[[var_name]] )
+                if ( length(dims)==2 ) {
+                    # could be [cases,1] as a scaled var
+                    if ( dims[1]==n & dims[2] > 1 )
+                        idat[[var_name]] <- data[[var_name]][s,]
+                }
+            }#j
+            e <- list( as.list(idat) , as.list(init) )
             e <- unlist( e , recursive=FALSE )
             value[s,] <- eval(parse(text=lm),envir=e)
         }#s

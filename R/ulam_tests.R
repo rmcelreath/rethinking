@@ -30,7 +30,7 @@ if ( FALSE ) {
       ) , warmup=1000,iter=2000,chains=2,cores=2,
     data=d2 )
 
-    sim2<-sim(t2)
+    s <- sim(z)
 
     # dbeta2 test
 
@@ -63,9 +63,11 @@ if ( FALSE ) {
 
     # binom tests
 
+    library(rethinking)
     data( UCBadmit )
     UCBadmit$male <- as.integer( ifelse( UCBadmit$applicant.gender=="male" , 1 , 0 ) )
     UCBadmit$dept <- rep( 1:6 , each=2 )
+    UCBadmit$ag <- UCBadmit$applicant.gender
     UCBadmit$applicant.gender <- NULL
 
     # quap to ulam
@@ -77,7 +79,7 @@ if ( FALSE ) {
         ),
         data=UCBadmit )
     
-    zz <- ulam( z )
+    zz <- ulam( z , sample=FALSE )
 
     # binomial
     z <- ulam(
@@ -134,6 +136,8 @@ if ( FALSE ) {
     # merge_missing
     UCBadmit$x <- rnorm(12)
     UCBadmit$x[1:2] <- NA
+    UCBadmit$x[2] <- NA
+
     z2b2 <- ulam(
         alist(
             admit ~ binomial(applications,p),

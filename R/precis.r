@@ -162,7 +162,7 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
 } )
 
 setMethod("precis", "data.frame", 
-function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , hist=TRUE , ... ) {
     plo <- (1-prob)/2
     phi <- 1 - plo
     # replace any character or factor columns with NA numeric columns
@@ -172,14 +172,26 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
             object[[i]] <- as.numeric( rep( NA , nrow(object) ) )
         }
     }
-    result <- data.frame(
-        mean = apply(object,2,mean,na.rm=TRUE),
-        sd = apply(object,2,sd,na.rm=TRUE),
-        lo = apply(object,2,quantile,na.rm=TRUE,probs=plo),
-        hi = apply(object,2,quantile,na.rm=TRUE,probs=phi),
-        histogram = apply(object,2,histospark),
-        stringsAsFactors = FALSE
-    )
+    if ( hist==TRUE ) {
+        result <- data.frame(
+            mean = apply(object,2,mean,na.rm=TRUE),
+            sd = apply(object,2,sd,na.rm=TRUE),
+            lo = apply(object,2,quantile,na.rm=TRUE,probs=plo),
+            hi = apply(object,2,quantile,na.rm=TRUE,probs=phi),
+            histogram = apply(object,2,histospark),
+            stringsAsFactors = FALSE
+        )
+    } else {
+        # no unicode histogram
+        result <- data.frame(
+            mean = apply(object,2,mean,na.rm=TRUE),
+            sd = apply(object,2,sd,na.rm=TRUE),
+            lo = apply(object,2,quantile,na.rm=TRUE,probs=plo),
+            hi = apply(object,2,quantile,na.rm=TRUE,probs=phi),
+            stringsAsFactors = FALSE
+        )
+    }
+
     colnames(result)[3:4] <- paste( c( plo , phi )*100 , "%" , sep="" )
 
     result <- precis_format( result , depth , sort , decreasing )
@@ -194,7 +206,7 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
 })
 
 setMethod("precis", "list", 
-function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , hist=TRUE , ... ) {
     # coerce to data frame and format row names for vectors/matrices to [] style
     result <- as.data.frame( object , stringsAsFactors = FALSE )
     # since data frame conversion vectorizes matrices, need to treat each variable
@@ -219,7 +231,7 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
     # hand off to data frame method
     if ( !is.null(attr(object,"source")) )
         attr(result,"source") <- attr(object,"source")
-    precis( result , depth , pars , prob , digits , sort, decreasing , ... )
+    precis( result , depth , pars , prob , digits , sort, decreasing , hist=hist , ... )
 })
 
 

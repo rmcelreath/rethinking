@@ -14,7 +14,7 @@ postcheck <- function( fit , x , prob=0.89 , window=20 , n=1000 , col=rangi2 , .
         if ( length(pred)>1 ) pred <- pred[[1]]
     
     # get outcome variable
-    lik <- flist_untag(fit@formula)[[1]]
+    lik <- (fit@formula)[[1]]
     dname <- as.character(lik[[3]][[1]])
     outcome <- as.character(lik[[2]])
     if ( class(fit)=="map2stan" ) outcome <- undot(outcome)

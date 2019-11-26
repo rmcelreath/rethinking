@@ -25,21 +25,46 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     }
 
     if ( pre_scan_data==TRUE ) {
-        # pre-scan for index variables (integer) that are numeric by accident
+        # pre-scan for character variables and remove
+        x_to_remove <- c()
         for ( i in 1:length(data) ) {
-            if ( all( as.integer(data[[i]])==data[[i]] ) ) {
-                #data[[i]] <- as.integer(data[[i]])
-                if ( class(data[[i]])!="integer" ) {
-                    if ( coerce_int==TRUE ) {
-                        data[[i]] <- as.integer(data[[i]])
-                    }
-                    if ( messages==TRUE & coerce_int==FALSE ) {
-                        vn <- names(data)[i]
-                        message( "Cautionary note:" )
-                        message( concat( "Variable ", vn , " contains only integers but is not type 'integer'. If you intend it as an index variable, you should as.integer() it before passing to ulam." ) )
-                    }
+            if ( class(data[[i]]) =="character" ) {
+                x_to_remove <- c( x_to_remove , names(data)[i] )
+            }
+            if ( class(data[[i]]) =="factor" ) {
+                if ( coerce_int==FALSE )
+                    x_to_remove <- c( x_to_remove , names(data)[i] )
+                else {
+                    # coerce factor to index variable
+                    data[[i]] <- as.integer( data[[i]] )
                 }
             }
+        }#i
+        if ( length(x_to_remove)>0 ) {
+            if ( messages==TRUE ) {
+                message( "Removing one or more character or factor variables:" )
+                message( x_to_remove )
+            }
+            for ( i in 1:length(data) )
+                if ( names(data)[i] %in% x_to_remove ) data[[i]] <- NULL
+        }
+        # pre-scan for index variables (integer) that are numeric by accident
+        for ( i in 1:length(data) ) {
+            if ( class(data[[i]])!="character" ) {
+                if ( all( as.integer(data[[i]])==data[[i]] , na.rm=TRUE ) ) {
+                    #data[[i]] <- as.integer(data[[i]])
+                    if ( class(data[[i]])!="integer" & class(data[[i]])!="matrix" ) {
+                        if ( coerce_int==TRUE ) {
+                            data[[i]] <- as.integer(data[[i]])
+                        }
+                        if ( messages==TRUE & coerce_int==FALSE ) {
+                            vn <- names(data)[i]
+                            message( "Cautionary note:" )
+                            message( concat( "Variable ", vn , " contains only integers but is not type 'integer'. If you intend it as an index variable, you should as.integer() it before passing to ulam." ) )
+                        }
+                    }# not matrix
+                }# all integer
+            }# not character
         }
         # pre-scan for any scale() processed variables that might need to be as.numeric()
         for ( i in 1:length(data) ) {
@@ -98,6 +123,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         row_vector = list( patt="row_vector<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
         matrix = list( patt="matrix<CONSTRAINT>[DIM1,DIM2] NAME[DIM3]" , dims=3 ),
         int = list( patt="int<CONSTRAINT> NAME[DIM1]" , dims=1 ),
+        int_array = list( patt="int<CONSTRAINT> NAME[DIM1,DIM2]" , dims=2 ),
         corr_matrix = list( patt="corr_matrix<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
         cholesky_factor_corr = list( patt="cholesky_factor_corr<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
         ordered = list( patt="ordered<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
@@ -312,7 +338,9 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 out <- gsub( Z , dd , out , fixed=TRUE )
             } else {
                 # erase optional array dim
+                # could be either [DIM2] or [DIM1,DIM2]
                 out <- gsub( concat("[",Z,"]") , "" , out , fixed=TRUE )
+                out <- gsub( concat(",",Z,"]") , "]" , out , fixed=TRUE )
             }
         }
         return( out )
@@ -533,6 +561,14 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         # check for vector and call it a vector
         if ( stan_type=="real" ) {
             if ( the_dims[[2]] > 1 ) the_dims[[1]] <- "vector"
+        }
+        # check for integer array
+        if ( class( data[[var_name]] )=="array" ) {
+            if ( class( data[[var_name]][1] )=="integer" ) {
+                the_dims <- list( "int_array" , dim( data[[var_name]] ) )
+            } else {
+                the_dims <- list( "real" , dim( data[[var_name]] ) )
+            }
         }
         # return list suitable to insert in symbols list
         return( list( name=var_name , type="data" , dims=the_dims , constraint=NA ) )
@@ -873,8 +909,22 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         }#par
 
         if ( left_type=="data" & sample_prior==FALSE ) {
-            for ( j in 1:length(left_symbol) )
+
+            # first check for implied Stan type for left var
+            the_dist <- as.character( flist[[i]][[3]] ) # will be a character vector including pars
+            template <- get_dist_template( the_dist[1] )
+            out_type <- template$dims[1] # Stan type
+
+            # now process each var on left side
+            for ( j in 1:length(left_symbol) ) {
+                if ( !is.na(out_type) ) {
+                    if ( out_type=="real" ) 
+                        data[[ left_symbol[j] ]] <- as.numeric(data[[ left_symbol[j] ]])
+                    if ( out_type=="int" ) 
+                        data[[ left_symbol[j] ]] <- as.integer(data[[ left_symbol[j] ]])
+                }
                 symbols[[ left_symbol[j] ]] <- register_data_var( left_symbol[j] )
+            }
             # build text for model block
             built <- compose_distibution( left_symbol , flist[[i]] )
             m_model_txt <- concat( m_model_txt , built )
