@@ -43,7 +43,7 @@ ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 ,
 
   \code{y ~ normal( mu , sigma )}
 
-  or rather a determinsitic assignment like:
+  or rather a deterministic assignment like:
 
   \code{mu <- a + b*x}
 
@@ -53,7 +53,7 @@ ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 ,
 
   The \code{type} delcaration is optional. So the most basic defintion can be just \code{y ~ bernoulli(theta)}, but a full declariation can be more detailed, when necessary. The examples below show how matrix variables can be defined in this syntax.
 
-  For determinstic assignments like:
+  For deterministic assignments like:
 
   \code{mu <- a + b*x}
 
