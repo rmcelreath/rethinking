@@ -1,9 +1,9 @@
 \name{HMC2}
 \alias{HMC2}\alias{HMC_2D_sample}
 %- Also NEED an '\alias' for EACH other topic documented here.
-\title{Compare fit models using WAIC or DIC}
+\title{Functions for simple HMC simulations}
 \description{
-  Returns a table of model comparison statistics, by default focused on WAIC.
+  Conduct simple Hamiltonian Monte Carlo simulations.
 }
 \usage{
 HMC2(U, grad_U, epsilon, L, current_q , ... )

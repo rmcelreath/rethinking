@@ -1,4 +1,5 @@
 # test_dir('rethinking/tests/book_chapters',reporter="summary")
+# test_dir('rethinking/tests/book_chapters',filter="chapter03")
 
 context('chapter 3')
 library(rethinking)

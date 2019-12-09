@@ -295,3 +295,45 @@ format_show <- function( x , digits ) {
 
 # just for recoding "Yes"/"No" to 1/0
 yn2bin <- function(x) ifelse(is.na(x),NA,ifelse(x %in% c("Yes","yes","Y","y"),1,0))
+
+# function to generate n unique keys of length m that are at least x typos apart
+make_ukey <- function( n , m=5 , x=2 , 
+    # default bag omits easy confusions like l/1, 0/o, s/5
+    bag=c("a","b","c","d","e","f","g","h","j",
+          "k","m","n","p","q","r","u","w","x",
+          "y","z",0,2,3,4,6,7,8,9) ) {
+    y <- rep(NA,n)
+
+    genkey <- function() paste( sample(bag,size=m,replace=TRUE) , collapse="" )
+    keydist <- function( k1 , k2 ) {
+        # compute distance of k1 and k2 in simple differences
+        as.numeric(adist( k1 , k2 ))
+    }
+    checkkey <- function( key , xkeys ) {
+        # check distance of key against all xkeys
+        dists <- sapply( xkeys , function(k) keydist( key , k ) )
+        if ( any( dists < x ) ) {
+            # too close!
+            return(FALSE)
+        } else {
+            return(TRUE)
+        }
+    }
+
+    y[1] <- genkey()
+    for ( i in 2:n ) {
+        good <- FALSE
+        while( !good ) {
+            yn <- genkey()
+            f <- checkkey( yn , y[ !is.na(y) ] )
+            if ( f==TRUE ) {
+                y[i] <- yn
+                good <- TRUE
+            }
+        }#while !good
+    }#i
+
+    return(y)
+}
+
+# table( adist(make_ukey(1e3)) )

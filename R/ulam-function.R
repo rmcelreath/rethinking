@@ -400,6 +400,8 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                     if ( i==2 )
                         if ( as.character(f[[1]])=="[" )
                             next # move on to next symbol, bc this already has [ after it
+                    # check if length 1, so a constant that doesn't need [i]
+                    if ( length( data[[ as.character(f[[i]]) ]] )==1 ) next
                     # convert to a nested call
                     f[[i]] <- call( "[" , f[[i]] , quote(i) )
                 }
@@ -594,7 +596,6 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
 
     # search expression tree recursively and replace pattern with x
     symbol_gsub <- function( f , pattern , x ) {
-
         for ( i in 1:length(f) ) {
             if ( class( f[[i]] )=="name" ) {
                 # could be pattern
@@ -603,13 +604,11 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 }
             } else {
                 if ( class( f[[i]] )=="call" || class( f[[i]] )=="(" ) {
-                    # nested structure
-                    # need to drill down
+                    # nested structure - need to drill down
                     f[[i]] <- symbol_gsub( f[[i]] , pattern , x )
                 }
             }
         }#i
-
         return( f )
     }
 
@@ -863,6 +862,20 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 the_dims <- template$dims[1]
             }
 
+            # check for data vars on right side and check types as well
+            # these are registered further down, but set type now when have template info
+            right <- the_dist[-1]
+            for ( k in 1:length(right) ) {
+                if ( right[k] %in% names(data) ) {
+                    # data so check type
+                    need_type <- template$dims[k+1]
+                    if ( need_type %in% c("real","vector") ) {
+                        if ( class(data[[ right[k] ]]) != "numeric" )
+                            data[[ right[k] ]] <- as.numeric(data[[ right[k] ]])
+                    }
+                }
+            }#k
+
             # store info
             # might be multiple parameters in a vector
             for ( j in 1:length(left_symbol) ) {
@@ -925,6 +938,20 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 }
                 symbols[[ left_symbol[j] ]] <- register_data_var( left_symbol[j] )
             }
+            # check for data vars on right side and check types as well
+            # these are registered further down, but set type now when have template info
+            right <- the_dist[-1]
+            for ( k in 1:length(right) ) {
+                if ( right[k] %in% names(data) ) {
+                    # data so check type
+                    need_type <- template$dims[k+1]
+                    if ( need_type %in% c("real","vector") ) {
+                        if ( class(data[[ right[k] ]]) != "numeric" )
+                            data[[ right[k] ]] <- as.numeric(data[[ right[k] ]])
+                    }
+                }
+            }#k
+
             # build text for model block
             built <- compose_distibution( left_symbol , flist[[i]] )
             m_model_txt <- concat( m_model_txt , built )

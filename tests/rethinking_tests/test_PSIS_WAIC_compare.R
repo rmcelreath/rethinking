@@ -1,4 +1,5 @@
 # PSIS and WAIC tests
+# test_dir('rethinking/tests/rethinking_tests',filter="PSIS_WAIC_compare")
 
 context("PSIS, WAIC, and compare")
 
