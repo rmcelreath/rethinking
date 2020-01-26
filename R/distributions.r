@@ -196,10 +196,10 @@ rlaplace <- function(n,location=0,lambda=1) {
 }
 
 
-# onion method correlation matrix
+# onion method correlation matrix - omits normalization constant
 dlkjcorr <- function( x , eta=1 , log=TRUE ) {
     ll <- det(x)^(eta-1)
-    if ( log==FALSE ) ll <- exp(ll)
+    if ( log==TRUE ) ll <- log(ll)
     return(ll)
 }
 

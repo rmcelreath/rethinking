@@ -26,7 +26,7 @@ precis( model , depth=1 , pars , ci=TRUE , prob=0.89 ,
   Can also provide expected value, standard deviation, and HPDI columns for a data frame.
 }
 \value{
-  A data frame with a row for each parameter.
+  A data frame with a row for each parameter. The n_eff and Rhat columns are calculated by rstan. Rhat4 indicates Rhat as defined in Gelman et al 2013 "Bayesian Data Analysis". This is different from the classic 1992 Gelman and Rubin definition, as Rhat4 uses more information from multiple chains.
 }
 \references{}
 \author{Richard McElreath}

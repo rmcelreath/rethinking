@@ -122,7 +122,7 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
 
 # plot method for compareIC results shows deviance in and expected deviance out of sample, for each model, ordered top-to-bottom by rank
 setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALSE,...) {
-    dev_in <- x[[1]] - x[[2]]*2
+    dev_in <- x[[1]] - x[[5]]*2 # criterion - penalty*2
     dev_out <- x[[1]]
     if ( !is.null(x[['SE']]) ) devSE <- x[['SE']]
     dev_out_lower <- dev_out - devSE
@@ -137,7 +137,8 @@ setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALS
     if ( missing(xlim) ) {
         xlim <- c(min(dev_in),max(dev_out))
         if ( SE==TRUE & !is.null(x[['SE']]) ) {
-            xlim <- c(min(dev_in),max(dev_out_upper))
+            xlim[1] <- min(dev_in,dev_out_lower)
+            xlim[2] <- max(dev_out_upper)
         }
     }
     main <- colnames(x)[1]

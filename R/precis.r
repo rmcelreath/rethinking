@@ -150,6 +150,12 @@ precis_format <- function( result , depth , sort , decreasing ) {
         result <- result[o,]
     }
 
+    # label Rhat with version
+    rhat_col <- which( colnames(result)=="Rhat" )
+    if ( !is.null(rhat_col) ) {
+        colnames(result)[rhat_col] <- "Rhat4"
+    }
+
     return(result)
 }
 
