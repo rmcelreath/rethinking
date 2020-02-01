@@ -4,7 +4,22 @@
 # allow explicit declarations
 # see tests in ulam-tests.R for examples
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , ... ) {
+# file argument:
+# if NULL ignore
+# if string X,
+#   if file X.rds exists in working directory, load instead of fitting
+#   otherwise save result as X.rds to working directory
+
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , ... ) {
+
+    if ( !is.null(file) ) {
+        rds_file_name <- concat( file , ".rds" )
+        if ( file.exists(rds_file_name) ) {
+            # load it
+            result <- readRDS( file=rds_file_name )
+            return(result) # exit
+        }
+    }
 
     if ( !missing(data) )
         data <- as.list(data)
@@ -1269,6 +1284,16 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         attr(result,"generation") <- "ulam2018"
         if ( nobs_save > 0 ) attr(result,"nobs") <- nobs_save
 
+    }
+
+    # check for file argument
+    if ( !is.null(file) ) {
+        rds_file_name <- concat( file , ".rds" )
+        if ( !file.exists(rds_file_name) ) {
+            # save it
+            if ( messages==TRUE ) message(concat("Saving result as ",rds_file_name))
+            saveRDS( result , file=rds_file_name )
+        }
     }
 
     return( result )
