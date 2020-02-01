@@ -1,5 +1,10 @@
-Statistical Rethinking book Errata
-==========
+# Statistical Rethinking book Errata
+
+## 2nd Edition
+
+[to be filled]
+
+## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
 
