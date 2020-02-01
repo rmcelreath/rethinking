@@ -30,22 +30,82 @@ http://atmenv.envi.osakafu-u.ac.jp/aono/kyophenotemp4/}
 \seealso{}
 \examples{
 
+# This code reproduces the plot on the 2nd edition cover
+
 library(rethinking)
 data(cherry_blossoms)
 d <- cherry_blossoms
 
-par(mfrow=c(2,1))
+# spline on temp
+d2 <- d[ complete.cases(d$temp) , ] # complete cases on temp
 
-plot( d$year , d$blossoms_doy , xlab="Year (CE)" , ylab="Date (day-in-year)" , pch=16 , cex=1.5 , col=col.alpha("pink",0.8) , bty="l" , xlim=c(800,2015) , cex.axis=0.8 )
-abline( h=91 , lty=2 , lwd=0.5 )
-text( 810 , 89 , "1 April" , cex=0.8 )
-abline( h=121 , lty=2 , lwd=0.5 )
-text( 810 , 119 , "1 May" , cex=0.8 )
-mtext( "Date of first bloom" , adj=0 )
-plot( d$year , d$temp , xlab="Year (CE)" , ylab="March temperature" , type="l" , lwd=2 , bty="l" , xlim=c(800,2015) , cex.axis=0.8 )
-lines( d$year , d$temp_lower , col="gray" )
-lines( d$year , d$temp_upper , col="gray" )
-mtext( "March temperature reconstruction (95\% interval)" , adj=0 )
+num_knots <- 30
+( knot_list <- quantile( d2$year , probs=seq(0,1,length.out=num_knots) ) )
+
+library(splines)
+B <- bs(d2$year, 
+    knots=knot_list[-c(1,num_knots)] , 
+    degree=3 , intercept=TRUE )
+
+m1 <- quap(
+    alist(
+        T ~ dnorm( mu , sigma ) ,
+        mu <- a + B %*% w ,
+        a ~ dnorm(6,1),
+        w ~ dnorm(0,10),
+        sigma ~ dexp(1)
+    ),
+    data=list( T=d2$temp , B=B ) , 
+    start=list( w=rep( 0 , ncol(B) ) ) )
+
+# now spline on blossom doy
+d3 <- d[ complete.cases(d$doy) , ] # complete cases on doy
+
+knot_list <- seq( from=min(d3$year) , to=max(d3$year) , length.out=num_knots )
+B3 <- t(bs(d3$year, knots=knot_list , degree=3, intercept = FALSE))
+
+m2 <- quap(
+    alist(
+        Y ~ dnorm( mu , sigma ) ,
+        mu <- a0 + as.vector( a %*% B ),
+        a0 ~ dnorm(100,10),
+        a ~ dnorm(0,10),
+        sigma ~ dexp(1)
+    ),
+    data=list( Y=d3$doy , B=B3 ) , start=list(a=rep(0,nrow(B3))) )
+
+# PLOT
+
+blank2(w=2,h=2)
+
+par( mfrow=c(2,1) , mgp = c(1.25, 0.25, 0), mar = c(0.75, 2.5, 0.75, 0.75) + 0.1, 
+        tck = -0.02, cex.axis = 0.8 )
+
+xcex <- 1.2
+xpch <- 16
+xcol1 <- col.alpha(rangi2,0.3)
+col_spline <- col.alpha("black",0.4)
+xlims <- c(850,2000)
+
+plot( d2$year , d2$temp , ylab="March temperature" , col=xcol1 , pch=xpch , cex=xcex , xlab="" , xlim=xlims , bty="n" , axes=FALSE , ylim=c( 4.5 , 8.3 ) )
+l <- link( m1 )
+li <- apply(l,2,PI,0.97)
+
+atx <- c(900,1400,2000)
+axis( 1 , at=atx , labels=paste(atx,"CE") )
+axis( 2 , at=c(5,8) , labels=c("5°C","8°C") )
+
+y <- d3$doy
+y <- y - min(y)
+y <- y/max(y)
+blossom_col <- sapply( d3$doy , function(y) hsv(1, rbeta2(1, inv_logit(logit(0.1)+0.02*y) ,10) ,1,0.8) )
+plot( NULL , cex=xcex , ylab="Day of first blossom" , xlim=xlims , bty="n" , axes=FALSE , xlab="" , ylim=range(d3$doy) )
+l <- link( m2 )
+li <- apply(l,2,PI,0.9)
+points( d3$year , d3$doy , col=blossom_col ,  pch=8  , cex=xcex , lwd=2 )
+shade( li , d3$year , col=grau(0.3) )
+
+axis( 2 , at=c(90,120) , labels=c("April 1","May 1") )
 
 }
 % Add one or more standard keywords, see file 'KEYWORDS' in the

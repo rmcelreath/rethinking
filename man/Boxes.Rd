@@ -3,10 +3,13 @@
 %- Also NEED an '\alias' for EACH other topic documented here.
 \title{Social learning experimental data}
 \description{
-  Data from a cross-cultural experiment investigating the development of social learning in children
+  Data from (and Stan models for) a cross-cultural experiment investigating the development of social learning in children
 }
 \usage{
 data(Boxes)
+data(Boxes_model)
+data(Boxes_model_age)
+data(Boxes_model_gender)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
