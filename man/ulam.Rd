@@ -72,7 +72,7 @@ ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 ,
 
   The control tag \code{transpars} can be used to place an assignment in Stan's transformed parameters block. Keep in mind that any other intermediate calculations must also be placed in the same block. Finally, \code{transdata} places the assignment in the transformed data block. This means it will only execute once, before sampling begins. But it also means that the values will not be available post-sampling for helper functions like \code{link}. As such, it will usually be better to transform data before passing it into \code{ulam}.
   
-  Methods are defined for \code{\link{extract.samples}}, \code{\link{extract.prior}}, \code{\link{link}}, \code{\link{sim}}, \code{\link{ensemble}}, \code{\link{compare}}, \code{coef}, \code{summary}, \code{logLik}, \code{vcov}, \code{nobs}, \code{deviance}, \code{plot}, \code{traceplot}, \code{pairs}, and \code{show}.
+  Methods are defined for \code{\link{extract.samples}}, \code{\link{extract.prior}}, \code{\link{link}}, \code{\link{sim}}, \code{\link{compare}}, \code{coef}, \code{summary}, \code{logLik}, \code{lppd}, \code{vcov}, \code{nobs}, \code{deviance}, \code{WAIC}, \code{PSIS}, \code{plot}, \code{traceplot}, \code{trankplot}, \code{pairs}, and \code{show}.
 }
 \value{
     Returns an object of class \code{ulam} with the following slots.

@@ -28,7 +28,9 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
     mnames <- as.character(mnames)[2:(length(L)+1)]
 
     # use substitute to deparse the func argument
-    the_func <- deparse(substitute(func))
+    the_func <- func
+    if ( class(the_func) != "character" )
+        the_func <- deparse(substitute(func))
     
     # check class of fit models and warn when more than one class represented
     classes <- as.character(sapply( L , class ))

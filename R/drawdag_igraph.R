@@ -131,11 +131,11 @@ if (FALSE) {
     }")
 
     coordinates(exdag) <- list(x=c(U=1,X=1,Y=2,Z=0),y=c(U=0,X=1,Y=1,Z=1))
-    drawdag(exdag,margin=-0.25,edge.curve=0.1 )
+    graphdag(exdag,margin=-0.25,edge.curve=0.1 )
 
-    l <- drawdag( exdag , layout=layout_in_circle )
-    l <- drawdag( exdag , layout=layout_nicely )
-    drawdag( exdag , layout=l )
+    l <- graphdag( exdag , layout=layout_in_circle )
+    l <- graphdag( exdag , layout=layout_nicely )
+    graphdag( exdag , layout=l )
 
     exdag2 <- dagitty( 'dag {
         G [exposure,unobserved]
@@ -144,7 +144,7 @@ if (FALSE) {
         RG -> "G*"
     }')
 
-    drawdag( exdag2 , edge.curve=0.2 )
+    graphdag( exdag2 , edge.curve=0.2 )
 
     l <- sketchdag( exdag2 )
     drawdag( exdag2 , layout=round(l,2) )

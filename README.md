@@ -1,7 +1,7 @@
 rethinking
 ==========
 
-This R package accompanies a course and book on Bayesian data analysis (McElreath 2016. Statistical Rethinking. CRC Press.). It contains tools for conducting both quick quadratic approximation of the posterior distribution as well as Hamiltonian Monte Carlo (through RStan - mc-stan.org). Many packages do this. The signature difference of this package is that it forces the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful and---most important---useful for teaching and learning. When students have to write out every detail of the model, they actually learn the model.
+This R package accompanies a course and book on Bayesian data analysis: McElreath 2020. Statistical Rethinking, 2nd edition. CRC Press. It contains tools for conducting both quick quadratic approximation of the posterior distribution as well as Hamiltonian Monte Carlo (through RStan - mc-stan.org). Many packages do this. The signature difference of this package is that it forces the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful and---most important---useful for teaching and learning. When students have to write out every detail of the model, they actually learn the model.
 
 For example, a simple Gaussian model could be specified with this list of formulas:
 
@@ -202,7 +202,7 @@ m_glmm5 <- ulam(
 ```
 In the above, the varying effects matrix `v` is constructed from a matrix of z-scores `z` and a covariance structure contained in `sigma` and a Cholesky factor `L_Rho`. Note the double-bracket notation `v_mu[[1]]` allowing distinct priors for each index of a vector.
 
-## log-likelihood calculations for WAIC and LOO
+## log-likelihood calculations for WAIC and LOOCV
 
 `ulam` can optionally return pointwise log-likelihood values. These are needed for computing WAIC and PSIS-LOO. The `log_lik` argument toggles this on:
 ```

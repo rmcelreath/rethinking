@@ -190,12 +190,16 @@ setMethod("show", "map2stan", function(object){
     
     if ( !is.null(attr(object,"WAIC")) ) {
         waic <- attr(object,"WAIC")
-        use_waic <- sum(waic)
         cat("\nWAIC (SE): ")
-        cat( concat(round(as.numeric(use_waic),2) , " (" , round(as.numeric(attr(waic,"se")),1) , ")" , "\n" ) )
+        cat( concat( 
+            round(as.numeric(sum(waic[,1]),2)) , 
+            " (" , 
+            round(as.numeric(waic[1,4]),1) , 
+            ")" , 
+            "\n" ) )
         
         cat("pWAIC: ")
-        use_pWAIC <- sum( unlist(attr(waic,"pWAIC")) )
+        use_pWAIC <- sum( waic[,3] )
         cat( round(as.numeric(use_pWAIC),2) , "\n" )
     }
     

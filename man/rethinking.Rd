@@ -11,8 +11,6 @@
   \tabular{ll}{
     Package: \tab rethinking\cr
     Type: \tab Package\cr
-    Version: \tab 1.88\cr
-    Date: \tab 02 April 2019\cr
     License: \tab GPL-3 \cr
   }
   
@@ -21,7 +19,7 @@
   Richard McElreath
 }
 \references{
-  McElreath (2016). Statistical Rethinking: A Bayesian Course with Examples in R and Stan. CRC Press.
+  McElreath (2020). Statistical Rethinking: A Bayesian Course with Examples in R and Stan (2nd edition). CRC Press.
 }
 
 \examples{}  
