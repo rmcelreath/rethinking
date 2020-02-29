@@ -68,7 +68,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             if ( class(data[[i]])!="character" ) {
                 if ( all( as.integer(data[[i]])==data[[i]] , na.rm=TRUE ) ) {
                     #data[[i]] <- as.integer(data[[i]])
-                    if ( class(data[[i]])!="integer" & class(data[[i]])!="matrix" ) {
+                    if ( class(data[[i]])!="integer" & !inherits(data[[i]],"matrix") ) {
                         if ( coerce_int==TRUE ) {
                             data[[i]] <- as.integer(data[[i]])
                         }
@@ -568,7 +568,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         # try to determine Stan type from class
         stan_type <- "real"
         if ( class( data[[var_name]] )=="integer" ) stan_type <- "int"
-        if ( class( data[[var_name]] )=="matrix" ) {
+        if ( inherits( data[[var_name]] , "matrix" ) ) {
             stan_type <- "matrix"
             the_dims <- list( stan_type , the_dims[1] , the_dims[2] )
         } else {

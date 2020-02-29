@@ -202,8 +202,9 @@ test_that("ulam continuous missing data 3",{
 
 
 # discrete missing data - need to mix over different terms
+rm(UCBadmit)
 data( UCBadmit )
-UCBadmit$male <- as.integer( ifelse( UCBadmit$applicant.gender=="male" , 1 , 0 ) )
+UCBadmit$male <- ifelse( UCBadmit$applicant.gender=="male" , 1L , 0L )
 UCBadmit$dept <- rep( 1:6 , each=2 )
 UCBadmit$applicant.gender <- NULL
 UCBadmit$male2 <- UCBadmit$male
