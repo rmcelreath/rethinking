@@ -1,7 +1,9 @@
 rethinking
 ==========
 
-This R package accompanies a course and book on Bayesian data analysis: McElreath 2020. Statistical Rethinking, 2nd edition. CRC Press. It contains tools for conducting both quick quadratic approximation of the posterior distribution as well as Hamiltonian Monte Carlo (through RStan - mc-stan.org). Many packages do this. The signature difference of this package is that it forces the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful and---most important---useful for teaching and learning. When students have to write out every detail of the model, they actually learn the model.
+This R package accompanies a course and book on Bayesian data analysis: McElreath 2020. Statistical Rethinking, 2nd edition, CRC Press. If you are using it with the first edition of the book, please see the notes at the bottom of this file.
+
+It contains tools for conducting both quick quadratic approximation of the posterior distribution as well as Hamiltonian Monte Carlo (through RStan - mc-stan.org). Many packages do this. The signature difference of this package is that it forces the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful and---most important---useful for teaching and learning. When students have to write out every detail of the model, they actually learn the model.
 
 For example, a simple Gaussian model could be specified with this list of formulas:
 
@@ -27,7 +29,7 @@ Then you can install ``rethinking`` from within R using:
 ```
 install.packages(c("coda","mvtnorm","devtools","loo","dagitty"))
 library(devtools)
-devtools::install_github("rmcelreath/rethinking",ref="Experimental")
+devtools::install_github("rmcelreath/rethinking")
 ```
 If there are any problems, they likely arise when trying to install ``rstan``, so the ``rethinking`` package has little to do with it. See the manual linked above for some hints about getting ``rstan`` installed. But always consult the RStan section of the website at ``mc-stan.org`` for the latest information on RStan.
 
@@ -591,4 +593,21 @@ Both ``map`` and ``map2stan`` provide DIC and WAIC. Well, in most cases they do.
 `ulam` supports WAIC calculation with the optional `log_lik=TRUE` argument, which returns the kind of log-likelihood vector needed by the `loo` package.
 
 ``ensemble`` computes ``link`` and ``sim`` output for an ensemble of models, each weighted by its Akaike weight, as computed from WAIC.
+
+# Code issues with 1st edition of Statistical Rethinking
+
+A small change to ``link`` has broken two examples in the first edition of the book, in Chapter 7.
+
+## R code 7.10
+> mu.Africa.mean <- apply( mu.Africa , 2 , mean )
+Error in apply(mu.Africa, 2, mean) : dim(X) must have a positive length
+
+This occurs because link() now returns all linear models. So mu.Africa is a list containing mu and gamma. To fix, use:
+
+> mu.Africa.mean <- apply( mu.Africa$mu , 2 , mean )
+
+Use a similar fix in the other apply() calls in the same section.
+
+## R code 7.17
+Similar problem as for R code 7.10. Use mu.ruggedlo$mu in place of mu.ruggedlo.
 
