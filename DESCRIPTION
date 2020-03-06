@@ -1,12 +1,12 @@
 Package: rethinking
 Type: Package
 Title: Statistical Rethinking book package
-Version: 1.95
-Date: 2020-02-11
+Version: 2.00
+Date: 2020-03-06
 Author: Richard McElreath
 Maintainer: Richard McElreath <richard_mcelreath@eva.mpg.de>
 Imports: coda, MASS, mvtnorm, loo, shape
-Depends: rstan (>= 2.10.0), parallel, methods, stats, graphics, dagitty
+Depends: R (>= 3.5.0), rstan (>= 2.10.0), parallel, methods, stats, graphics, dagitty
 Suggests: testthat
 Description: Utilities for fitting and comparing models
 License: GPL (>= 3)
