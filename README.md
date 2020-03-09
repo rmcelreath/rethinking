@@ -7,7 +7,7 @@ It contains tools for conducting both quick quadratic approximation of the poste
 
 For example, a simple Gaussian model could be specified with this list of formulas:
 
-```
+```R
 f <- alist(
     y ~ dnorm( mu , sigma ),
     mu ~ dnorm( 0 , 10 ),
@@ -26,17 +26,16 @@ Here's the brief verison.
 You'll need to install ``rstan`` first. Go to ``http://mc-stan.org`` and follow the instructions for your platform. The biggest challenge is getting a C++ compiler configured to work with your installation of R. The instructions at ``https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started`` are quite thorough. Obey them, and you'll likely succeed.
 
 Then you can install ``rethinking`` from within R using:
-```
-install.packages(c("coda","mvtnorm","devtools","loo","dagitty"))
-library(devtools)
-devtools::install_github("rmcelreath/rethinking")
+```R
+install.packages("remotes")
+remotes::install_github("rmcelreath/rethinking")
 ```
 If there are any problems, they likely arise when trying to install ``rstan``, so the ``rethinking`` package has little to do with it. See the manual linked above for some hints about getting ``rstan`` installed. But always consult the RStan section of the website at ``mc-stan.org`` for the latest information on RStan.
 
 # Quadratic Approximation with `quap`
 
 Almost any ordinary generalized linear model can be specified with `quap`. To use quadratic approximation:
-```
+```R
 library(rethinking)
 
 f <- alist(
@@ -68,7 +67,7 @@ The same formula list can be compiled into a Stan (mc-stan.org) model using one 
 `ulam` is named after Stanisław Ulam, who was one of the parents of the Monte Carlo method and is the namesake of the Stan project as well. It is pronounced something like [OO-lahm], not like [YOU-lamm].
 
 Both tools take the same kind of input as `quap`:
-```
+```R
 fit_stan <- ulam( f , data=list(y=c(-1,1)) )
 ```
 The chain runs automatically, provided ``rstan`` is installed. Chain diagnostics are displayed in the `precis(fit_stan)` output:
@@ -84,7 +83,7 @@ For `ulam` models, `plot` displays the same information as `precis` and `tracepl
 The `stanfit` object itself is in the `@stanfit` slot. Anything you'd do with a Stan model can be done with that slot directly.
 
 The Stan code can be accessed by using ``stancode(fit_stan)``:
-```
+```stan
 data{
     real y[2];
 }
@@ -100,7 +99,7 @@ model{
 ```
 
 Note that `ulam` doesn't care about R distribution names. You can instead use Stan-style names:
-```
+```R
 fit_stan <- ulam(
     alist(
         y ~ normal( mu , sigma ),
@@ -125,7 +124,7 @@ See ``?link`` and ``?sim`` for details.
 ## Multilevel model formulas
 
 While ``quap`` is limited to fixed effects models for the most part, `ulam` can specify multilevel models, even quite complex ones. For example, a simple varying intercepts model looks like:
-```
+```R
 # prep data
 data( UCBadmit )
 UCBadmit$male <- as.integer(UCBadmit$applicant.gender=="male")
@@ -144,7 +143,7 @@ m_glmm1 <- ulam(
     ), data=UCBadmit )
 ```
 The analogous varying slopes model is:
-```
+```R
 m_glmm2 <- ulam(
     alist(
         admit ~ binomial(applications,p),
@@ -158,7 +157,7 @@ m_glmm2 <- ulam(
     data=UCBadmit )
 ```
 Another way to express the varying slopes model is with a vector of varying effects. This is made possible by using an explicit vector declaration inside the formula:
-```
+```R
 m_glmm3 <- ulam(
     alist(
         admit ~ binomial(applications,p),
@@ -174,7 +173,7 @@ m_glmm3 <- ulam(
 That `vector[2]:v[dept]` means "declare a vector of length two for each unique dept". To access the elements of these vectors, the linear model uses multiple indexes inside the brackets: `[dept,1]`. 
 
 This strategy can be taken one step further and the means can be declared as a vector as well:
-```
+```R
 m_glmm4 <- ulam(
     alist(
         admit ~ binomial(applications,p),
@@ -188,7 +187,7 @@ m_glmm4 <- ulam(
     data=UCBadmit )
 ```
 And a completely non-centered parameterization can be coded directly as well:
-```
+```R
 m_glmm5 <- ulam(
     alist(
         admit ~ binomial(applications,p),
@@ -207,7 +206,7 @@ In the above, the varying effects matrix `v` is constructed from a matrix of z-s
 ## log-likelihood calculations for WAIC and LOOCV
 
 `ulam` can optionally return pointwise log-likelihood values. These are needed for computing WAIC and PSIS-LOO. The `log_lik` argument toggles this on:
-```
+```R
 m_glmm1 <- ulam(
     alist(
         admit ~ binomial(applications,p),
@@ -220,7 +219,7 @@ m_glmm1 <- ulam(
 WAIC(m_glmm1)
 ```
 The additional code has been added to the generated quantities block of the Stan model (see this with `stancode(m_glmm1)`):
-```
+```stan
 generated quantities{
     vector[12] log_lik;
     vector[12] p;
@@ -237,7 +236,7 @@ generated quantities{
 `ulam` also supports if-then statements and custom distribution assignments. These are useful for coding mixture models, such as zero-inflated Poisson and discrete missing value models.
 
 Here's an example zero-inflated Poisson model.
-```
+```R
 # zero-inflated poisson
 # gen data first - example from text
 prob_drink <- 0.2 # 20% of days
@@ -261,7 +260,7 @@ m_zip <- ulam(
     data=list(y=y,x=x) )
 ```
 The Stan code corresponding to the first two lines in the formula above is:
-```
+```stan
 for ( i in 1:365 ) 
     if ( y[i] > 0 ) target += log1m(p) + poisson_lpmf(y[i] | lambda[i]);
 for ( i in 1:365 ) 
@@ -270,13 +269,13 @@ for ( i in 1:365 )
 What `custom` does is define custom `target` updates. And the `|` operator makes the line conditional. Note that `log1m`, `log_mix`, and `poisson_lpmf` are Stan functions.
 
 The same `custom` distribution approach allows for marginalization over discrete missing values. Let's introduce some missing values in the `UCBadmit` data from earlier.
-```
+```R
 UCBadmit$male2 <- UCBadmit$male
 UCBadmit$male2[1:2] <- (-1) # missingness code
 UCBadmit$male2 <- as.integer(UCBadmit$male2)
 ```
 Now the model needs to detect when `male2` is missing (-1) and then compute a mixture over the unknown state.
-```
+```R
 m_mix <- ulam(
     alist(
         admit|male2==-1 ~ custom( log_mix( 
@@ -299,7 +298,7 @@ Note the addition of `phi_male` to average over the unknown state.
 ## Continuous missing data imputation
 
 In principle, imputation of missing real-valued data is easy: Just replace each missing value with a parameter. In practice, this involves a bunch of annoying bookkeeping. `ulam` has a macro named `merge_missing` to simplify this.
-```
+```R
 UCBadmit$x <- rnorm(12)
 UCBadmit$x[1:2] <- NA
 m_miss <- ulam(
@@ -323,7 +322,7 @@ The merging is done as the Stan model runs, using a custom function block. See t
 ## Gaussian processes
 
 A simple Gaussian process, like the Oceanic islands example in Chapter 13 of the book, is done as:
-```
+```R
 data(Kline2)
 d <- Kline2
 data(islandsDistMatrix)
@@ -351,7 +350,7 @@ m_GP1 <- ulam(
 This is just an ordinary varying intercepts model, but all 10 intercepts are drawn from a single Gaussian distribution. The covariance matrix `SIGMA` is defined in the usual L2-norm. Again, `cov_GPL2` is a macro that inserts a function in the Stan code to compute the covariance matrix as the model runs.
 
 Fancier Gaussian processes require a different parameterization. And these can be built as well. Here's an example using 151 primate species and a phylogenetic distance matrix. First, prepare the data:
-```
+```R
 data(Primates301)
 data(Primates301_distance_matrix)
 d <- Primates301
@@ -365,7 +364,7 @@ y2 <- y[ spp_obs , spp_obs ]
 y3 <- y2/max(y2)
 ```
 Now the model, which is a non-centered L2-norm Gaussian process:
-```
+```R
 m_GP2 <- ulam(
     alist(
         social_learning ~ poisson( lambda ),
@@ -408,7 +407,7 @@ The older `map2stan` function makes stronger assumtions about the formulas it wi
 
 ## Non-centered parameterization
 Here is a non-centered parameterization that moves the scale parameters in the varying effects prior to the linear model, which is often more efficient for sampling:
-```
+```R
 f4u <- alist(
     y ~ dnorm( mu , sigma ),
     mu <- a + zaj[group]*sigma_group[1] + 
@@ -424,7 +423,7 @@ f4u <- alist(
 Chapter 13 of the book provides a lot more detail on this issue. 
 
 We can take this strategy one step further and remove the correlation matrix, ``Rho_group``, from the prior as well.  ``map2stan`` facilitates this form via the ``dmvnormNC`` density, which uses an internal Cholesky decomposition of the correlation matrix to build the varying effects. Here is the previous varying slopes model, now with the non-centered notation:
-```
+```R
 f4nc <- alist(
     y ~ dnorm( mu , sigma ),
     mu <- a + aj[group] + (b + bj[group])*x,
@@ -441,7 +440,7 @@ Internally, a Cholesky factor ``L_Rho_group`` is used to perform sampling. It wi
 ## Semi-automated Bayesian imputation
 
 It is possible to code simple Bayesian imputations. For example, let's simulate a simple regression with missing predictor values:
-```
+```R
 N <- 100
 N_miss <- 10
 x <- rnorm( N )
@@ -449,7 +448,7 @@ y <- rnorm( N , 2*x , 1 )
 x[ sample(1:N,size=N_miss) ] <- NA
 ```
 That removes 10 ``x`` values. Then the ``map2stan`` formula list just defines a distribution for ``x``:
-```
+```R
 f5 <- alist(
     y ~ dnorm( mu , sigma ),
     mu <- a + b*x,
@@ -469,7 +468,7 @@ What ``map2stan`` does is notice the missing values, see the distribution assign
 Binary (0/1) variables with missing values present a special obstacle, because Stan cannot sample discrete parameters. So instead of imputing binary missing values, ``map2stan`` can average (marginalize) over them. As in the above case, when ``map2stan`` detects missing values in a predictor variable, it will try to find a distribution for the variable containing them. If this variable is binary (0/1), then it will construct a mixture model in which each term is the log-likelihood conditional on the variables taking a particular combination of 0/1 values.
 
 Following the example in the previous section, we can simulate missingness in a binary predictor:
-```
+```R
 N <- 100
 N_miss <- 10
 x <- rbinom( N , size=1 , prob=0.5 )
@@ -477,7 +476,7 @@ y <- rnorm( N , 2*x , 1 )
 x[ sample(1:N,size=N_miss) ] <- NA
 ```
 The model definition is analogous to the previous, but also requires some care in specifying constraints for the hyperparameters that define the distribution for ``x``:
-```
+```R
 f6 <- alist(
     y ~ dnorm( mu , sigma ),
     mu <- a + b*x,
@@ -490,7 +489,7 @@ f6 <- alist(
 m6 <- map2stan( f6 , data=list(y=y,x=x) , constraints=list(phi="lower=0,upper=1") )
 ```
 The algorithm works, in theory, for any number of binary predictors with missing values. For example, with two predictors, each with missingness:
-```
+```R
 N <- 100
 N_miss <- 10
 x1 <- rbinom( N , size=1 , prob=0.5 )
@@ -513,7 +512,7 @@ m7 <- map2stan( f7 , data=list(y=y,x1=x1,x2=x2) ,
       constraints=list(phi1="lower=0,upper=1",phi2="lower=0,upper=1") )
 ```
 While the unobserved values for the binary predictors are usually not of interest, they can be computed from the posterior distribution. Adding the argument ``do_discrete_imputation=TRUE`` instructs ``map2stan`` to perform these calculations automatically. Example:
-```
+```R
 m6 <- map2stan( f6 , data=list(y=y,x=x) , constraints=list(phi="lower=0,upper=1") ,
       do_discrete_imputation=TRUE )
 precis( m6 , depth=2 )
@@ -544,7 +543,7 @@ Pr(y[i]|x2[i]==1) = Pr(x1=1)Pr(x2=1)Pr(y[i]|x1=1,x2=1) + Pr(x1=1)Pr(x2=0)Pr(y[i]
                   = Pr(x1=1)Pr(y[i]|x1=1,x2=1) + Pr(x1=0)Pr(y[i]|x1=0,x2=1)
 ```
 This implies that if we loop over cases ``i`` and insert any observed values into the general mixture likelihood, we can compute the relevant mixture for the specific combination of missingness on each case ``i``. That is what ``map2stan`` does. The general mixture terms can be generated algorithmically. The code below generates a matrix of terms for ``n`` binary variables with missingness.
-```
+```R
 ncombinations <- 2^n
 d <- matrix(NA,nrow=ncombinations,ncol=n)
 for ( col_var in 1:n ) 
@@ -555,11 +554,11 @@ Rows of ``d`` contain terms, columns contain variables, and the values in each c
 ## Gaussian process
 
 A basic Gaussian process can be specified with the ``GPL2`` distribution label. This implies a multivariate Gaussian with a covariance matrix defined by the ordinary L2 norm distance function:
-```
+```R
 k(i,j) = eta^2 * exp( -rho^2 * D(i,j)^2 ) + ifelse(i==j,sigma^2,0)
 ```
 where ``D`` is a matrix of pairwise distances. To use this convention in, for example, a spatial autocorrelation model:
-```
+```R
 library(rethinking)
 data(Kline2)
 d <- Kline2
