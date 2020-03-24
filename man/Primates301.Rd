@@ -41,11 +41,11 @@ data(Primates301_vcov_matrix)
 \references{
 Street SE, Navarrete AF, Reader SM, Laland KN (2017) Coevolution of cultural intelligence, extended life history, sociality, and brain size in primates. PNAS https://doi.org/10.1073/pnas.1620734114
 
-Arnold C, Matthews LJ, Nunn CL (2010) The 10kTrees Website: A New Online Resource for Primate Phylogeny. Evol Anthropol 19(3):114–118.
+Arnold C, Matthews LJ, Nunn CL (2010) The 10kTrees Website: A New Online Resource for Primate Phylogeny. Evol Anthropol 19(3):114-118.
 
-Reader SM, Hager Y, Laland KN (2011) The evolution of primate general and cultural intelligence. Philos Trans R Soc B-Biological Sci 366(1567):1017–1027.
+Reader SM, Hager Y, Laland KN (2011) The evolution of primate general and cultural intelligence. Philos Trans R Soc B-Biological Sci 366(1567):1017-1027.
 
-Isler K, et al. (2008) Endocranial volumes of primate species: scaling analyses using a comprehensive and reliable data set. J Hum Evol 55(6):967–978.
+Isler K, et al. (2008) Endocranial volumes of primate species: scaling analyses using a comprehensive and reliable data set. J Hum Evol 55(6):967-978.
 
 Jones, Kate E, et al. (2009) PanTHERIA: a species-level database of life history, ecology, and geography of extant and recently extinct mammals. Ecology 90:2649.
 }
