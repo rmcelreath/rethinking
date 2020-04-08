@@ -2,7 +2,7 @@
 
 ## 2nd Edition
 
-[to be filled]
+page 209: 4th line of the overthinking box. "...arise according the the p's..." should be "...arise according to the p's..."
 
 ## 1st Edition
 
