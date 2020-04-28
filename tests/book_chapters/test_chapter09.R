@@ -95,16 +95,19 @@ test_that("R code 9.16",{
 
 ## R code 9.22
 y <- c(-1,1)
-set.seed(11)
-m9.2 <- ulam(
-    alist(
-        y ~ dnorm( mu , sigma ) ,
-        mu <- alpha ,
-        alpha ~ dnorm( 0 , 1000 ) ,
-        sigma ~ dexp( 0.0001 )
-    ) , data=list(y=y) , chains=3 )
-
 test_that("R code 9.22",{
+
+    set.seed(11)
+    expect_warning(
+    m9.2 <- ulam(
+        alist(
+            y ~ dnorm( mu , sigma ) ,
+            mu <- alpha ,
+            alpha ~ dnorm( 0 , 1000 ) ,
+            sigma ~ dexp( 0.0001 )
+        ) , data=list(y=y) , chains=3 )
+    )
+
     expect_equivalent( dim(precis(m9.2,2)) , c(2,6) )
     expect_equivalent( divergent(m9.2) , 67 )
 })
@@ -129,34 +132,40 @@ set.seed(41)
 y <- rnorm( 100 , mean=0 , sd=1 )
 
 ## R code 9.26
-set.seed(384)
-m9.4 <- ulam(
-    alist(
-        y ~ dnorm( mu , sigma ) ,
-        mu <- a1 + a2 ,
-        a1 ~ dnorm( 0 , 1000 ),
-        a2 ~ dnorm( 0 , 1000 ),
-        sigma ~ dexp( 1 )
-    ) , data=list(y=y) , chains=3 )
-
 test_that("R code 9.26",{
+    set.seed(384)
+    expect_warning( 
+    m9.4 <- ulam(
+        alist(
+            y ~ dnorm( mu , sigma ) ,
+            mu <- a1 + a2 ,
+            a1 ~ dnorm( 0 , 1000 ),
+            a2 ~ dnorm( 0 , 1000 ),
+            sigma ~ dexp( 1 )
+        ) , data=list(y=y) , chains=3 )
+    , NULL )
+
     expect_equivalent( dim(precis(m9.4,2)) , c(3,6) )
     expect_equivalent( divergent(m9.4) , 0 )
     expect_equivalent( round(precis(m9.4,2)$n_eff[1]) , 2 )
 })
 
 ## R code 9.27
-m9.5 <- ulam(
-    alist(
-        y ~ dnorm( mu , sigma ) ,
-        mu <- a1 + a2 ,
-        a1 ~ dnorm( 0 , 10 ),
-        a2 ~ dnorm( 0 , 10 ),
-        sigma ~ dexp( 1 )
-    ) , data=list(y=y) , chains=3 )
-
 test_that("R code 9.27",{
+
+    expect_warning(  
+    m9.5 <- ulam(
+        alist(
+            y ~ dnorm( mu , sigma ) ,
+            mu <- a1 + a2 ,
+            a1 ~ dnorm( 0 , 10 ),
+            a2 ~ dnorm( 0 , 10 ),
+            sigma ~ dexp( 1 )
+        ) , data=list(y=y) , chains=3 )
+    , "Bulk Effective" , fixed=TRUE )
+
     expect_equivalent( dim(precis(m9.5,2)) , c(3,6) )
     expect_equivalent( divergent(m9.5) , 0 )
+
 })
 

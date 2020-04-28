@@ -11,6 +11,12 @@ standardize <- function(x) {
     attr(z,"scaled:scale") <- attr(x,"scaled:scale")
     return(z)
 }
+unstandardize <- function(x) {
+    scale <- attr(x,"scaled:scale")
+    center <- attr(x,"scaled:center")
+    z <- x*scale + center
+    return( as.numeric(z) )
+}
 
 # set help to html
 htmlhelp <- function() options(help_type="html")

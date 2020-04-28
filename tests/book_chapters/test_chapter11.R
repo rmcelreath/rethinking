@@ -144,7 +144,7 @@ test_that("R code 11.21",{
 test_that("R code 11.22",{
     m11.4_stan_code <- stancode(m11.4)
     m11.4_stan <- stan( model_code=m11.4_stan_code , data=dat_list , chains=4 )
-    compare( m11.4_stan , m11.4 )
+    expect_warning( compare( m11.4_stan , m11.4 ) )
 })
 
 ## R code 11.24
@@ -371,9 +371,12 @@ model{
 
 ## R code 11.57
 dat_list <- list( N=N , K=3 , career=career , career_income=income )
-m11.13 <- stan( model_code=code_m11.13 , data=dat_list , chains=4 )
 
+expect_warning(
+        m11.13 <- stan( model_code=code_m11.13 , data=dat_list , chains=4 )
+    )
 test_that("R code 11.57",{
+    
     expect_equivalent( dim( precis( m11.13 , 2 ) ) , c(3,6) )
 })
 

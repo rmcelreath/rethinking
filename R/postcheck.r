@@ -10,7 +10,7 @@ postcheck <- function( fit , x , prob=0.89 , window=20 , n=1000 , col=rangi2 , .
     pred <- link(fit,n=n)
     sims <- sim(fit,n=n)
     
-    if ( class(pred)=="list" )
+    if ( class(pred)[1]=="list" )
         if ( length(pred)>1 ) pred <- pred[[1]]
     
     # get outcome variable

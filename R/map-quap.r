@@ -503,7 +503,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     
     if ( hessian & dofit ) {
         vcov <- try( solve(fit$hessian) )
-        if ( class(vcov)=="try-error" ) {
+        if ( class(vcov)[1]=="try-error" ) {
             warning( "Error when computing variance-covariance matrix (Hessian). Fit may not be reliable." )
             vcov <- matrix( NA , nrow=length(pars) , ncol=length(pars) )
         }

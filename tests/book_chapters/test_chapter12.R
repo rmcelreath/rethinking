@@ -29,7 +29,7 @@ test_that("R code 12.2",{
 })
 
 ## R code 12.5
-postcheck( m12.1 )
+# postcheck( m12.1 )
 
 ## R code 12.6
 library(rethinking)

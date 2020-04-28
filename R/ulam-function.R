@@ -43,10 +43,10 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         # pre-scan for character variables and remove
         x_to_remove <- c()
         for ( i in 1:length(data) ) {
-            if ( class(data[[i]]) =="character" ) {
+            if ( class(data[[i]])[1] =="character" ) {
                 x_to_remove <- c( x_to_remove , names(data)[i] )
             }
-            if ( class(data[[i]]) =="factor" ) {
+            if ( class(data[[i]])[1] =="factor" ) {
                 if ( coerce_int==FALSE )
                     x_to_remove <- c( x_to_remove , names(data)[i] )
                 else {
@@ -65,10 +65,10 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         }
         # pre-scan for index variables (integer) that are numeric by accident
         for ( i in 1:length(data) ) {
-            if ( class(data[[i]])!="character" ) {
+            if ( class(data[[i]])[1]!="character" ) {
                 if ( all( as.integer(data[[i]])==data[[i]] , na.rm=TRUE ) ) {
                     #data[[i]] <- as.integer(data[[i]])
-                    if ( class(data[[i]])!="integer" & !inherits(data[[i]],"matrix") ) {
+                    if ( class(data[[i]])[1]!="integer" & !inherits(data[[i]],"matrix") ) {
                         if ( coerce_int==TRUE ) {
                             data[[i]] <- as.integer(data[[i]])
                         }
@@ -567,7 +567,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         
         # try to determine Stan type from class
         stan_type <- "real"
-        if ( class( data[[var_name]] )=="integer" ) stan_type <- "int"
+        if ( class( data[[var_name]] )[1]=="integer" ) stan_type <- "int"
         if ( inherits( data[[var_name]] , "matrix" ) ) {
             stan_type <- "matrix"
             the_dims <- list( stan_type , the_dims[1] , the_dims[2] )
@@ -580,8 +580,8 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             if ( the_dims[[2]] > 1 ) the_dims[[1]] <- "vector"
         }
         # check for integer array
-        if ( class( data[[var_name]] )=="array" ) {
-            if ( class( data[[var_name]][1] )=="integer" ) {
+        if ( class( data[[var_name]] )[1]=="array" ) {
+            if ( class( data[[var_name]][1] )[1]=="integer" ) {
                 the_dims <- list( "int_array" , dim( data[[var_name]] ) )
             } else {
                 the_dims <- list( "real" , dim( data[[var_name]] ) )
@@ -819,7 +819,9 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     for ( i in 1:nrow(symbol_graph) ) {
         left_symbol <- rownames(symbol_graph)[i]
         # scan symbols on right-hand side
-        right_symbols <- get_all_symbols( flist[[ symbol_lines[i] ]][[3]] )
+        right_symbols <- NULL
+        if ( i <= length(symbol_lines) )
+            right_symbols <- get_all_symbols( flist[[ symbol_lines[[i]] ]][[3]] )
         if ( length(right_symbols)>0 ) {
             for ( j in 1:length(right_symbols) ) {
                 if ( right_symbols[j] %in% colnames(new_graph) ) {
@@ -885,7 +887,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                     # data so check type
                     need_type <- template$dims[k+1]
                     if ( need_type %in% c("real","vector") ) {
-                        if ( class(data[[ right[k] ]]) != "numeric" )
+                        if ( class(data[[ right[k] ]])[1] != "numeric" )
                             data[[ right[k] ]] <- as.numeric(data[[ right[k] ]])
                     }
                 }
