@@ -10,7 +10,16 @@
 #   if file X.rds exists in working directory, load instead of fitting
 #   otherwise save result as X.rds to working directory
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , ... ) {
+# May 2020: 
+# Added cmdstan argument to use cmdstanr interface when installed
+# Added threads argument for reduce_sum conversion of model block
+# threads > 1 only works with cmdstan=TRUE at moment
+
+ulam_options <- new.env(parent=emptyenv())
+ulam_options$use_cmdstan <- FALSE
+set_ulam_cmdstan <- function(x=TRUE) assign( "use_cmdstan" , x , env=ulam_options )
+
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , ... ) {
 
     if ( !is.null(file) ) {
         rds_file_name <- concat( file , ".rds" )
@@ -103,6 +112,35 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     m_model_txt <- "" # general order-trusting code
     m_gq1 <- "" # generated quantities, declarations
     m_gq2 <- "" # gq body
+
+    m_f_reduce_declare <- "" # reduce_sum function
+    m_f_reduce <- ""
+    if ( threads > 1 & cmdstan==FALSE ) stop( "threads > 1 currently requires cmdstan=TRUE" )
+    if ( threads > 1 & log_lik==TRUE ) stop( "threads > 1 currently not compatible with log_lik=TRUE." )
+
+    # functions for manipulating code blocks
+    model_declare_append <- function( the_text ) {
+        if ( threads==1 ) {
+            newcode <- concat( m_model_declare , the_text )
+            assign( "m_model_declare" , newcode , inherits=TRUE )
+        } else {
+            # add instead to m_f_reduce, will go into functions
+            newcode <- concat( m_f_reduce_declare , the_text )
+            assign( "m_f_reduce_declare" , newcode , inherits=TRUE )
+        }
+    }
+    model_body_append <- function( the_text , override=FALSE ) {
+        if ( threads==1 | override==TRUE ) {
+            newcode <- concat( m_model_txt , the_text )
+            assign( "m_model_txt" , newcode , inherits=TRUE )
+        } else {
+            # add instead to m_f_reduce, will go into functions
+            newcode <- concat( m_f_reduce , the_text )
+            assign( "m_f_reduce" , newcode , inherits=TRUE )
+        }
+    }
+
+
 
     indent <- "    " # 4 spaces
     inden <- function(x) paste( rep(indent,times=x) , collapse="" )
@@ -306,7 +344,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     }
 
     # gsub( "NAME" , "par" , "int NAME" , fixed=TRUE )
-    compose_declaration <- function( symbol_name, symbol_list ) {
+    compose_declaration <- function( symbol_name, symbol_list , reduce=NULL ) {
         # the_dims should be a list like: [[1]] "vector" [[2]] 5
 
         if ( class( symbol_list$dims ) == "character" )
@@ -345,6 +383,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                     # if an index, don't need to do anything, converted to text later
                 }
                 dd <- as.character( d )
+                if ( !is.null(reduce) ) dd <- concat("size(",reduce,")")
                 # don't add dims if scalar and in array dim spot (at end)
                 if ( i==n_dims && d==1 ) {
                     dd <- ""
@@ -451,7 +490,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         return( f )
     }
 
-    compose_assignment <- function( symbol , fline ) {
+    compose_assignment <- function( symbol , fline , reduce=NULL ) {
         # compose local assignment (usually a linear model) for model block
         # need to observe need for loop over assignment and insert [i] after the data symbols on right-hand side
         # when assignment is <<- instead then no loop (vectorized assignment)
@@ -485,7 +524,11 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
 
         if ( !is.na(N) ) {
             if ( N > 1 ) {
-                loop_txt <- concat( indent , "for ( i in 1:" , N , " ) {\n" )
+                # if in reduce context, need size(outcome) as length
+                # not likely to know name of outcome var at this point, so insert XREDUCEOUTX placeholder - will replace later with known outcome
+                N_insert <- N
+                if ( reduce==TRUE ) N_insert <- concat("size(XREDUCEOUTX)")
+                loop_txt <- concat( indent , "for ( i in 1:" , N_insert , " ) {\n" )
                 local_indent <- inden(2)
                 # insert [i] to each data variable on right-hand side
                 # do this by nesting call in expression tree, then can use deparse to convert all to text
@@ -531,6 +574,9 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             # lines got broken! so concatenate with line breaks
             right_text <- paste( right_txt , collapse="\n" )
         }
+        # if reduce context, need [start+i-1] in place of [i]
+        if ( reduce==TRUE )
+            right_txt <- gsub( "[i]" , "[start+i-1]" , right_txt , fixed=TRUE )
         if ( transpose_flag==TRUE ) {
             right_txt <- concat( right_txt , "'" )
         }
@@ -834,6 +880,9 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         }
     }#i
 
+    thflag <- FALSE
+    reduce_outcome <- NULL
+
     # second pass - build code
     # this pass goes backwards
     for ( i in length(flist):1 ) {
@@ -909,7 +958,8 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
 
             # build text for model block
             built <- compose_distibution( left_symbol , flist[[i]] )
-            m_model_txt <- concat( m_model_txt , built )
+            #m_model_txt <- concat( m_model_txt , built )
+            model_body_append( built , TRUE )
 
             # apply constraints on any parameters on right-hand side
             # would be better to do this inside compose function, but outside avoids scope issues
@@ -970,8 +1020,14 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             }#k
 
             # build text for model block
-            built <- compose_distibution( left_symbol , flist[[i]] )
-            m_model_txt <- concat( m_model_txt , built )
+            # destined for reduce_sum? if so format right
+            if ( threads > 1 ) {
+                thflag <- "reduce"
+                reduce_outcome <- left_symbol
+            }
+            built <- compose_distibution( left_symbol , flist[[i]] , as_log_lik=thflag )
+            #m_model_txt <- concat( m_model_txt , built )
+            model_body_append( built )
             # add log_lik to generated quantities?
             # currently just uses first outcome --- for multiple outcome models, will need new code
             if ( i==1 && log_lik==TRUE ) {
@@ -1052,7 +1108,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         if ( left_type=="local" ) {
             # add assignment to model block
             # do this at end here, because we parsed right-hand side data vars just above
-            local_built <- compose_assignment( left_symbol , flist[[i]] )
+            local_built <- compose_assignment( left_symbol , flist[[i]] , reduce=(threads>1) )
             
             # check for explicit block tag
             the_block <- "model"
@@ -1069,14 +1125,16 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 if ( the_block=="save" ) {
                     # generated quantities AND model block
                     m_gq2 <- concat( m_gq2 , local_built )
-                    m_model_txt <- concat( m_model_txt , local_built )
+                    #m_model_txt <- concat( m_model_txt , local_built )
+                    model_body_append( local_built )
                 }
                 if ( the_block=="gq" ) {
                     # generated quantities ONLY
                     m_gq2 <- concat( m_gq2 , local_built )
                 }
             } else { 
-                m_model_txt <- concat( m_model_txt , local_built )
+                #m_model_txt <- concat( m_model_txt , local_built )
+                model_body_append( local_built )
             }
             
             # add to gq for log_lik, but only when not in transformed pars
@@ -1121,7 +1179,12 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             m_pars <- concat( m_pars , indent , Z , ";\n" )
         }
         if ( symbols[[i]]$type=="local" ) {
-            Z <- compose_declaration( names(symbols)[i] , symbols[[i]] )
+
+            do_reduce <- NULL
+            # use reduce outcome symbol for size when a local declaration in model block - this gives correct size(symbol) in reducer function
+            # other blocks need ordinary size declaration
+            if ( symbols[[i]]$block=="model" ) do_reduce <- reduce_outcome
+            Z <- compose_declaration( names(symbols)[i] , symbols[[i]] , reduce=do_reduce )
 
             # check for explicit block tag
             the_block <- symbols[[i]]$block
@@ -1131,7 +1194,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 use_pars <- c( use_pars , left_symbol )
             }
             if ( the_block=="transdata" ) {
-                # transformed parameters
+                # transformed data
                 m_tdata1 <- concat( m_tdata1 , indent , Z , ";\n" )
             }
             if ( the_block=="gq" ) {
@@ -1142,12 +1205,14 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             if ( the_block=="save" ) {
                 # generated quantities AND model block
                 m_gq1 <- concat( m_gq1 , indent , Z , ";\n" )
-                m_model_declare <- concat( m_model_declare , indent , Z , ";\n" )
+                #m_model_declare <- concat( m_model_declare , indent , Z , ";\n" )
+                model_declare_append( concat( indent , Z , ";\n" ) )
                 use_pars <- c( use_pars , left_symbol )
             }
             if ( the_block=="model" ) {
                 # model block (default)
-                m_model_declare <- concat( m_model_declare , indent , Z , ";\n" )
+                #m_model_declare <- concat( m_model_declare , indent , Z , ";\n" )
+                model_declare_append( concat( indent , Z , ";\n" ) )
             }
 
             if ( log_lik==TRUE & the_block %in% c("model","save") ) {
@@ -1166,6 +1231,107 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         if ( x != "" ) x <- concat( header , x , footer )
         return(x)
     }
+    prepend_indent <- function( x , n=1 ) {
+        # adds n indents to start of each line after first
+        return( gsub("\n",concat("\n",inden(n)),x,fixed=TRUE) )
+    }
+
+    get_symbol_dims <- function( symbol_name ) {
+        return( symbols[[ symbol_name ]]$dims )
+    }
+
+    ###############################
+    # reduce_sum hook BEGIN
+    if ( threads > 1 ) {
+        # first build list of data and parameters to pass to reduce_sum
+        argument_names <- c()
+        argument_types <- c()
+        for ( i in length(symbols):1 ) {
+            left_symbol <- names(symbols)[i]
+            if ( symbols[[i]]$type %in% c("data","par","local") ) {
+                if ( names(symbols)[i] != reduce_outcome ) {
+
+                    # check for transpar
+                    if ( symbols[[i]]$type=="local" ) {
+                        if ( symbols[[i]]$block!="transpars" )
+                            next
+                    }
+
+                    argument_names <- c( argument_names , names(symbols)[i] )
+                    stan_type <- symbols[[i]]$dims
+
+                    if ( class(stan_type)[1]=="character" )
+                        stan_type <- list( stan_type , 1 )
+
+                    if ( class(stan_type)[1]=="name" )
+                        # symbol as dim, so likely a vector of varying effects
+                        stan_type <- list( "vector" , 1 )
+
+                    if ( stan_type[[1]]=="ordered" )
+                        # ordered vector - pass to reduce_sum as vector
+                        stan_type <- list( "vector" , 1 )
+
+                    if ( stan_type[[1]]=="simplex" )
+                        # simplex - pass to reduce_sum as vector
+                        stan_type <- list( "vector" , 1 )
+
+                    if ( stan_type[[1]]=="matrix" )
+                        # matrix does not get [] on end
+                        stan_type <- list( "matrix" , 1 )
+
+                    if ( stan_type[[1]]=="cholesky_factor_corr" )
+                        # simplex - pass to reduce_sum as vector
+                        stan_type <- list( "matrix" , 1 )
+
+                    if ( stan_type[[1]]!="vector" & stan_type[[2]] > 1 )
+                         stan_type <- concat( stan_type[[1]] , "[]" )
+                    else
+                        stan_type <- stan_type[[1]]
+                    argument_types <- c( argument_types , stan_type )
+                }
+            }
+        }#i
+
+        # now build code
+        rsc <- concat( indent , "real reducer( \n" )
+        reduce_outcome_type <- get_symbol_dims( reduce_outcome )[[1]]
+        nn <- get_symbol_dims( reduce_outcome )[[2]]
+        if ( nn > 1 & reduce_outcome_type != "vector" )
+            reduce_outcome_type <- concat( reduce_outcome_type , "[]" )
+        rsc <- concat( rsc , inden(3) , reduce_outcome_type , " " , reduce_outcome , ",\n" )
+        rsc <- concat( rsc , inden(3) , "int start , int end , \n" )
+
+        for ( i in 1:length(argument_names) ) {
+            rsc <- concat( rsc , inden(3) , argument_types[i] , " " , argument_names[i] )
+            if ( i < length(argument_names) ) rsc <- concat( rsc , ",\n" )
+        }
+
+        rsc <- concat( rsc , " ) { \n" )
+        rsc <- concat( rsc , inden(1) , prepend_indent(m_f_reduce_declare,1) )
+
+        # replace any XREDUCEOUTX replaceholder with outcome variable
+        m_f_reduce <- gsub( "XREDUCEOUTX" , reduce_outcome , m_f_reduce , fixed=TRUE )
+
+        rsc <- concat( rsc , prepend_indent(m_f_reduce,1) )
+        rsc <- concat( rsc , "} \n" )
+        m_funcs <- concat( m_funcs , rsc )
+
+        # now add call in model block
+        rsmc <- concat( inden(1) , "target += reduce_sum( reducer , " , reduce_outcome , " , " , floor(grain) , " , \n" )
+
+        for ( i in 1:length(argument_names) ) {
+            rsmc <- concat( rsmc , inden(3) , argument_names[i] )
+            if ( i < length(argument_names) ) rsmc <- concat( rsmc , ",\n" )
+        }
+
+        rsmc <- concat( rsmc , " );\n" )
+        model_body_append( rsmc , TRUE )
+    }
+    # reduce_sum hook END
+    ###############################
+
+    ###############################
+    # compose it all
     m_funcs <- blockify( m_funcs , "functions{\n" , "}\n" )
     m_data <- blockify( m_data , "data{\n" , "}\n" )
     m_tdata1 <- blockify( m_tdata1 , "transformed data{\n" , "" )
@@ -1212,15 +1378,51 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     # reverse order of use_pars, so names in formula order
     use_pars <- use_pars[ length(use_pars):1 ]
 
-    # fire lasers
+    cmdstanr_model_write <- function( the_model ) {
+        # make temp name from model code md5 hash
+        require( digest , quietly=TRUE )
+        file_patt <- file.path( tempdir() , concat("ulam_cmdstanr_",digest(the_model,"md5")) )
+        #file <- tempfile("ulam_cmdstanr",fileext=".stan")
+        file_stan <- concat( file_patt , ".stan" )
+        fileConn <- file( file_stan )
+        writeLines( the_model , fileConn )
+        close(fileConn)
+        file_exe <- character()
+        do_compile <- TRUE
+        if ( file.exists(file_patt) ) {
+            file_exe <- file_patt
+            do_compile <- FALSE
+        }
+        return(list(file_stan,file_exe,do_compile))
+    }
+
+    # fire lasers pew pew
     if ( sample==TRUE ) {
         if ( length(start)==0 ) {
+            # without explicit start list
             if ( prev_stanfit==FALSE ) {
+                if ( cmdstan==FALSE )
+                    # rstan interface
                     stanfit <- stan( model_code = model_code , data = data , pars=use_pars , chains=chains , cores=cores , iter=iter , control=control , ... )
+                else {
+                    # use cmdstanr interface
+                    require( cmdstanr , quietly=TRUE )
+                    filex <- cmdstanr_model_write( model_code )
+                    mod <- cmdstan_model(
+                        stan_file=filex[[1]],
+                        exe_file=filex[[2]],
+                        compile=filex[[3]],
+                        cpp_options=list(stan_threads=TRUE) )
+                    set_num_threads( threads )
+                    cmdstanfit <- mod$sample( data=data , chains=chains , cores=cores , iter_sampling=iter , adapt_delta=as.numeric(control[['adapt_delta']]) , ... )
+                    stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
+                }
             } else
+                # rstan interface, previous stanfit object
                 stanfit <- stan( fit = prev_stanfit_object , data = data , pars=use_pars , 
                          chains=chains , cores=cores , iter=iter , control=control , ... )
         } else {
+            # WITH explicit start list
             f_init <- "random"
             if ( class(start)=="list" ) f_init <- function() return(start)
             if ( class(start)=="function" ) f_init <- start

@@ -10,7 +10,7 @@ ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 ,
   control=list(adapt_delta=0.95) , distribution_library=ulam_dists , 
   macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , 
   sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , 
-  sample_prior=FALSE , file=NULL ... )
+  sample_prior=FALSE , file=NULL , cmdstan=FALSE , threads=1 ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -35,6 +35,8 @@ ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 ,
   \item{sample_prior}{If \code{TRUE}, removes data probabilities from model to sample only prior distribution of parameters. Used by corresponding \code{extract.prior} method.}
   \item{messages}{If \code{TRUE}, prints various internal steps to help with debugging}
   \item{file}{If character string X, loads X.rds instead of fitting when exists; otherwise saves result to X.rds}
+  \item{cmdstan}{When TRUE, uses cmdstanr instead of rstan to run chains. To make cmdstan the default engine, use \code{set_ulam_cmdstan(TRUE)}.}
+  \item{threads}{When threads > 1, attempts to multithread individual chains using Stan's reduce_sum function. Requires cmdstan=TRUE.}
   \item{...}{Additional arguments to pass to \code{\link{stan}}}
 }
 \details{
@@ -71,6 +73,10 @@ ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 ,
   is used to calculate the posterior distribution of the difference between the two parameters. The code is added to Stan's generated quantities, so that it doesn't slow down the model block.
 
   The control tag \code{transpars} can be used to place an assignment in Stan's transformed parameters block. Keep in mind that any other intermediate calculations must also be placed in the same block. Finally, \code{transdata} places the assignment in the transformed data block. This means it will only execute once, before sampling begins. But it also means that the values will not be available post-sampling for helper functions like \code{link}. As such, it will usually be better to transform data before passing it into \code{ulam}.
+
+  When \code{cmdstan=TRUE}, the \code{cmdstanr} package will be used instead \code{rstan} to compile and sample from models. This is generally superior, as more recent versions of Stan can be used this way. But some features are not yet implemented, such as passing custom inits to the chains. To make cmdstan the default engine, use \code{set_ulam_cmdstan(TRUE)}. You can then ignore the \code{cmdstan} argument when calling \code{ulam}.
+
+  The use of \code{cmdstan=TRUE} is also the only way to currently use multi-threading of individual chains, using the \code{threads} argument. When \code{cmdstan=TRUE} and \code{threads} is set greater than 1, \code{ulam} will try to recode the model so that each chain is spread over multiple cores. This can easily halve sampling time. At the moment, this only works for models with a single outcome variable. 
   
   Methods are defined for \code{\link{extract.samples}}, \code{\link{extract.prior}}, \code{\link{link}}, \code{\link{sim}}, \code{\link{compare}}, \code{coef}, \code{summary}, \code{logLik}, \code{lppd}, \code{vcov}, \code{nobs}, \code{deviance}, \code{WAIC}, \code{PSIS}, \code{plot}, \code{traceplot}, \code{trankplot}, \code{pairs}, and \code{show}.
 }

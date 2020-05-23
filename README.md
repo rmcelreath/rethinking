@@ -397,9 +397,36 @@ This model does not sample quickly, so I've set `sample=FALSE`. You can still in
 
 Note that the covariance `SIGMA` is built the same way as before, but then we immediately decompose it to a Cholesky factor and build the varying intercepts `g` by matrix multiplication. The `<<-` operator tells `ulam` not to loop, but to do a direct assignment. So `g <<- L_SIGMA * eta` does the right linear algebra.
 
+## Within-chain multithreading
+
+Using ``cmdstanr`` instead of ``rstan`` is currently the only way to use within-chain multithreading with ``rethinking``. It also tends to compile models faster and is more intelligent about when models need to be re-compiled, so using ``cmdstanr`` is recommended, even if you don't want multithreading.
+
+If you want ``ulam`` to access Stan using the ``cmdstanr`` package, then you may install that as well with
+```
+devtools::install_github("stan-dev/cmdstanr")
+```
+Then you need to add ``cmdstan=TRUE`` to the ``ulam`` code. The ``threads`` argument controls the number of threads per chain. Example:
+```
+N <- 1e4
+x <- rnorm(N)
+m <- 1 + rpois(N,2)
+y <- rbinom( N , size=m , prob=inv_logit(-3+x) )
+dat <- list( y=y , x=x , m=m )
+# single thread
+m1 <- ulam(
+    alist(
+        y ~ binomial_logit( m , logit_p ),
+        logit_p <- a + b*x,
+        a ~ normal(0,1.5),
+        b ~ normal(0,0.5)
+    ) , data=dat , 
+    cmdstan=TRUE , threads=2 , refresh=1000 )
+```
+There are models that cannot be automaticaly multithreaded this way, because of the complexity of the code. In those cases, you can write the code directly in Stan. See [this guide](https://mc-stan.org/users/documentation/case-studies/reduce_sum_tutorial.html). Writing multithreaded models direct in Stan can also be more efficient, since you can make detailed choices about which variables to pass and which pieces of the model to multithread.
+
 ## Work in progress
 
-`ulam` is still in rapid development. But it will be the core of the 2nd edition of the textbook, allowing more precise and transparent model definitions that hide less of what is actually going on.
+`ulam` is still in development, but mostly feature complete. It will remain primarily a teaching tool, exposing the statistical details of the model while hiding some of the programming details necessary in Stan.
 
 
 # `map2stan` syntax and features

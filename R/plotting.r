@@ -318,25 +318,25 @@ shade <- function( object , lim , label=NULL , col=col.alpha("black",0.15) , bor
     if ( missing(object) ) stop( "No density or formula object." )
     from <- lim[1]
     to <- lim[2]
-    if ( class(object)=="formula" ) {
+    if ( class(object)[1]=="formula" ) {
         # formula input
         x1 <- eval( object[[3]] )
         y1 <- eval( object[[2]] )
         x <- x1[ x1>=from & x1<=to ]
         y <- y1[ x1>=from & x1<=to ]
     }
-    if ( class(object)=="density" ) {
+    if ( class(object)[1]=="density" ) {
         # density input
         x <- object$x[ object$x>=from & object$x<=to ]
         y <- object$y[ object$x>=from & object$x<=to ]
     }
-    if ( class(object)=="matrix" & length(dim(object))==2 ) {
+    if ( class(object)[1]=="matrix" & length(dim(object))==2 ) {
         # matrix defining confidence region around a curve
         y <- c( object[1,] , object[2,][ncol(object):1] ) # reverse second row
         x <- c( lim , lim[length(lim):1] ) # lim needs to be x-axis values
     }
     # draw
-    if ( class(object)=="matrix" ) {
+    if ( class(object)[1]=="matrix" ) {
         polygon( x , y , col=col , border=border , ... )
     } else {
         polygon( c( x , to , from ) , c( y , 0 , 0 ) , col=col , border=border , ... )

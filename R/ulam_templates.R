@@ -40,13 +40,39 @@ ulam_dists <- list(
                     } else {
                         out <- concat( out , "    " , left[j] , " ~ " , dist_name , "( " )
                     }
-                } else {
+                } 
+                # outcome as log_like calc in gq block
+                if ( as_log_lik==TRUE ){
                     # log_lik expressions never vectorized, because vectorized distributions return a sum of log_likelihoods, and we need individual terms
                     out <- concat( out , "    " , "for ( i in 1:" , max_index , " ) " )
                     if ( do_iff == TRUE )
                         out <- concat( out , "\n" , inden(2) , "if ( " , deparse(iff_out) , " ) " )
                     out <- concat( out , "log_lik[i] = " , dist_name , "_" , suffix , "( " , left[j] , "[i] | " )
                     sym_suffix <- "[i]"
+                }
+                # outcome as part of reduce_sum function (multi-threading)
+                reduce_context <- FALSE
+                if ( as_log_lik=="reduce" ){
+                    # for reduce_sum
+                    # could be vectorized or not
+                    if ( vectorized==TRUE ) {
+                        out <- concat( out , "    " , "return " )
+                        if ( do_iff == TRUE )
+                            out <- concat( out , "\n" , inden(2) , "if ( " , deparse(iff_out) , " ) " )
+                        out <- concat( out , dist_name , "_" , suffix , "( " , left[j] , " | " )
+                        sym_suffix <- "[start:end]"
+                    } else {
+                        # something like ordered_logistic
+                        # needs loop to sum up terms, because not vectorized
+                        out <- concat( out , "   {real lp=0;\n")
+                        out <- concat( out , "    " , "for ( i in 1:size(" , left[j] , ") )\n" )
+                        out <- concat( out , inden(2) , "lp += " )
+                        out <- concat( out , dist_name , "_" , suffix , "( " , left[j] , "[i] | " )
+                        #out <- concat( out , inden(1) , "return lp;" )
+                        sym_suffix <- "[start:end][i]"
+                    }
+                    as_log_lik <- TRUE
+                    reduce_context <- TRUE
                 }
 
                 # add arguments (data or parameters or locals on right-hand side)
@@ -59,8 +85,11 @@ ulam_dists <- list(
                             # for constants, parameters, and scalar locals, don't add [i]
                             if ( symbols[[ right[k] ]]$type=="par" ) use_sym_suffix <- ""
                             if ( symbols[[ right[k] ]]$type=="local" ) {
+                                if ( reduce_context==TRUE & vectorized==FALSE )
+                                    # need to index linear model symbol
+                                    use_sym_suffix <- "[i]"
                                 if ( !is.null(symbols[[ right[k] ]]$dims) ) {
-                                    if ( class(symbols[[ right[k] ]]$dims)=="character" )
+                                    if ( class(symbols[[ right[k] ]]$dims)=="character" | (reduce_context==TRUE & vectorized==TRUE ) )
                                         use_sym_suffix <- ""
                                     else {
                                         # should be a list
@@ -83,7 +112,10 @@ ulam_dists <- list(
                     else
                         out <- concat( out , right[k] , use_sym_suffix , " , " )
                 }#k
-
+                if ( reduce_context==TRUE & vectorized==FALSE ) {
+                    # need to close up lp loop context
+                    out <- concat( out , inden(1) , "return lp;}\n" )
+                }
             }#j
             return( out )
         }

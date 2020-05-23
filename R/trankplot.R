@@ -5,15 +5,15 @@
 
 # convert matrix to a matrix of ranks (over entire matrix)
 rank_mat <- function( x ) {
-    if ( class(x)=="numeric" ) x <- array( x , dim=c(length(x),1) )
+    if ( class(x)[1]=="numeric" ) x <- array( x , dim=c(length(x),1) )
     matrix( rank(x) , ncol=ncol(x) )
 }
 
 trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , lwd=1.5 , lp=FALSE  , axes=FALSE , off=0 , add=FALSE , stacked=FALSE , ... ) {
     
-    if ( !(class(object) %in% c("map2stan","ulam","stanfit")) ) stop( "requires map2stan, ulam or stanfit object" )
+    if ( !(class(object)[1] %in% c("map2stan","ulam","stanfit")) ) stop( "requires map2stan, ulam or stanfit object" )
     
-    if ( class(object) %in% c("map2stan","ulam") ) object <- object@stanfit
+    if ( class(object)[1] %in% c("map2stan","ulam") ) object <- object@stanfit
 
     # get all chains, not mixed, from stanfit
     # exclude warmup, because we'll rank only proper draws

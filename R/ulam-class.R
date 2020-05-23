@@ -237,14 +237,31 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
     }
     n_iter <- object@sim$iter
     n_warm <- object@sim$warmup
+    n_samples_extracted <- dim( post )[1]
     wstart <- 1
     wend <- n_iter
-    if ( missing(window) ) window <- c(trim,n_iter)
+
     if ( !missing(window) ) {
         wstart <- window[1]
         wend <- window[2]
     }
+
+    show_warmup <- TRUE
+    if ( missing(window) ) {
+        if ( n_iter > n_samples_extracted ) {
+            # probably no warmup saved
+            wend <- n_samples_extracted
+            show_warmup <- FALSE
+            trim <- 1 # no trim when warmup not shown
+            n_iter <- n_samples_extracted
+        }
+        window <- c(trim,n_iter)
+    }
     
+    print(n_samples_extracted)
+    print(wstart)
+    print(wend)
+
     # worker
     plot_make <- function( main , par , neff , ... ) {
         ylim <- c( min(post[wstart:wend,,pars[par]]) , max(post[wstart:wend,,pars[par]]) )
@@ -252,7 +269,8 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
         # add polygon here for warmup region?
         diff <- abs(ylim[1]-ylim[2])
         ylim <- ylim + c( -diff/2 , diff/2 )
-        polygon( n_warm*c(-1,1,1,-1) , ylim[c(1,1,2,2)] , col=bg , border=NA )
+        if ( show_warmup==TRUE )
+            polygon( n_warm*c(-1,1,1,-1) , ylim[c(1,1,2,2)] , col=bg , border=NA )
         neff_use <- neff[ names(neff)==main ]
         mtext( paste("n_eff =",round(neff_use,0)) , 3 , adj=1 , cex=0.9 )
         mtext( main , 3 , adj=0 , cex=1 )
