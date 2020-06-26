@@ -30,7 +30,7 @@ m2 <- ulam(
         a ~ normal(0,1.5),
         b ~ normal(0,0.5)
     ) , data=dat , 
-    cmdstan=TRUE , threads=2 , chains=1 , cores=1 , refresh=1000 )
+    cmdstan=TRUE , threads=2 , chains=2 , cores=2 , refresh=1000 )
 
 # hierarchical version
 N_id <- round(N/10)

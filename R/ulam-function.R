@@ -1410,11 +1410,11 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                     filex <- cmdstanr_model_write( model_code )
                     mod <- cmdstan_model(
                         stan_file=filex[[1]],
-                        exe_file=filex[[2]],
+                      # exe_file=filex[[2]],
                         compile=filex[[3]],
                         cpp_options=list(stan_threads=TRUE) )
-                    set_num_threads( threads )
-                    cmdstanfit <- mod$sample( data=data , chains=chains , cores=cores , iter_sampling=iter , adapt_delta=as.numeric(control[['adapt_delta']]) , ... )
+                    # set_num_threads( threads )
+                    cmdstanfit <- mod$sample( data=data , chains=chains , parallel_chains=cores , iter_sampling=iter , adapt_delta=as.numeric(control[['adapt_delta']]) , threads_per_chain=threads , ... )
                     stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
                 }
             } else
