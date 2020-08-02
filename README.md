@@ -3,7 +3,7 @@ rethinking
 
 This R package accompanies a course and book on Bayesian data analysis: McElreath 2020. Statistical Rethinking, 2nd edition, CRC Press. If you are using it with the first edition of the book, please see the notes at the bottom of this file.
 
-It contains tools for conducting both quick quadratic approximation of the posterior distribution as well as Hamiltonian Monte Carlo (through RStan - mc-stan.org). Many packages do this. The signature difference of this package is that it forces the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful and---most important---useful for teaching and learning. When students have to write out every detail of the model, they actually learn the model.
+It contains tools for conducting both quick quadratic approximation of the posterior distribution as well as Hamiltonian Monte Carlo (through RStan or cmdstanr - mc-stan.org). Many packages do this. The signature difference of this package is that it forces the user to specify the model as a list of explicit distributional assumptions. This is more tedious than typical formula-based tools, but it is also much more flexible and powerful and---most important---useful for teaching and learning. When students have to write out every detail of the model, they actually learn the model.
 
 For example, a simple Gaussian model could be specified with this list of formulas:
 
@@ -25,10 +25,15 @@ Here's the brief verison.
 
 You'll need to install ``rstan`` first. Go to ``http://mc-stan.org`` and follow the instructions for your platform. The biggest challenge is getting a C++ compiler configured to work with your installation of R. The instructions at ``https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started`` are quite thorough. Obey them, and you'll likely succeed.
 
-Then you can install ``rethinking`` from within R using:
+There are some advantages to accessing Stan through ``cmdstanr`` rather than rstan. These advantages include faster updates and therefore quicker access to new features. If you want to access Stan using the ``cmdstanr`` package instead, then you may install that as well with
+```
+devtools::install_github("stan-dev/cmdstanr")
+```
+If you haven't installed cmdstan previously, you will also need to do that with ``install_cmdstan()``. Then you need to add ``cmdstan=TRUE`` to any ``ulam`` code to use cmdstan instead of rstan.
+
+Once rstan and cmdstan are installed (almost there), then you can install ``rethinking`` from within R using:
 ```
 install.packages(c("coda","mvtnorm","devtools","loo","dagitty"))
-library(devtools)
 devtools::install_github("rmcelreath/rethinking")
 ```
 If there are any problems, they likely arise when trying to install ``rstan``, so the ``rethinking`` package has little to do with it. See the manual linked above for some hints about getting ``rstan`` installed. But always consult the RStan section of the website at ``mc-stan.org`` for the latest information on RStan.
@@ -405,6 +410,8 @@ If you want ``ulam`` to access Stan using the ``cmdstanr`` package, then you may
 ```
 devtools::install_github("stan-dev/cmdstanr")
 ```
+If you haven't installed cmdstan previously, you will also need to do that with ``install_cmdstan()``. 
+
 Then you need to add ``cmdstan=TRUE`` to the ``ulam`` code. The ``threads`` argument controls the number of threads per chain. Example:
 ```
 N <- 1e4
