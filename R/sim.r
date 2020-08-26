@@ -41,7 +41,11 @@ sim_core <- function( fit , data , post , vars , n , refresh=0 , replace=list() 
         }
         # get simulation partner function
         rlik <- flik
-        if ( ll==FALSE ) substr( rlik , 1 , 1 ) <- "r"
+        if ( ll==FALSE ) {
+            substr( rlik , 1 , 1 ) <- "r"
+            # hook for gampois, which needs rgampois2
+            if ( rlik=="rgampois" ) rlik <- "rgampois2"
+        }
         
         # check for aggregated binomial, but only when ll==TRUE
         aggregated_binomial <- FALSE
@@ -295,6 +299,8 @@ function( fit , data , n=1000 , post , refresh=0.1 , replace=list() , ... ) {
     # get simulation partner function
     rlik <- flik
     substr( rlik , 1 , 1 ) <- "r"
+    # hook for gampois, which needs rgampois2
+    if ( rlik=="rgampois" ) rlik <- "rgampois2"
 
     # pull out parameters in likelihood
     pars <- vector(mode="list",length=length(lik[[3]])-1)

@@ -276,6 +276,9 @@ var2 <- function( x , na.rm=TRUE ) {
     # use E(x^2) - E(x)^2 form
     mean(x^2) - mean(x)^2
 }
+# aliases
+sd_pop <- sd2
+var_pop <- var2
 
 # function for formatting summary table output in various show methods
 # x should be a list or data frame

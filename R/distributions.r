@@ -179,6 +179,12 @@ rgampois <- function( n , mu , scale ) {
     rnbinom( n , size=shape , prob=prob )
 }
 
+rgampois2 <- function (n , mu , scale) {
+    p_p <- scale / (scale + mu)
+    p_n <- scale
+    rnbinom(n, size = p_n, prob = p_p)
+}
+
 # laplace (double exponential)
 dlaplace <- function(x,location=0,lambda=1,log=FALSE) {
     # f(y) = (1/(2b)) exp( -|y-a|/b )

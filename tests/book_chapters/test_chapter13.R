@@ -8,6 +8,7 @@ expect_equiv_eps <- function( x , y , eps=0.01 ) {
     expect_equivalent( x , y , tolerance=eps )
 }
 
+# set_ulam_cmdstan(TRUE)
 
 ## R code 13.1
 library(rethinking)

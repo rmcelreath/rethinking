@@ -29,7 +29,7 @@ There are some advantages to accessing Stan through ``cmdstanr`` rather than rst
 ```
 devtools::install_github("stan-dev/cmdstanr")
 ```
-If you haven't installed cmdstan previously, you will also need to do that with ``install_cmdstan()``. Then you need to add ``cmdstan=TRUE`` to any ``ulam`` code to use cmdstan instead of rstan.
+If you haven't installed cmdstan previously, you will also need to do that with ``install_cmdstan()``. Then you need to add ``cmdstan=TRUE`` to any ``ulam`` code to use cmdstan instead of rstan. To use cmdstan as the default interface, do ``set_ulam_cmdstan(TRUE)``.
 
 Once rstan and cmdstan are installed (almost there), then you can install ``rethinking`` from within R using:
 ```
@@ -419,7 +419,7 @@ x <- rnorm(N)
 m <- 1 + rpois(N,2)
 y <- rbinom( N , size=m , prob=inv_logit(-3+x) )
 dat <- list( y=y , x=x , m=m )
-# single thread
+# two threads
 m1 <- ulam(
     alist(
         y ~ binomial_logit( m , logit_p ),

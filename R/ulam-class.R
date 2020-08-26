@@ -17,6 +17,11 @@ setMethod("precis", "ulam",
 function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , lp__=FALSE , omit=NULL ,... ) {
     low <- (1-prob)/2
     upp <- 1-low
+
+    # when fit with cmdstan, all parameters/variable in result
+    # so want to filter at minimum by object@pars
+    if ( missing(pars) ) pars <- object@pars
+
     result <- summary(object@stanfit,pars=pars,probs=c(low,upp))$summary[,c(1,3:7)]
     result <- as.data.frame( result )
 
@@ -42,11 +47,13 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
     return( new( "precis" , result , digits=digits ) )
 })
 
-
+# models fit with cmdstan=TRUE include all parameters/variables
+# so need to trim what is returned using object@pars
 setMethod("extract.samples","ulam",
-function(object,n,clean=TRUE,...) {
+function(object,n,clean=TRUE,pars,...) {
     #require(rstan)
-    p <- rstan::extract(object@stanfit,...)
+    if (missing(pars)) pars <- object@pars
+    p <- rstan::extract(object@stanfit,pars=pars,...)
     # get rid of dev and lp__
     if ( clean==TRUE ) {
         p[['dev']] <- NULL

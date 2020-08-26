@@ -8,6 +8,8 @@ expect_equiv_eps <- function( x , y , eps=0.01 ) {
     expect_equivalent( x , y , tolerance=eps )
 }
 
+set_ulam_cmdstan(TRUE)
+
 # student_t
 
 data(Howell1)
@@ -23,7 +25,7 @@ mt <- ulam(
     b ~ normal( 0 , 1 ) ,
     sigma ~ exponential( 1 ),
     nu ~ gamma(2, 0.1)
-  ) , data=d2 , sample=TRUE , refresh=-1 , seed=1 )
+  ) , data=d2 , sample=TRUE , seed=1 )
 
 test_that("Student_t regression code match",
     expect_known_hash( mt@model , "98532fc851" )
@@ -94,6 +96,7 @@ UCBadmit$male <- as.integer( ifelse( UCBadmit$applicant.gender=="male" , 1 , 0 )
 UCBadmit$dept <- rep( 1:6 , each=2 )
 UCBadmit$ag <- UCBadmit$applicant.gender
 UCBadmit$applicant.gender <- NULL
+UCBadmit$reject <- NULL
 
 test_that("quap to ulam binomial",{
     z <- quap(
@@ -103,7 +106,7 @@ test_that("quap to ulam binomial",{
             a ~ dnorm(0,4)
         ), data=UCBadmit )
     zz <- ulam( z , sample=FALSE )
-    expect_known_hash( zz$model , "93f10cbc50" )
+    expect_known_hash( zz$model , "e1f6f2c9a3" )
 })
 
 test_that("ulam constraints",{
@@ -115,7 +118,7 @@ test_that("ulam constraints",{
         ),
         constraints=list(a="lower=0"),
         data=UCBadmit , sample=FALSE )
-    expect_known_hash( z$model , "ea06a8ca36" )
+    expect_known_hash( z$model , "608f2ad66b" )
 })
 
 test_that("ulam binomial log_lik",{
@@ -126,7 +129,7 @@ test_that("ulam binomial log_lik",{
             a ~ normal(0,1),
             b ~ normal(0,0.5)
         ), data=UCBadmit , sample=TRUE , log_lik=TRUE )
-    expect_known_hash( z@model , "097208dacb" )
+    expect_known_hash( z@model , "2add972dae" )
     expect_equivalent( length(WAIC(z)) , 4 )
 })
 
@@ -160,7 +163,7 @@ test_that("ulam continuous missing data 1",{
             b ~ normal(0,1),
             bx ~ normal(0,1)
         ), data=UCBadmit , sample=TRUE , log_lik=FALSE )
-    expect_known_hash( z2b2@model , "ed1532565d" )
+    expect_known_hash( z2b2@model , "6300da1946" )
     expect_equivalent( dim(precis(z2b2,2)) , c(5,6) )
 })
 
@@ -177,7 +180,7 @@ test_that("ulam continuous missing data 2",{
             bx ~ normal(0,1)
         ),
         data=UCBadmit , sample=TRUE , log_lik=TRUE )
-    expect_known_hash( z2b_auto@model , "0656b0bec9" )
+    expect_known_hash( z2b_auto@model , "12312ebec6" )
     expect_equivalent( dim(precis(z2b_auto,2)) , c(5,6) )
 })
 
@@ -197,7 +200,7 @@ test_that("ulam continuous missing data 3",{
             b ~ normal(0,1),
             c(bx,bx2) ~ normal(0,1)
         ), data=UCBadmit , sample=FALSE )
-    expect_known_hash( z2c$model , "db529f4ba3" )
+    expect_known_hash( z2c$model , "111badfdd3" )
 })
 
 
@@ -210,6 +213,7 @@ UCBadmit$applicant.gender <- NULL
 UCBadmit$male2 <- UCBadmit$male
 UCBadmit$male2[1:2] <- (-9) # missingness code
 UCBadmit$male2 <- as.integer(UCBadmit$male2)
+UCBadmit$reject <- NULL
 
 test_that("ulam discrete missing 1",{
     z <- ulam(
@@ -227,7 +231,7 @@ test_that("ulam discrete missing 1",{
             a[dept] ~ normal(0,1),
             b ~ normal(0,1)
         ), data=UCBadmit , sample=TRUE , log_lik=FALSE )
-    expect_known_hash( z@model , "db97f3f2de" )
+    expect_known_hash( z@model , "aed7571a87" )
 })
 
 # same but with custom()
@@ -247,7 +251,7 @@ test_that("ulam discrete missing 2",{
             a[dept] ~ normal(0,4),
             b ~ normal(0,1)
         ), data=UCBadmit , sample=FALSE , log_lik=FALSE )
-    expect_known_hash( z2d$model , "6ca98ae43e" )
+    expect_known_hash( z2d$model , "73cd87c7f2" )
 })
 
 # log_sum_exp form
@@ -267,6 +271,6 @@ test_that("ulam discrete missing 3",{
             a ~ normal(0,4),
             b ~ normal(0,1)
         ), data=UCBadmit , sample=FALSE )
-    expect_known_hash( z2e$model , "eded9b0b6e" )
+    expect_known_hash( z2e$model , "dfca821d69" )
 })
 
