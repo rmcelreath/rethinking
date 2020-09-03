@@ -2,7 +2,7 @@
 
 ## 2nd Edition
 
-[to be filled]
+page 132: 5.1.3, in paragraph just after the model specification: "but here I've chosen R for marriage rate and A ..." should be "M for marriage"
 
 ## 1st Edition
 
