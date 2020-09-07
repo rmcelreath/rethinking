@@ -6,6 +6,8 @@ page 132: 5.1.3, in paragraph just after the model specification: "but here I've
 
 page 146: second paragraph, "it's" -> "its". "First, it's validity depends upon ..." should be "First, its validity ..."
 
+page 153: Rethinking box, last sentence: "... and are possible lost forever?" should be "... and are possibly lost forever?"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
