@@ -8,6 +8,8 @@ page 146: second paragraph, "it's" -> "its". "First, it's validity depends upon 
 
 page 153: Rethinking box, last sentence: "... and are possible lost forever?" should be "... and are possibly lost forever?"
 
+page 156: First paragraph, third sentence: "Vector (and matrix) parameters are hidden by `precies` ..." should be "`precis`"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
