@@ -12,6 +12,8 @@ page 156: First paragraph, third sentence: "Vector (and matrix) parameters are h
 
 page 243: In the paragraph following box "R code 8.3", when discussing the prior for alpha, which was `Normal(1, 1)` in m8.1, it is adjusted to `Normal(0, 0.1)` when it should be `Normal(1, 0.1)`
 
+page 255: next-to-last paragraph: "When we have two variable", "variable" should be "variables"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
