@@ -14,6 +14,8 @@ page 243: In the paragraph following box "R code 8.3", when discussing the prior
 
 page 255: next-to-last paragraph: "When we have two variable", "variable" should be "variables"
 
+page 271: last paragraph before 9.3.1: "But understanding some of the concept behind it will ...", "concept" should be "concepts"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
