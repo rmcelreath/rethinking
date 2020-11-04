@@ -52,11 +52,11 @@ function( fit , data , n=1000 , post , refresh=0 , replace=list() , flatten=TRUE
             # hacky solution -- find density function and insert whatever expression in typical link spot
             flik <- as.character(fit@formula[[1]][[3]][[1]])
             # mu for Gaussian
-            if ( flik=="dnorm" ) lm <- as.character( fit@formula[[1]][[3]][[2]] )
+            if ( flik=="dnorm" ) lm <- deparse( fit@formula[[1]][[3]][[2]] )
             # p for binomial -- assume in third spot, after size
-            if ( flik=="dbinom" ) lm <- as.character( fit@formula[[1]][[3]][[3]] )
+            if ( flik=="dbinom" ) lm <- deparse( fit@formula[[1]][[3]][[3]] )
             # lambda for poisson
-            if ( flik=="dpois" ) lm <- as.character( fit@formula[[1]][[3]][[2]] )
+            if ( flik=="dpois" ) lm <- deparse( fit@formula[[1]][[3]][[2]] )
         }
         # empty matrix to hold samples-by-cases values of linear model
         n_cases <- 0
