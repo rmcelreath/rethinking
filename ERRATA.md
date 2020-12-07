@@ -18,6 +18,8 @@ page 271: last paragraph before 9.3.1: "But understanding some of the concept be
 
 page 354: in the first paragraph, after the code block, there's a typo in name of a society, "Tap" should be "Yap".
 
+page 435: At the end of the second paragraph: "change in expectation when an indictor (or dummy, page 154) variable", "indictor" should be "indicator"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
