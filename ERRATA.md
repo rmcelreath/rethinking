@@ -20,6 +20,8 @@ page 354: in the first paragraph, after the code block, there's a typo in name o
 
 page 435: At the end of the second paragraph: "change in expectation when an indictor (or dummy, page 154) variable", "indictor" should be "indicator"
 
+page 477: In the first sentence of 14.5.2. “more or less distance” should read "more or less distant"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
