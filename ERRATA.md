@@ -22,6 +22,10 @@ page 435: At the end of the second paragraph: "change in expectation when an ind
 
 page 477: In the first sentence of 14.5.2. “more or less distance” should read "more or less distant"
 
+page 506: in the paragraph above the code box, "because the locations of missing values have to respected" should be "... have to be respected"
+
+page 508: the plot in the middle of the page, and the subsequent text, references models `m15.3` and `m15.4` while the code that purportedly generates it (R code 15.20) refers to the models as `m15.5` and `m15.6`.
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
