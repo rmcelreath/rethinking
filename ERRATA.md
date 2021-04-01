@@ -26,6 +26,8 @@ page 506: in the paragraph above the code box, "because the locations of missing
 
 page 508: the plot in the middle of the page, and the subsequent text, references models `m15.3` and `m15.4` while the code that purportedly generates it (R code 15.20) refers to the models as `m15.5` and `m15.6`.
 
+page 537: at the end of the second line after the `R code 16.9` box, there's a typo: “duration pf the”
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
