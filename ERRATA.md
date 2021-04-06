@@ -2,7 +2,7 @@
 
 ## 2nd Edition
 
-[to be filled]
+page 200: End of penultimate paragraph: `m6.1` should read `m7.1`.
 
 ## 1st Edition
 
