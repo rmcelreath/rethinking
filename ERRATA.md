@@ -4,6 +4,8 @@
 
 [to be filled]
 
+page 127: In caption for figure 5.3, "implusibly" should be "implausibly".
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
