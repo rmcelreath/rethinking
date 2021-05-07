@@ -307,6 +307,14 @@ dzagamma2 <- function(x,prob,mu,scale,log=FALSE) {
     ll
 }
 
+rzagamma2 <- function(x,prob,mu,scale) {
+	a <- rgamma( x , shape=mu/scale , scale=scale )
+	b <- rbinom(x,size=1,prob=prob)
+	c <- (1-b)*a
+	return(c)
+}
+
+
 # zero-inflated binomial distribution
 # this is slow, but accurate
 dzibinom <- function(x,p_zero,size,prob,log=FALSE) {
