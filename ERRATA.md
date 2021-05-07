@@ -2,6 +2,8 @@
 
 ## 2nd Edition
 
+page 91, Overthinking box, third line: "Here's a peak at the motor" should be "Here's a peek at the motor".
+
 [to be filled]
 
 ## 1st Edition
