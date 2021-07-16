@@ -21,17 +21,17 @@ The first formula in the list is the probability of the outcome (likelihood); th
 
 You can find a manual with expanded installation and usage instructions here: ``http://xcelab.net/rm/software/``
 
-Here's the brief verison. 
+Here's the brief version. 
 
 You'll need to install ``rstan`` first. Go to ``http://mc-stan.org`` and follow the instructions for your platform. The biggest challenge is getting a C++ compiler configured to work with your installation of R. The instructions at ``https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started`` are quite thorough. Obey them, and you'll likely succeed.
 
-There are some advantages to accessing Stan through ``cmdstanr`` rather than rstan. These advantages include faster updates and therefore quicker access to new features. If you want to access Stan using the ``cmdstanr`` package instead, then you may install that as well with
+There are advantages to accessing Stan through ``cmdstanr`` rather than rstan. These advantages include faster updates and therefore quicker access to new features. Most users find cmdstanr models to run substantially faster than the same models compiled with rstan. So if you want to access Stan using the ``cmdstanr`` package, then you should install that as well with
 ```
 devtools::install_github("stan-dev/cmdstanr")
 ```
-If you haven't installed cmdstan previously, you will also need to do that with ``cmdstanr::install_cmdstan()``. Then you need to add ``cmdstan=TRUE`` to any ``ulam`` code to use cmdstan instead of rstan. To use cmdstan as the default interface, do ``set_ulam_cmdstan(TRUE)``.
+If you haven't installed cmdstan previously, you will also need to do that with ``cmdstanr::install_cmdstan()``. Then you can add ``cmdstan=TRUE`` to any ``ulam`` code to use cmdstan instead of rstan. To use cmdstan as the default interface, do ``set_ulam_cmdstan(TRUE)``. By default, when rethinking detects cmdstanr on your system, it will default to using it instead of rstan. If you really want to use rstan to compile and sample models, then use ``set_ulam_cmdstan(FALSE)``.
 
-Once rstan and cmdstan are installed (almost there), then you can install ``rethinking`` from within R using:
+Once rstan and cmdstanr are installed (almost there), then you can install ``rethinking`` from within R using:
 ```
 install.packages(c("coda","mvtnorm","devtools","loo","dagitty"))
 devtools::install_github("rmcelreath/rethinking")

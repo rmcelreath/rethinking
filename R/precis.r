@@ -119,8 +119,12 @@ postlistprecis <- function( post , prob=0.95 , spark=FALSE ) {
 }
 
 setGeneric("precis",
-function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
-    new( "precis" , as.data.frame(object) , digits=digits )
+function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {   
+    if ( "CmdStanFit" %in% class(object) ) {
+        if ( missing(pars) ) pars <- NULL
+        precis_cmdstanfit( object , depth=depth , pars=pars , prob=prob , digits=digits , sort=sort, decreasing=decreasing , ... )
+    } else
+        new( "precis" , as.data.frame(object) , digits=digits )
 }
 )
 
@@ -333,6 +337,32 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
     return( new( "precis" , result , digits=digits ) )
 })
 # precis2(mfit,pars=parlist)
+
+# cmdstanr doesn't export CmdStanFit class, so need to do this through default method
+#setMethod("precis", "CmdStanFit",
+precis_cmdstanfit <- function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    low <- (1-prob)/2
+    upp <- 1-low
+    # result <- summary(object,variables=pars,probs=c(low,upp))$summary[,c(1,3:7)]
+    result <- object$summary( variables=pars , "mean" , "sd" , ~quantile(.x, probs = c(low, upp)) , "rhat" , "ess_bulk" )
+    result <- as.data.frame( result )
+
+    # take variable column and convert to row names
+    rownames(result) <- result$variable
+    result$variable <- NULL
+
+    idx <- which( rownames(result) %in% c("dev","lp__") )
+    idx2 <- grep( "log_lik[" , rownames(result) , fixed=TRUE )
+    if ( length(idx2)>0 ) idx <- c( idx , idx2 )
+    if ( length(idx)>0 ) {
+        # remove dev and lp__ and log_lik from table
+        result <- result[ -idx , ]
+    }
+
+    result <- precis_format( result , depth , sort , decreasing )
+
+    return( new( "precis" , result , digits=digits ) )
+}
 
 # old version 1 method
 precisx <- function( model , depth=1 , pars , ci=TRUE , prob=0.89 , corr=FALSE , digits=2 , warn=TRUE , spark=FALSE ) {

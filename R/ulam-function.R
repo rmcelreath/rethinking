@@ -17,9 +17,10 @@
 
 ulam_options <- new.env(parent=emptyenv())
 ulam_options$use_cmdstan <- FALSE
+if ( require(cmdstanr) ) ulam_options$use_cmdstan <- TRUE
 set_ulam_cmdstan <- function(x=TRUE) assign( "use_cmdstan" , x , env=ulam_options )
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , warmup , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , ... ) {
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , warmup , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , cpp_options=list() , cpp_fast=FALSE , ... ) {
 
     if ( !is.null(file) ) {
         rds_file_name <- concat( file , ".rds" )
@@ -1398,6 +1399,15 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         return(list(file_stan,file_exe,do_compile))
     }
 
+    #if ( threads>1 ) 
+    cpp_options[['stan_threads']] <- TRUE
+
+    # dangerous compile settings that can improve run times
+    if ( cpp_fast==TRUE ) {
+        cpp_options[['STAN_NO_RANGE_CHECKS']] <- TRUE
+        cpp_options[['STAN_CPP_OPTIMS']] <- TRUE
+    }
+
     # fire lasers pew pew
     if ( sample==TRUE ) {
         if ( length(start)==0 ) {
@@ -1414,7 +1424,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         stan_file=filex[[1]],
                       # exe_file=filex[[2]],
                         compile=filex[[3]],
-                        cpp_options=list(stan_threads=TRUE) )
+                        cpp_options=cpp_options )
                     # set_num_threads( threads )
                     # iter means only post-warmup samples for cmdstanr
                     # so need to compute iter explicitly
@@ -1441,7 +1451,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         stan_file=filex[[1]],
                       # exe_file=filex[[2]],
                         compile=filex[[3]],
-                        cpp_options=list(stan_threads=TRUE) )
+                        cpp_options=cpp_options )
                     # set_num_threads( threads )
                     # iter means only post-warmup samples for cmdstanr
                     # so need to compute iter explicitly
