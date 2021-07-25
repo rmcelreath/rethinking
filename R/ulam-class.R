@@ -263,6 +263,8 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
             n_iter <- n_samples_extracted
         }
         window <- c(trim,n_iter)
+        wstart <- window[1]
+        wend <- window[2]
     }
     
     print(n_samples_extracted)
