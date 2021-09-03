@@ -73,6 +73,16 @@ cstan <- function( file , model_code , data=list() , chains=1 , cores=1 , iter=1
         return(cmdstanfit)
 }
 
+# override rstan's stan() function to use cmdstanr?
+
+stan <- function( ... ) {
+    if ( ulam_options$use_cmdstan==TRUE ) {
+        cstan( ... )
+    } else {
+        rstan::stan( ... )
+    }
+}
+
 # in place tests
 if ( FALSE ) {
 

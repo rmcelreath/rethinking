@@ -29,11 +29,11 @@ There are advantages to accessing Stan through ``cmdstanr`` rather than rstan. T
 ```
 devtools::install_github("stan-dev/cmdstanr")
 ```
-If you haven't installed cmdstan previously, you will also need to do that with ``cmdstanr::install_cmdstan()``. Then you can add ``cmdstan=TRUE`` to any ``ulam`` code to use cmdstan instead of rstan. To use cmdstan as the default interface, do ``set_ulam_cmdstan(TRUE)``. By default, when rethinking detects cmdstanr on your system, it will default to using it instead of rstan. If you really want to use rstan to compile and sample models, then use ``set_ulam_cmdstan(FALSE)``.
+If you haven't installed cmdstan previously, you will also need to do that with ``cmdstanr::install_cmdstan()``. By default, when rethinking detects cmdstanr on your system, it will default to using it instead of rstan. If you really want to use rstan to compile and sample models, then use ``set_ulam_cmdstan(FALSE)``.
 
 Once rstan and cmdstanr are installed (almost there), then you can install ``rethinking`` from within R using:
 ```
-install.packages(c("coda","mvtnorm","devtools","loo","dagitty"))
+install.packages(c("coda","mvtnorm","devtools","loo","dagitty","shape"))
 devtools::install_github("rmcelreath/rethinking")
 ```
 If there are any problems, they likely arise when trying to install ``rstan``, so the ``rethinking`` package has little to do with it. See the manual linked above for some hints about getting ``rstan`` installed. But always consult the RStan section of the website at ``mc-stan.org`` for the latest information on RStan.

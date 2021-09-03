@@ -143,7 +143,7 @@ test_that("R code 11.21",{
 ## R code 11.22
 test_that("R code 11.22",{
     m11.4_stan_code <- stancode(m11.4)
-    m11.4_stan <- stan( model_code=m11.4_stan_code , data=dat_list , chains=4 )
+    m11.4_stan <- cstan( model_code=m11.4_stan_code , data=dat_list , chains=4 )
     expect_warning( compare( m11.4_stan , m11.4 ) )
 })
 
@@ -182,7 +182,7 @@ test_that("R code 11.25",{
 
 ## R code 11.26
 test_that("R code 11.26",{
-    expect_warning( compare( m11.6 , m11.4 , func=PSIS ) )
+    expect_warning( rethinking::compare( m11.6 , m11.4 , func=PSIS ) )
 })
 
 ## R code 11.28
@@ -373,7 +373,7 @@ model{
 dat_list <- list( N=N , K=3 , career=career , career_income=income )
 
 expect_warning(
-        m11.13 <- stan( model_code=code_m11.13 , data=dat_list , chains=4 )
+        m11.13 <- cstan( model_code=code_m11.13 , data=dat_list , chains=4 )
     )
 test_that("R code 11.57",{
     
@@ -441,7 +441,7 @@ model{
 "
 
 dat_list <- list( N=N , K=3 , career=career , family_income=family_income )
-m11.14 <- stan( model_code=code_m11.14 , data=dat_list , chains=4 )
+m11.14 <- cstan( model_code=code_m11.14 , data=dat_list , chains=4 )
 
 test_that("R code 11.59",{
     expect_equivalent( dim( precis( m11.14 , 2 ) ) , c(4,6) )
