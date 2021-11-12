@@ -2,7 +2,7 @@
 
 ## 2nd Edition
 
-[to be filled]
+page 41: Should be Figure 2.6
 
 ## 1st Edition
 
