@@ -167,8 +167,15 @@ drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="b
         }#>0
     }
     # node labels
-    for ( i in 1:length(xlabels) )
-        text( coords$x[i] , -coords$y[labels][i] , xlabels[[i]] , cex=cex , col=col_labels )
+    for ( i in 1:length(xlabels) ) {
+        k <- col_labels
+        #if ( length(col_labels)>1 ) k <- col_labels[i]
+        text( coords$x[i] , -coords$y[labels][i] , xlabels[[i]] , cex=cex , col=k )
+    }
+
+    # prep arrow coordinate table
+    arrtab <- data.frame( ax1 , ay1 , ax2 , ay2 , directed )
+    return( invisible(arrtab) )
 }
 
 circle <- function( x , y , r=1 , npts=100 , ... ) {
@@ -253,10 +260,10 @@ drawdag( plant_dag , cex=1.2 , col_labels=c("red","black","red","red") , col_arr
 
 exdag <- dagitty( "dag {
     U [unobserved]
-    z -> x -> y
-    x <- U -> y
+    Z -> X -> Y
+    X <- U -> Y
 }")
-coordinates( exdag ) <- list( x=c(z=0,x=1,y=2,U=1.5) , y=c(z=0,x=0,y=0,U=-1) )
+coordinates( exdag ) <- list( x=c(Z=0,X=1,Y=2,U=1.5) , y=c(Z=0,X=0,Y=0,U=-1) )
 drawdag( exdag , radius=3.8 )
 
 # drawing paths

@@ -2,7 +2,7 @@
 
 plp <- function( mapfit , prob=0.9 , xlim , postcol="black" , priorcol="darkgray" , ... ) {
     
-    if ( !(class(mapfit) %in% c("map","map2stan")) ) {
+    if ( !(class(mapfit) %in% c("map","map2stan","ulam")) ) {
         stop( "Requires model fit of class map or map2stan" )
     }
     is_m2s <- FALSE
