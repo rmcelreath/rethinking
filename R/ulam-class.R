@@ -319,7 +319,7 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
     }#k
     
 }
-setMethod("traceplot", "ulam" , function(object,...) traceplot_ulam(object,...) )
+#setMethod("traceplot", "ulam" , function(object,...) traceplot_ulam(object,...) )
 
 setMethod( "plot" , "ulam" , function(x,depth=1,...) precis_plot(precis(x,depth=depth),...) )
 
