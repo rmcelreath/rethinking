@@ -13,7 +13,9 @@ trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , 
     
     if ( !(class(object)[1] %in% c("map2stan","ulam","stanfit")) ) stop( "requires map2stan, ulam or stanfit object" )
     
-    if ( class(object)[1] %in% c("map2stan","ulam") ) object <- object@stanfit
+    if ( class(object)[1] %in% c("map2stan","ulam") ) {
+        object <- object@stanfit
+    }
 
     # get all chains, not mixed, from stanfit
     # exclude warmup, because we'll rank only proper draws

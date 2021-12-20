@@ -1394,7 +1394,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         do_compile <- TRUE
         if ( file.exists(file_patt) ) {
             file_exe <- file_patt
-            do_compile <- FALSE
+            do_compile <- TRUE # force for now because of odd bug
         }
         return(list(file_stan,file_exe,do_compile))
     }

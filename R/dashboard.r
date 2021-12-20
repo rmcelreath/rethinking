@@ -92,10 +92,10 @@ dashboard <- function( fit , warmup=FALSE , plot=TRUE , trank=TRUE ) {
 
         # count of divergent iters
         plot( NULL , bty="n" , xlab=" " , ylab="" , xlim=c(0,1) , ylim=c(0,1) , xaxt="n" , yaxt="n" )
-        text( 0.5 , 0.8 , sum(x[,5]) , cex=6 )
+        text( 0.5 , 0.8 , sum(x[,4]) , cex=6 )
         text( 0.5 , 0.5 , "Divergent transitions" )
-        if ( sum(x[,5])==0 ) text( 0.5 , 0.2 , "Outlook good" , cex=1.5 )
-        if ( sum(x[,5])>10 ) text( 0.5 , 0.2 , "Check yourself before\nyou wreck yourself" , cex=1.5 )
+        if ( sum(x[,4])==0 ) text( 0.5 , 0.2 , "Outlook good" , cex=1.5 )
+        if ( sum(x[,4])>10 ) text( 0.5 , 0.2 , "Check yourself before\nyou wreck yourself" , cex=1.5 )
 
         # three trace plots with lowest n_eff
         if ( trank==TRUE ) {
