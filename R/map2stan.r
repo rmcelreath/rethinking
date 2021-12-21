@@ -1871,6 +1871,7 @@ map2stan <- function( flist , data , start , pars , constraints=list() , types=l
     # used to need complex strat, before Stan allowed partial init lists
     if ( length(start.orig)==0 ) {
         start <- "random"
+        if ( ulam_options$use_cmdstan==TRUE ) start <- NULL
     } else {
         start_cloned <- vector(mode="list",length=chains)
         for ( ch in 1:chains ) start_cloned[[ch]] <- start.orig

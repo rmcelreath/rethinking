@@ -54,10 +54,10 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
 
 # models fit with cmdstan=TRUE include all parameters/variables
 # so need to trim what is returned using object@pars
-setMethod("extract.samples","ulam",
+extract_post_ulam <- 
 function(object,n,clean=TRUE,pars,...) {
     #require(rstan)
-    if (missing(pars)) pars <- object@pars
+    if ( missing(pars) & clean==TRUE ) pars <- object@pars
     p <- rstan::extract(object@stanfit,pars=pars,...)
     # get rid of dev and lp__
     if ( clean==TRUE ) {
@@ -87,7 +87,7 @@ function(object,n,clean=TRUE,pars,...) {
 
     return(p)
 }
-)
+setMethod("extract.samples","ulam",extract_post_ulam)
 
 setMethod("stancode", "ulam",
 function(object) {

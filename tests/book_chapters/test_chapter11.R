@@ -136,7 +136,7 @@ test_that("R code 11.20",{
 ## R code 11.21
 post <- extract.samples( m11.4 , clean=FALSE )
 test_that("R code 11.21",{
-    expect_named( post , c("log_lik","a","b","lp__") )
+    expect_named( post , c('a', 'b', 'log_lik', 'p', 'lp__') )
     expect_equivalent( dim(post$log_lik) , c(2000,504) )
 })
 
@@ -372,9 +372,8 @@ model{
 ## R code 11.57
 dat_list <- list( N=N , K=3 , career=career , career_income=income )
 
-expect_warning(
-        m11.13 <- cstan( model_code=code_m11.13 , data=dat_list , chains=4 )
-    )
+m11.13 <- cstan( model_code=code_m11.13 , data=dat_list , chains=4 )
+
 test_that("R code 11.57",{
     
     expect_equivalent( dim( precis( m11.13 , 2 ) ) , c(3,6) )

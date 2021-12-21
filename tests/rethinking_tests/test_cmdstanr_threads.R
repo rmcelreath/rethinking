@@ -79,8 +79,8 @@ m12.5 <- ulam(
 m0 <- ulam(
     alist(
         y ~ dordlogit(0,cutpoints),
-        ordered[6]:cutpoints ~ uniform(-4,4)
-    ) , data=list(y=1:4), cmdstan=TRUE )
+        ordered[6]:cutpoints ~ normal(0,1.5)
+    ) , data=list(y=1:4), cmdstan=TRUE , sample=TRUE )
 
 ########
 # poisson GLM - m11.11
@@ -202,6 +202,6 @@ m14.3 <- ulam(
         # compute ordinary correlation matrixes from Cholesky factors
         gq> matrix[4,4]:Rho_actor <<- Chol_to_Corr(L_Rho_actor),
         gq> matrix[4,4]:Rho_block <<- Chol_to_Corr(L_Rho_block)
-    ) , data=dat , chains=1 , cores=1 , cmdstan=TRUE , threads=2 , sample=TRUE )
+    ) , data=dat , chains=4 , cores=4 , cmdstan=TRUE , threads=2 , sample=TRUE )
 
 

@@ -133,12 +133,14 @@ ulam_dists <- list(
             # need to add lower,upper constraints on left variable
 
             # right: [[1]] dist, [[2]] lower, [[3]] upper
-            low <- as.character( right[[2]] )
-            upp <- as.character( right[[3]] )
+            low <- deparse( right[[2]] )
+            upp <- deparse( right[[3]] )
             constraint_txt <- concat( "lower=",low,",upper=",upp )
             left_name <- as.character( left[1] )
 
             new_symbols <- symbols
+            if ( new_symbols[[left_name]]$dims[[1]]=="ordered" )
+                warning(concat(left_name," : Constraints not supported for ordered vectors."))
             new_symbols[[left_name]]$constraint <- constraint_txt
             assign( "symbols" , new_symbols , inherits=TRUE )
             
