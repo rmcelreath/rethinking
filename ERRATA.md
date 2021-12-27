@@ -10,6 +10,10 @@ page 121 (Problem 4M6): Misleading to state that the variance is 64 cm. If any u
 
 page 127 (Fig 5.3 text): implausibly
 
+page 130: Last paragraph: "And D and M are associated with another, because A influences them both"
+
+page 132: Fourth paragraph (after the formula): "but here I've chosen M for marriage rate"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
