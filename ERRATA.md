@@ -6,6 +6,8 @@ page 41: Should be Figure 2.6
 
 page 108 (R code 4.61): mu.HPDI is not defined a this point - I presume you mean mu.PI (defined in R code 4.56 on page 105)?
 
+page 121 (Problem 4M6): Misleading to state that the variance is 64 cm. If any units are used, it should be $cm^2$
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
