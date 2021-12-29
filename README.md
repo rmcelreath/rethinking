@@ -34,6 +34,15 @@ If there are any problems, they likely arise when trying to install ``rstan``, s
 
 Note that the ``rethinking`` package is not on CRAN, just on github. The ``rethinking`` package is never going to be on CRAN.
 
+# rethinking slim - no MCMC
+
+If you just want to work through the first half of the course, without bothering with MCMC and Stan installs, you can install the 'slim' version of the rethinking package. Do this:
+```
+install.packages(c("coda","mvtnorm","devtools","loo","dagitty"))
+devtools::install_github("rmcelreath/rethinking@slim")
+```
+The ``quap`` function and related helper functions should still work, and you'll be able to work through Chapter 8 before you need to install the full version with Stan.
+
 # Quadratic Approximation with `quap`
 
 Almost any ordinary generalized linear model can be specified with `quap`. To use quadratic approximation:
