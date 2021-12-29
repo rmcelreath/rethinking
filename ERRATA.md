@@ -14,6 +14,8 @@ page 130: Last paragraph: "And D and M are associated with another, because A in
 
 page 132: Fourth paragraph (after the formula): "but here I've chosen M for marriage rate"
 
+page 148: First paragraph: "But if have..." -> "But I have"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
