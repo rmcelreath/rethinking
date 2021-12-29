@@ -16,6 +16,8 @@ page 132: Fourth paragraph (after the formula): "but here I've chosen M for marr
 
 page 148: First paragraph: "But if have..." -> "But I have"
 
+page 151-152: R code 5.41 actually produces the lower-right plot in Figure 5.9
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
