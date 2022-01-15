@@ -47,7 +47,8 @@ dat_list <- list(
 
 # run the sampler
 test_that("R code 16.8",{
-    m16.2 <- stan( model_code=Boxes_model , data=dat_list , chains=3 , cores=3 )
+    # m16.2 <- stan( model_code=Boxes_model , data=dat_list , chains=3 , cores=3 )
+    m16.2 <- cstan( model_code=Boxes_model , data=dat_list , chains=3 , cores=3 )
     expect_equivalent( dim(precis(m16.2,3)) , c(5,6) )
 })
 
@@ -86,7 +87,7 @@ dat_list <- list(
     pelts = Lynx_Hare[,2:3] )
 
 test_that("R code 16.18",{
-    m16.5 <- stan( model_code=Lynx_Hare_model , data=dat_list , chains=3 , cores=3 , control=list( adapt_delta=0.95 ) )
+    m16.5 <- cstan( model_code=Lynx_Hare_model , data=dat_list , chains=3 , cores=3 , control=list( adapt_delta=0.95 ) )
     expect_equivalent( dim(precis(m16.5,3)) , c(94,6) )
 })
 

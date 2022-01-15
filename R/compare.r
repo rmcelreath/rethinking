@@ -14,7 +14,7 @@ setMethod( "show" , "compareIC" , function(object) {
 } )
 
 # new compare function, defaulting to WAIC
-compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh=0 , warn=TRUE , result_order=c(1,5,3,6,2,4) ) {
+compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh=0 , warn=TRUE , result_order=c(1,5,3,6,2,4) , log_lik="log_lik" ) {
 
     # retrieve list of models
     L <- list(...)
@@ -59,7 +59,7 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
     }
 
     if ( the_func %in% c("WAIC","PSIS","LOO") ) {
-        IC.list.pw <- lapply( L , function(z) do.call( the_func , list( z , n=n , refresh=refresh , pointwise=TRUE , warn=warn ) ) )
+        IC.list.pw <- lapply( L , function(z) do.call( the_func , list( z , n=n , refresh=refresh , pointwise=TRUE , warn=warn , log_lik=log_lik ) ) )
         p.list <- sapply( IC.list.pw , function(x) sum( x$penalty ) )
         se.list <- sapply( IC.list.pw , function(x) x$std_err[1] )
         IC.list <- sapply( IC.list.pw , function(x) sum( x[[1]] ) )
@@ -332,30 +332,26 @@ m3 <- map(
 
 plot(x)
 
-# now map2stan
+# now ulam
 
-m0 <- map2stan(
+m0 <- ulam(
     alist(
         pulled_left ~ dbinom(1,theta),
         logit(theta) <- a,
         a ~ dnorm(0,1)
     ) ,
-    data=d,
-    start=list(a=0)
-)
+    data=d , log_lik=TRUE )
 
-m1 <- map2stan(
+m1 <- ulam(
     alist(
         pulled_left ~ dbinom(1,theta),
         logit(theta) <- a + bp*prosoc_left,
         a ~ dnorm(0,1),
         bp ~ dnorm(0,1)
     ) ,
-    data=d,
-    start=list(a=0,bp=0)
-)
+    data=d , log_lik=TRUE )
 
-m2 <- map2stan(
+m2 <- ulam(
     alist(
         pulled_left ~ dbinom(1,theta),
         logit(theta) <- a + bp*prosoc_left + bpc*condition*prosoc_left,
@@ -363,11 +359,9 @@ m2 <- map2stan(
         bp ~ dnorm(0,1),
         bpc ~ dnorm(0,1)
     ) ,
-    data=d,
-    start=list(a=0,bp=0,bpc=0)
-)
+    data=d , log_lik=TRUE )
 
-m3 <- map2stan(
+m3 <- ulam(
     alist(
         pulled_left ~ dbinom(1,theta),
         logit(theta) <- a + bp*prosoc_left + bc*condition + bpc*condition*prosoc_left,
@@ -376,14 +370,12 @@ m3 <- map2stan(
         bc ~ dnorm(0,1),
         bpc ~ dnorm(0,1)
     ) ,
-    data=d,
-    start=list(a=0,bp=0,bc=0,bpc=0)
-)
+    data=d , log_lik=TRUE )
 
-m4 <- map2stan(
+m4 <- ulam(
     alist(
         pulled_left ~ dbinom(1,theta),
-        logit(theta) <- a + aj + bp*prosoc_left + bc*condition + bpc*condition*prosoc_left,
+        logit(theta) <- a + aj[actor] + bp*prosoc_left + bc*condition + bpc*condition*prosoc_left,
         a ~ dnorm(0,1),
         aj[actor] ~ dnorm(0,sigma_actor),
         bp ~ dnorm(0,1),
@@ -391,17 +383,11 @@ m4 <- map2stan(
         bpc ~ dnorm(0,1),
         sigma_actor ~ dcauchy(0,1)
     ) ,
-    data=d,
-    start=list(a=0,bp=0,bc=0,bpc=0,sigma_actor=1,aj=rep(0,7))
-)
+    data=d , log_lik=TRUE )
 
-( x1 <- compare(m0,m1,m2,m3,m4,WAIC=FALSE) )
-
-( x2 <- compare(m0,m1,m2,m3,m4,WAIC=TRUE) )
+( x1 <- compare(m0,m1,m2,m3,m4,log_lik="log_lik") )
 
 plot(x1)
-
-plot(x2)
 
 
 }

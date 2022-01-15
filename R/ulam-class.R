@@ -1,6 +1,6 @@
 setClass("ulam", slots=c( call = "language",
                                 model = "character",
-                                stanfit = "stanfit",
+                                #stanfit = "stanfit",
                                 coef = "numeric",
                                 vcov = "matrix",
                                 data = "list",
@@ -22,8 +22,13 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
     # so want to filter at minimum by object@pars
     if ( missing(pars) ) pars <- object@pars
 
-    result <- summary(object@stanfit,pars=pars,probs=c(low,upp))$summary[,c(1,3:7)]
-    result <- as.data.frame( result )
+    if ( !is.null(attr(object,"stanfit")) ) {
+        result <- summary( attr(object,"stanfit") ,pars=pars,probs=c(low,upp))$summary[,c(1,3:7)]
+        result <- as.data.frame( result )
+    }
+    if ( !is.null(attr(object,"cstanfit")) ) {
+        return( precis( attr(object,"cstanfit") , depth=depth, pars=pars , prob=prob, omit=omit , ... ) )
+    }
 
     banlist <- c("dev","lp__")
     if ( lp__==TRUE ) banlist <- c("dev")
@@ -49,10 +54,10 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
 
 # models fit with cmdstan=TRUE include all parameters/variables
 # so need to trim what is returned using object@pars
-setMethod("extract.samples","ulam",
+extract_post_ulam <- 
 function(object,n,clean=TRUE,pars,...) {
     #require(rstan)
-    if (missing(pars)) pars <- object@pars
+    if ( missing(pars) & clean==TRUE ) pars <- object@pars
     p <- rstan::extract(object@stanfit,pars=pars,...)
     # get rid of dev and lp__
     if ( clean==TRUE ) {
@@ -82,7 +87,7 @@ function(object,n,clean=TRUE,pars,...) {
 
     return(p)
 }
-)
+setMethod("extract.samples","ulam",extract_post_ulam)
 
 setMethod("stancode", "ulam",
 function(object) {
@@ -264,10 +269,6 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
         }
         window <- c(trim,n_iter)
     }
-    
-    print(n_samples_extracted)
-    print(wstart)
-    print(wend)
 
     # worker
     plot_make <- function( main , par , neff , ... ) {

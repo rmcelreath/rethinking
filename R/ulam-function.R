@@ -17,9 +17,10 @@
 
 ulam_options <- new.env(parent=emptyenv())
 ulam_options$use_cmdstan <- FALSE
+if ( require(cmdstanr) ) ulam_options$use_cmdstan <- TRUE
 set_ulam_cmdstan <- function(x=TRUE) assign( "use_cmdstan" , x , env=ulam_options )
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , warmup , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , ... ) {
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , warmup , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , cpp_options=list() , cpp_fast=FALSE , rstanout=TRUE , ... ) {
 
     if ( !is.null(file) ) {
         rds_file_name <- concat( file , ".rds" )
@@ -1393,9 +1394,18 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         do_compile <- TRUE
         if ( file.exists(file_patt) ) {
             file_exe <- file_patt
-            do_compile <- FALSE
+            do_compile <- TRUE # force for now because of odd bug
         }
         return(list(file_stan,file_exe,do_compile))
+    }
+
+    #if ( threads>1 ) 
+    cpp_options[['stan_threads']] <- TRUE
+
+    # dangerous compile settings that can improve run times
+    if ( cpp_fast==TRUE ) {
+        cpp_options[['STAN_NO_RANGE_CHECKS']] <- TRUE
+        cpp_options[['STAN_CPP_OPTIMS']] <- TRUE
     }
 
     # fire lasers pew pew
@@ -1414,7 +1424,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         stan_file=filex[[1]],
                       # exe_file=filex[[2]],
                         compile=filex[[3]],
-                        cpp_options=list(stan_threads=TRUE) )
+                        cpp_options=cpp_options )
                     # set_num_threads( threads )
                     # iter means only post-warmup samples for cmdstanr
                     # so need to compute iter explicitly
@@ -1425,7 +1435,10 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         save_warmup=TRUE ,
                         adapt_delta=as.numeric(control[['adapt_delta']]) ,
                         threads_per_chain=threads , ... )
-                    stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
+                    if ( rstanout==TRUE )
+                        stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
+                    else
+                        stanfit <- cmdstanfit
                 }
             } else {
                 if ( cmdstan==FALSE ) {
@@ -1441,7 +1454,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         stan_file=filex[[1]],
                       # exe_file=filex[[2]],
                         compile=filex[[3]],
-                        cpp_options=list(stan_threads=TRUE) )
+                        cpp_options=cpp_options )
                     # set_num_threads( threads )
                     # iter means only post-warmup samples for cmdstanr
                     # so need to compute iter explicitly
@@ -1452,7 +1465,10 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         save_warmup=TRUE ,
                         adapt_delta=as.numeric(control[['adapt_delta']]) ,
                         threads_per_chain=threads , ... )
-                    stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
+                    if ( rstanout==TRUE )
+                        stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
+                    else
+                        stanfit <- cmdstanfit
                 }
             }
         } else {
@@ -1490,36 +1506,47 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         )
     } else {
 
-        # compute expected values of parameters
-        s <- summary(stanfit)$summary
-        s <- s[ -which( rownames(s)=="lp__" ) , ] # clean out lp__
-        if ( log_lik==TRUE ) {
-            # clean out the log_lik entries - possibly very many
-            idx <- grep( "log_lik[" , rownames(s) , fixed=TRUE )
-            s <- s[ -idx , ]
-        }
-        if ( !is.null(dim(s)) ) {
-            coef <- s[,1]
-            varcov <- matrix( s[,3]^2 , ncol=1 )
-            rownames(varcov) <- rownames(s)
+        # compute coef vector and vcov
+        if ( rstanout==TRUE | cmdstan==FALSE ) {
+            s <- summary(stanfit)$summary
+            s <- s[ -which( rownames(s)=="lp__" ) , ] # clean out lp__
+            if ( log_lik==TRUE ) {
+                # clean out the log_lik entries - possibly very many
+                idx <- grep( "log_lik[" , rownames(s) , fixed=TRUE )
+                s <- s[ -idx , ]
+            }
+            if ( !is.null(dim(s)) ) {
+                coef <- s[,1]
+                varcov <- matrix( s[,3]^2 , ncol=1 )
+                rownames(varcov) <- rownames(s)
+            } else {
+                coef <- s[1]
+                varcov <- matrix( s[3]^2 , ncol=1 )
+                #names(coef) <- names(start[[1]])
+            }
         } else {
-            coef <- s[1]
-            varcov <- matrix( s[3]^2 , ncol=1 )
-            #names(coef) <- names(start[[1]])
+            coef <- 1:2
+            varcov <- matrix(NA,2,2)
         }
 
         result <- new( "ulam" , 
-            call = match.call(), 
-            model = model_code,
-            stanfit = stanfit,
-            coef = coef,
-            vcov = varcov,
-            data = data,
-            start = list( start ),
-            pars = use_pars,
-            formula = flist.orig,
-            formula_parsed = formula_parsed
-        )
+                call = match.call(), 
+                model = model_code,
+                #stanfit = stanfit,
+                coef = coef,
+                vcov = varcov,
+                data = data,
+                start = list( start ),
+                pars = use_pars,
+                formula = flist.orig,
+                formula_parsed = formula_parsed
+            )
+        if ( rstanout==TRUE | cmdstan==FALSE ) {
+            attr(result,"stanfit") <- stanfit
+        } else {
+            attr(result,"cstanfit") <- stanfit
+        }
+        
         attr(result,"generation") <- "ulam2018"
         if ( nobs_save > 0 ) attr(result,"nobs") <- nobs_save
 

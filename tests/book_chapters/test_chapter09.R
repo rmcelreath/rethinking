@@ -98,7 +98,6 @@ y <- c(-1,1)
 test_that("R code 9.22",{
 
     set.seed(11)
-    expect_warning(
     m9.2 <- ulam(
         alist(
             y ~ dnorm( mu , sigma ) ,
@@ -106,10 +105,9 @@ test_that("R code 9.22",{
             alpha ~ dnorm( 0 , 1000 ) ,
             sigma ~ dexp( 0.0001 )
         ) , data=list(y=y) , chains=3 )
-    )
 
     expect_equivalent( dim(precis(m9.2,2)) , c(2,6) )
-    expect_equivalent( divergent(m9.2) , 67 )
+    expect_equivalent( divergent(m9.2) , 108 )
 })
 
 ## R code 9.24
@@ -134,7 +132,6 @@ y <- rnorm( 100 , mean=0 , sd=1 )
 ## R code 9.26
 test_that("R code 9.26",{
     set.seed(384)
-    expect_warning( 
     m9.4 <- ulam(
         alist(
             y ~ dnorm( mu , sigma ) ,
@@ -143,7 +140,6 @@ test_that("R code 9.26",{
             a2 ~ dnorm( 0 , 1000 ),
             sigma ~ dexp( 1 )
         ) , data=list(y=y) , chains=3 )
-    , NULL )
 
     expect_equivalent( dim(precis(m9.4,2)) , c(3,6) )
     expect_equivalent( divergent(m9.4) , 0 )
@@ -153,7 +149,6 @@ test_that("R code 9.26",{
 ## R code 9.27
 test_that("R code 9.27",{
 
-    expect_warning(  
     m9.5 <- ulam(
         alist(
             y ~ dnorm( mu , sigma ) ,
@@ -162,7 +157,6 @@ test_that("R code 9.27",{
             a2 ~ dnorm( 0 , 10 ),
             sigma ~ dexp( 1 )
         ) , data=list(y=y) , chains=3 )
-    , "Bulk Effective" , fixed=TRUE )
 
     expect_equivalent( dim(precis(m9.5,2)) , c(3,6) )
     expect_equivalent( divergent(m9.5) , 0 )
