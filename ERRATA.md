@@ -2,6 +2,8 @@
 
 ## 2nd Edition
 
+page 362, upper code block: within both ``softmax()`` functions, the three arguments are in a ``c()``, but should not be.
+
 [to be filled]
 
 ## 1st Edition
