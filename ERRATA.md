@@ -18,6 +18,8 @@ page 148: First paragraph: "But if have..." -> "But I have"
 
 page 151-152: R code 5.41 actually produces the lower-right plot in Figure 5.9
 
+page 213: Overthinking box: function name is sim_train_test now in 2nd ed.
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
