@@ -20,6 +20,10 @@ page 151-152: R code 5.41 actually produces the lower-right plot in Figure 5.9
 
 page 213: Overthinking box: function name is sim_train_test now in 2nd ed.
 
+page 228: R code 7.28: Should be 40.9, to tie the number more tightly to the paragraph above
+
+page 248: R code 8.14: Should be precis(m8.3, depth=2 )
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
