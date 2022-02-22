@@ -141,6 +141,7 @@ data( UCBadmit )
 UCBadmit$male <- as.integer(UCBadmit$applicant.gender=="male")
 UCBadmit$dept <- rep( 1:6 , each=2 )
 UCBadmit$applicant.gender <- NULL
+UCBadmit$reject <- NULL # reject clashes with a reserved keyword in Stan.
 
 # varying intercepts model
 m_glmm1 <- ulam(
