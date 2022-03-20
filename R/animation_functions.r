@@ -117,7 +117,7 @@ anim_prior_predictive <- function(
 
 
 # function to draw compound effect dot at particular coordinate
-dagfx_dot <- function(x,y,k,r=1,rr=1,angle1=pi/2,lwd=10,angle_gap=pi/5,pch=16) {
+dagfx_dot <- function(x,y,k,r=1,rr=1,angle1=pi/2,lwd=10,angle_gap=pi/5,pch=16,plwd=2) {
     # k should be vector of colors
     require(plotrix)
     n <- length(k)
@@ -132,7 +132,7 @@ dagfx_dot <- function(x,y,k,r=1,rr=1,angle1=pi/2,lwd=10,angle_gap=pi/5,pch=16) {
         if ( i==1 ) {
             # draw center circle
             points( x , y , pch=16 , cex=d[i]*1.2 , col="black" )
-            points( x , y , pch=pch , cex=d[i] , col=k[i] )
+            points( x , y , pch=pch , cex=d[i] , col=k[i] , lwd=plwd )
         } else {
             # draw arc
             draw.arc( x , y , radius=d[i]/80 , col=k[i] , lwd=lwd , angle1=angle1 + angle_gap , angle2=angle1 + angle_inc - angle_gap )
@@ -225,8 +225,8 @@ dagfx_anim_forward <- function( the_dag , Y , X , n_frames , n_loops=3 , path_fr
                         }
                 }#w
             }
-        print( the_edges )
-        print( coo_arrows )
+        #print( the_edges )
+        #print( coo_arrows )
     }
 
     # need list of which variables have "touched" others so we can draw the dots right
@@ -250,6 +250,9 @@ dagfx_anim_forward <- function( the_dag , Y , X , n_frames , n_loops=3 , path_fr
             dat[i,u$var] <- sv[u$var]
         }
     }#i
+    # init state indexes for each variable
+    dat_index <- rep(1,length(uvars))
+    names(dat_index) <- uvars
     print(dat)
 
     # organize colors
@@ -323,6 +326,8 @@ dagfx_anim_forward <- function( the_dag , Y , X , n_frames , n_loops=3 , path_fr
                     # run into descendant and pass on our color
                     # w is descendant, v is parent
                     # need to check e column of the_edges to know which var does the touching
+                    # update data index tracker
+                    dat_index[ parent ] <- dat_index[ parent ] + 1
                     if ( !missing(fix) )
                         if ( !(the_edges$e[i] %in% fix) )
                             touched[ the_edges$w[i] , the_edges$e[i] ] <- 1
@@ -362,6 +367,13 @@ dagfx_anim_forward <- function( the_dag , Y , X , n_frames , n_loops=3 , path_fr
 
                 # draw dot
                 dot_type <- 16
+                if ( !missing(scm) ) {
+                    # color by state
+                    #dot_idx <- dat[ dat_index[parent] , parent ]
+                    dot_idx <- floor( f / path_frames ) + 1
+                    dot_idx <- dat[ dot_idx , parent ]
+                    dot_type <- c(1,16)[dot_idx+1]
+                }
                 dagfx_dot( px , -py , the_col , r=radius , angle1=angle1 , lwd=arc_lwd , angle_gap=angle_gap , pch=dot_type )
 
             }

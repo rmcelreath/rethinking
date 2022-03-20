@@ -236,6 +236,15 @@ ulam_dists <- list(
         constraints = c( "lower=0" , NA , "lower=0" ),
         vectorized = TRUE
     ) ,
+    exp_mod_normal = list(
+        R_name = "dexpnorm",
+        Stan_name = "exp_mod_normal",
+        Stan_suffix = "lpdf",
+        pars = 3,
+        dims = c( "real" , "real" , "real" ),
+        constraints = c( NA , NA , "lower=0" , "lower=0" ),
+        vectorized = TRUE
+    ) ,
     # multi_normal can take (mu,Rho,sigma) or (mu,Sigma) or (mu,L_Sigma) as arguments
     # i.e. is overloaded
     multinormal1 = list(

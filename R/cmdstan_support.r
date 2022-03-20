@@ -14,7 +14,7 @@ cmdstanr_model_write <- function( the_model ) {
     }
 
 # wrapper to fit stan model using cmdstanr and return rstan stanfit object
-cstan <- function( file , model_code , data=list() , chains=1 , cores=1 , iter=1000 , warmup , threads=1 , control=list(adapt_delta=0.95) , cpp_options=list() , save_warmup=TRUE , cpp_fast=FALSE , rstan_out=TRUE , pars , ... ) {
+cstan <- function( file , model_code , data=list() , chains=1 , cores=1 , iter=1000 , warmup , threads=1 , control=list(adapt_delta=0.95) , cpp_options=list() , save_warmup=TRUE , cpp_fast=FALSE , rstan_out=TRUE , pars , compile=TRUE , ... ) {
 
     if ( threads>1 ) cpp_options[['stan_threads']] <- TRUE
 
@@ -29,7 +29,7 @@ cstan <- function( file , model_code , data=list() , chains=1 , cores=1 , iter=1
     }
 
     require(cmdstanr,quietly=TRUE)
-    mod <- cmdstan_model( file , compile=TRUE , cpp_options=cpp_options )
+    mod <- cmdstan_model( file , compile=compile , cpp_options=cpp_options )
 
     if ( missing(warmup) ) {
         samp <- floor(iter/2)

@@ -1,5 +1,10 @@
 # plotting
 
+lines_w <- function( x , y , lwd=2 , owd=3 , alpha=1 , col=1 , ... ) {
+    lines( x , y , lwd=lwd+owd , col=col.alpha("white",alpha) )
+    lines( x , y , lwd=lwd , col=col.alpha(col,alpha) , ... )
+}
+
 lines_xkcd <- function( x , y , col="black" , lwd=5 , lwdbg=10 , adj=500 , seg=50 ) {
     len <- length(x);
     if ( len==2 ) {
