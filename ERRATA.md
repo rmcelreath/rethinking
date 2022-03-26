@@ -24,6 +24,8 @@ page 228: R code 7.28: Should be 40.9, to tie the number more tightly to the par
 
 page 248: R code 8.14: Should be precis(m8.3, depth=2 )
 
+page 273: Last equation, should end with "log p(\mu_x | 0, 0.5)" (substitute vertical bar for the comma)
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
