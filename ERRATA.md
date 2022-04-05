@@ -30,6 +30,8 @@ page 278: R code 9.10: Beware that the real HMC2 function also defines dH in the
 
 page 338: "results for the first two chimpanzees" should really be (IMHO): "partial results for the first two treatments (the total data frame has 7x4=28 rows, one each per actor and treatment combination."
 
+page 343 (R code 11.32): dat_list$dept_id <- coerce_index(d$dept)   # use coerce_index and the original data to construct new index variable
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
