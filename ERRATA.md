@@ -28,6 +28,8 @@ page 273: Last equation, should end with "log p(\mu_x | 0, 0.5)" (substitute ver
 
 page 278: R code 9.10: Beware that the real HMC2 function also defines dH in the returned list. This is used in the plot (R code 9.7). It is the difference in total energy (proposed_U + proposed_K) - (current_U + current_K).
 
+page 331: last paragraph: should be CONTRASTS.
+
 page 338: "results for the first two chimpanzees" should really be (IMHO): "partial results for the first two treatments (the total data frame has 7x4=28 rows, one each per actor and treatment combination."
 
 page 343 (R code 11.32): dat_list$dept_id <- coerce_index(d$dept)   # use coerce_index and the original data to construct new index variable
