@@ -36,6 +36,8 @@ page 339: First equation: typo in the numerator - should be 9! (in accordance wi
 
 page 343 (R code 11.32): dat_list$dept_id <- coerce_index(d$dept)   # use coerce_index and the original data to construct new index variable
 
+page 378: First line, should be "probability that the monks did drink"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
