@@ -38,6 +38,8 @@ page 343 (R code 11.32): dat_list$dept_id <- coerce_index(d$dept)   # use coerce
 
 page 378: First line, should be "probability that the monks did drink"
 
+page 410: Mismatch between R.code 13.7 where a_bar is 1.5 and the second paragraph, where it is assumed to be 1.4
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
