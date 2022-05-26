@@ -40,6 +40,18 @@ page 378: First line, should be "probability that the monks did drink"
 
 page 410: Mismatch between R.code 13.7 where a_bar is 1.5 and the second paragraph, where it is assumed to be 1.4
 
+page 453: (Overthinking): Typo in paragraph 4: Should be compose_noncentered.
+
+page 463: Typo in para 5, should be: "when one household gives more, the other gives less"
+
+page 469: Typo in para 3, should be: "famililar Poisson probability"
+
+page 472: Type in para 1, should be: "those k parameters"
+
+page 475: Typo in Rcode 14.45, should be: exp( post$a + post$b*lp )
+
+page 477: Typo, first line in ch.14.5.2, should be "more or less distant"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
