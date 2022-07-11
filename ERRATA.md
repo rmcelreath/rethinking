@@ -52,6 +52,8 @@ page 475: Typo in Rcode 14.45, should be: exp( post$a + post$b*lp )
 
 page 477: Typo, first line in ch.14.5.2, should be "more or less distant"
 
+page 508: Typos, m15.3 should be m15.5 (Rcode 15.17 is correct), m15.4 should be m15.6. Also applies to the figure.
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
