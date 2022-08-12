@@ -1,7 +1,7 @@
 Package: rethinking
 Type: Package
 Title: Statistical Rethinking book package
-Version: 2.22
+Version: 2.23
 Date: 2021-12-05
 Author: Richard McElreath
 Maintainer: Richard McElreath <richard_mcelreath@eva.mpg.de>

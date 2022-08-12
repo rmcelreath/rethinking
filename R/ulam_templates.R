@@ -1385,7 +1385,7 @@ ulam_macros <- list(
             return( f )
         },
         functions = "
-    vector merge_missing( int[] miss_indexes , vector x_obs , vector x_miss ) {
+    vector merge_missing( array[] int miss_indexes , vector x_obs , vector x_miss ) {
         int N = dims(x_obs)[1];
         int N_miss = dims(x_miss)[1];
         vector[N] merged;

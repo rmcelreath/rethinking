@@ -20,7 +20,7 @@ ulam_options$use_cmdstan <- FALSE
 if ( require(cmdstanr) ) ulam_options$use_cmdstan <- TRUE
 set_ulam_cmdstan <- function(x=TRUE) assign( "use_cmdstan" , x , env=ulam_options )
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , warmup , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , cpp_options=list() , cpp_fast=FALSE , rstanout=TRUE , force_compile=TRUE , ... ) {
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , warmup , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , cpp_options=list() , cpp_fast=FALSE , rstanout=TRUE , force_compile=TRUE , stanc_options=list("O1") , ... ) {
 
     if ( !is.null(file) ) {
         rds_file_name <- concat( file , ".rds" )
@@ -174,16 +174,16 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     )
 
     declare_templates <- list(
-        real = list( patt="real<CONSTRAINT> NAME[DIM1]" , dims=1 ),
-        vector = list( patt="vector<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
-        row_vector = list( patt="row_vector<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
-        matrix = list( patt="matrix<CONSTRAINT>[DIM1,DIM2] NAME[DIM3]" , dims=3 ),
-        int = list( patt="int<CONSTRAINT> NAME[DIM1]" , dims=1 ),
-        int_array = list( patt="int<CONSTRAINT> NAME[DIM1,DIM2]" , dims=2 ),
-        corr_matrix = list( patt="corr_matrix<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
-        cholesky_factor_corr = list( patt="cholesky_factor_corr<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
-        ordered = list( patt="ordered<CONSTRAINT>[DIM1] NAME[DIM2]" , dims=2 ),
-        simplex = list( patt="simplex[DIM1] NAME[DIM2]" , dims=2 )
+        real = list( patt="array[DIM1] real<CONSTRAINT> NAME" , dims=1 ),
+        vector = list( patt="array[DIM2] vector<CONSTRAINT>[DIM1] NAME" , dims=2 ),
+        row_vector = list( patt="array[DIM2] row_vector<CONSTRAINT>[DIM1] NAME" , dims=2 ),
+        matrix = list( patt="array[DIM3] matrix<CONSTRAINT>[DIM1,DIM2] NAME" , dims=3 ),
+        int = list( patt="array[DIM1] int<CONSTRAINT> NAME" , dims=1 ),
+        int_array = list( patt="array[DIM1,DIM2] int<CONSTRAINT> NAME" , dims=2 ),
+        corr_matrix = list( patt="array[DIM2] corr_matrix<CONSTRAINT>[DIM1] NAME" , dims=2 ),
+        cholesky_factor_corr = list( patt="array[DIM2] cholesky_factor_corr<CONSTRAINT>[DIM1] NAME" , dims=2 ),
+        ordered = list( patt="array[DIM2] ordered<CONSTRAINT>[DIM1] NAME" , dims=2 ),
+        simplex = list( patt="array[DIM2] simplex[DIM1] NAME" , dims=2 )
     )
 
     # binary operators that may appear in linear models
@@ -390,13 +390,13 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 # don't add dims if scalar and in array dim spot (at end)
                 if ( i==n_dims && d==1 ) {
                     dd <- ""
-                    Z <- concat("[",Z,"]")
+                    Z <- concat("array[",Z,"]")
                 }
                 out <- gsub( Z , dd , out , fixed=TRUE )
             } else {
                 # erase optional array dim
                 # could be either [DIM2] or [DIM1,DIM2]
-                out <- gsub( concat("[",Z,"]") , "" , out , fixed=TRUE )
+                out <- gsub( concat("array[",Z,"]") , "" , out , fixed=TRUE )
                 out <- gsub( concat(",",Z,"]") , "]" , out , fixed=TRUE )
             }
         }
@@ -1424,7 +1424,8 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         stan_file=filex[[1]],
                       # exe_file=filex[[2]],
                         compile=filex[[3]],
-                        cpp_options=cpp_options )
+                        cpp_options=cpp_options,
+                        stanc_options=stanc_options )
                     # set_num_threads( threads )
                     # iter means only post-warmup samples for cmdstanr
                     # so need to compute iter explicitly
@@ -1454,7 +1455,8 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         stan_file=filex[[1]],
                       # exe_file=filex[[2]],
                         compile=filex[[3]],
-                        cpp_options=cpp_options )
+                        cpp_options=cpp_options,
+                        stanc_options=stanc_options )
                     # set_num_threads( threads )
                     # iter means only post-warmup samples for cmdstanr
                     # so need to compute iter explicitly
