@@ -17,7 +17,7 @@ sim_core <- function( fit , data , post , vars , n , refresh=0 , replace=list() 
         f <- fit@formula[[1]]
         for ( i in 1:length(fit@formula) ) {
             f <- fit@formula[[i]]
-            left <- as.character( f[[2]] )
+            left <- deparse( f[[2]] )
             if ( left==var ) {
                 if ( debug==TRUE ) print(f)
                 break
