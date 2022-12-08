@@ -95,7 +95,11 @@ function( object , n=10000 , clean=TRUE , ... ) {
     } else {
         mu <- xcoef(object)
     }
-    result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
+    if ( n==1 ) {
+      result <- as.data.frame( matrix( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ), ncol=length(mu) )  )
+    } else {
+      result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
+    }
     if ( clean==TRUE ) {
         # convert (Intercept) to Intercept
         for ( i in 1:ncol(result) ) {
