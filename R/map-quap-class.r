@@ -96,7 +96,7 @@ function( object , n=10000 , clean=TRUE , ... ) {
         mu <- xcoef(object)
     }
     if ( n==1 ) {
-      result <- as.data.frame( matrix( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ), ncol=length(mu) )  )
+      result <- as.data.frame( t( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) ) )
     } else {
       result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
     }
@@ -117,7 +117,7 @@ function(object,n=1e4,...){
     # require(MASS) # import now, so no need to require?
     mu <- object@coef
     if ( n==1 ) {
-      result <- as.data.frame( matrix( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ), ncol=length(mu) )  )
+      result <- as.data.frame( t( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) ) )
     } else {
       result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
     }
