@@ -116,7 +116,11 @@ setMethod("extract.samples", "map",
 function(object,n=1e4,...){
     # require(MASS) # import now, so no need to require?
     mu <- object@coef
-    result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
+    if ( n==1 ) {
+      result <- as.data.frame( matrix( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ), ncol=length(mu) )  )
+    } else {
+      result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
+    }
     # convert vector parameters to vectors in list
     veclist <- attr(object,"veclist")
     name_head <- function(aname) strsplit( aname , "[" , fixed=TRUE )[[1]][1]
