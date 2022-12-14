@@ -10,7 +10,8 @@ ulam( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 ,
   control=list(adapt_delta=0.95) , distribution_library=ulam_dists , 
   macro_library=ulam_macros , custom , declare_all_data=TRUE , log_lik=FALSE , 
   sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , 
-  sample_prior=FALSE , file=NULL , cmdstan=FALSE , threads=1 ... )
+  sample_prior=FALSE , file=NULL , cmdstan=FALSE , threads=1 , 
+  stanc_options=list("O1") , ... )
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{

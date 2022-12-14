@@ -396,12 +396,13 @@ ulam_dists <- list(
             }
 
             # do we need a local var for left side?
+            # patched for new Stan array syntax
+            # need an array of vectors for multi_normal outcome
             if ( length(left) > 1 ) {
-                out <- concat( out , indent , "vector[" , n_vars , "] YY" )
                 if ( n_cases > 1 )
-                    out <- concat( out , "[" , n_cases , "];\n" )
+                    out <- concat( out , indent , "array[" , n_cases , "] vector[" , n_vars , "] YY;\n" )
                 else
-                    out <- concat( out , ";\n" )
+                    out <- concat( out , indent , "vector[" , n_vars , "] YY;\n" )
             }
 
             # do we need a local var for means?
@@ -415,11 +416,12 @@ ulam_dists <- list(
                     if ( vlen != n_cases ) warning( "multi_normal mean vector has length > 1 but not same length as outcome" )
                 }
                 # build text
-                out <- concat( out , indent , "vector[" , n_vars , "] MU" )
+                # patch for new Stan array format
                 if ( vlen > 1 ) 
-                    out <- concat( out , "[" , vlen , "];\n" )
+                    out <- concat( out , indent , "array[" , vlen , "] vector[" , n_vars , "] MU;\n" )
                 else
-                    out <- concat( out , ";\n" )
+                    out <- concat( out , indent , "vector[" , n_vars , "] MU;\n" )
+                    
                 # assign it too
                 vsuf <- ""
                 if ( vlen==1 )

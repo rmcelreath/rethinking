@@ -13,6 +13,8 @@
 
 map2stan <- function( flist , data , start , pars , constraints=list() , types=list() , sample=TRUE , iter=2000 , warmup=floor(iter/2) , chains=1 , debug=FALSE , verbose=FALSE , WAIC=TRUE , cores=1 , rng_seed , rawstanfit=FALSE , control=list(adapt_delta=0.95) , add_unique_tag=TRUE , code , log_lik=FALSE , DIC=FALSE , declare_all_data=TRUE , do_discrete_imputation=FALSE , ... ) {
 
+    warning("DEPRECATED: map2stan is no longer supported and may behave unpredictably or stop working altogether. Start using ulam instead.",immediate.=TRUE)
+
     if ( missing(rng_seed) ) rng_seed <- sample( 1:1e5 , 1 )
     set.seed(rng_seed)
     
