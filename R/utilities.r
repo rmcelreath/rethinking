@@ -346,3 +346,11 @@ make_ukey <- function( n , m=5 , x=2 ,
 }
 
 # table( adist(make_ukey(1e3)) )
+
+# draws an ascii bar of length q*size
+make_bar <- function(q,size=20) {
+    n <- round(q*size)
+    s1 <- concat( rep("#",n) )
+    s2 <- concat( rep(" ",size-n) )
+    concat(s1,s2)
+}

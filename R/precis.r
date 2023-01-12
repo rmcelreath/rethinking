@@ -251,6 +251,7 @@ xprecis_glm <- function( object , depth , pars , prob , digits , sort , decreasi
     plo <- (1-prob)/2
     phi <- 1 - plo
     z <- qnorm(phi)
+
     result <- data.frame(
         mean = coef(object),
         sd = se(object),
@@ -259,9 +260,40 @@ xprecis_glm <- function( object , depth , pars , prob , digits , sort , decreasi
     )
     colnames(result)[3:4] <- paste( c( plo , phi )*100 , "%" , sep="" )
 
+    # check for parslatent
+    if ( !is.null( attr(object,"parslatent") ) ) {
+        pl <- attr(object,"parslatent")
+        # for each, apply inv_link to summary
+        if ( length(pl) > 0 )
+            for ( i in 1:length(pl) ) {
+                the_par <- names(pl)[i]
+                the_inv_link <- "exp"
+                if ( pl[[i]][[1]]=="dunif" ) the_inv_link <- "inv_unif"
+                
+                r <- which(rownames(result)==the_par)
+                # sample it and report new mean sd pi
+                the_samples <- rnorm(1e4,result[r,1],result[r,2])
+                # apply inv_link
+                the_args <- list(the_samples)
+                if ( the_inv_link=="inv_unif" ) {
+                    # add bounds to call
+                    lo <- pl[[i]][[2]][[2]]
+                    hi <- pl[[i]][[2]][[3]]
+                    the_args <- list(the_samples,lo,hi)
+                }
+                the_inv_samples <- do.call(the_inv_link,the_args)
+                # replace values
+                result[r,1] <- mean(the_inv_samples)
+                result[r,2] <- sd(the_inv_samples)
+                result[r,3] <- mean(the_inv_samples) - z*sd(the_inv_samples)
+                result[r,4] <- mean(the_inv_samples) + z*sd(the_inv_samples)
+            }#i
+    }
+
+
     result <- precis_format( result , depth , sort , decreasing )
 
-    # obey pars list
+    # obey pars list and prune
     if ( !missing(pars) ) {
         # need to handle vector/matrix parameters
         # for each element in pars, add a copy with '[' on end

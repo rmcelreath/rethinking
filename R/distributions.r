@@ -521,3 +521,8 @@ rstudent <- function(n,nu=2,mu=0,sigma=1) {
     y <- y*sigma + mu
     return(y)
 }
+
+# function that transforms continuous to uniform
+inv_unif <- function(x,lo=0,up=1) {
+    inv_logit(x)*(up-lo) + lo
+}

@@ -113,6 +113,32 @@ function(object,n=1e4,...){
     # require(MASS) # import now, so no need to require?
     mu <- object@coef
     result <- as.data.frame( mvrnorm( n=n , mu=mu , Sigma=vcov(object) ) )
+
+    # check for parslatent and transform
+    if ( !is.null( attr(object,"parslatent") ) ) {
+        pl <- attr(object,"parslatent")
+        # for each, apply inv_link
+        if ( length(pl) > 0 )
+            for ( i in 1:length(pl) ) {
+                the_par <- names(pl)[i]
+                the_inv_link <- "exp"
+                if ( pl[[i]][[1]]=="dunif" ) the_inv_link <- "inv_unif"
+                
+                r <- which(colnames(result)==the_par)
+                # apply inv_link
+                the_args <- list(result[,r])
+                if ( the_inv_link=="inv_unif" ) {
+                    # add bounds to call
+                    lo <- pl[[i]][[2]][[2]]
+                    hi <- pl[[i]][[2]][[3]]
+                    the_args <- list(result[,r],lo,hi)
+                }
+                the_inv_samples <- do.call(the_inv_link,the_args)
+                # replace values
+                result[,r] <- the_inv_samples
+            }#i
+    }
+
     # convert vector parameters to vectors in list
     veclist <- attr(object,"veclist")
     name_head <- function(aname) strsplit( aname , "[" , fixed=TRUE )[[1]][1]

@@ -23,7 +23,7 @@ flist_untag <- function(flist,eval=TRUE) {
 }
 
 # main event
-quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose=FALSE ,dofit=TRUE , ... ) {
+quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FALSE , verbose=FALSE ,dofit=TRUE , latent_bounded=FALSE , ... ) {
     
     ########################################
     # check arguments
@@ -265,7 +265,40 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
         if ( flag_flatten ) flist <- unlist(flist,recursive=FALSE)
     }
     if (debug) print(flist)
-    
+
+    ####################
+    # abstract bounded parameters to latent continuous
+    # bounded means priors: phi ~ dunif(), phi ~ exp()
+    bounded_dist_list <- c("dunif","dexp")
+    bounded_links <- c("logit","log") # convert to latent scale
+    bounded_invlinks <- c("inv_logit","exp") # convert latent to original scale
+    pars_latent <- list()
+    if ( latent_bounded==TRUE ) 
+        if ( length(flist) > 1 ) {
+            flag_flatten <- FALSE
+            for ( i in 2:length(flist) ) {
+                if ( !(class(flist[[i]])=="formula") )
+                    stop( "Input not a formula." )
+                LHS <- flist[[i]][[2]]
+                if ( class(LHS)=="call" ) {
+                    # we do nothing with these - they should be expanded already
+                } else {
+                    # not a call, single symbol
+                    # check if observed
+                    if ( !(as.character(LHS) %in% names(data)) ) {
+                        # check for bounded priors
+                        RHSd <- flist[[i]][[3]][[1]]
+                        if ( as.character(RHSd) %in% bounded_dist_list ) {
+                            pars_latent[[as.character(LHS)]] <- list( as.character(RHSd) , flist[[i]][[3]] )
+                        }
+                    }
+                }
+            } #i
+        }
+    if (debug) print(pars_latent)
+
+
+
     # convert from formulas to text
     # this also splits linear models
     flist2 <- lapply( flist , formula2text )
@@ -321,6 +354,34 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
         }
         flist2 <- flist3
     }
+
+    # now for each latent parameter,
+    # replace it with inv_link(latent_name) in formula
+    # also compute Jacobian adjustments here
+    jacobi_ads <- list()
+    if ( latent_bounded==TRUE )
+        if ( length(pars_latent) > 0 ) {
+            for ( i in 1:length(pars_latent) ) {
+                par_name <- names(pars_latent)[i]
+                the_prior <- pars_latent[[i]][[1]]
+                the_invlink <- "exp"
+                latent_name <- concat( the_invlink , "(" , par_name , ")" )
+                if ( the_prior=="dunif" ) {
+                    the_invlink <- "inv_unif"
+                    latent_name <- concat( the_invlink , "(" , par_name , "," , as.character(pars_latent[[i]][[2]][[2]]) , "," , as.character(pars_latent[[i]][[2]][[3]]) , ")" )
+                }
+                for ( j in 1:length(flist2) ) {
+                    # find and replace on each line of formula
+                    flist2[[j]] <- mygrep( par_name , latent_name , flist2[[j]] , add.par=FALSE )
+                }#j
+
+                # log absolute jacobians
+                if ( the_invlink=="exp" ) {
+                    # target += x
+                    #jacobi_ads[[par_name]] <- par_name
+                }
+            }#i
+        }
 
     flist.ll <- flist2[[1]] # first formula, just for log-likelihood
 
@@ -448,6 +509,14 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
         }
     }#i
     pars <- pars_flat
+
+    #######
+    # add jacobian adjustments to flist2 as plain text to evaluate
+    if ( length(jacobi_ads) > 0 ) {
+        for ( i in 1:length(jacobi_ads) ) {
+            flist2[[ length(flist2)+1 ]] <- as.character( jacobi_ads[[i]] )
+        }#i
+    }
     
     ########################################
     # call optim for search
@@ -550,6 +619,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     attr(m,"formula_exploded") <- flist # expanded c() constructs
     attr(m,"df") <- length(m@coef)
     attr(m,"veclist") <- veclist
+    attr(m,"parslatent") <- pars_latent
     if (!missing(data)) attr(m,"nobs") = length(data[[1]])
     # check convergence and warn
     if ( dofit==TRUE ) xcheckconvergence(m)
@@ -650,5 +720,39 @@ pi.mu <- sapply( xseq , function(x) mean(logistic(p$a+p$b*x)) )
 pi.ci <- sapply( xseq , function(x) PCI(logistic(p$a+p$b*x)) )
 lines( xseq , pi.mu )
 shade( pi.ci , xseq )
+
+#####
+# latent bounded parameters
+
+y <- rnorm(10)
+
+m <- quap(
+    alist(
+        y ~ dnorm(mu,sigma),
+        mu ~ dnorm(0,1),
+        sigma ~ dexp(1)
+    ) , data=list(y=y) , latent_bounded=TRUE )
+
+m2 <- quap(
+    alist(
+        y ~ dnorm(mu,sigma),
+        mu ~ dnorm(0,1),
+        sigma ~ dexp(1)
+    ) , data=list(y=y) , latent_bounded=FALSE )
+
+mu <- quap(
+    alist(
+        y ~ dnorm(mu,sigma),
+        mu ~ dnorm(0,1),
+        sigma ~ dunif(0,10)
+    ) , data=list(y=y) , latent_bounded=TRUE )
+
+mu2 <- quap(
+    alist(
+        y ~ dnorm(mu,sigma),
+        mu ~ dnorm(0,1),
+        sigma ~ dunif(0,10)
+    ) , data=list(y=y) , latent_bounded=FALSE )
+
 
 } #EXAMPLES
