@@ -253,7 +253,7 @@ dagfx_anim_forward <- function( the_dag , Y , X , n_frames , n_loops=3 , path_fr
     print(dat)
 
     # organize colors
-    if ( class(color_list)=="list" ) {
+    if ( is.list(color_list) ) {
         # named list, so sort in order of uvars
         color_list <- unlist(color_list)[uvars]
     }
