@@ -118,7 +118,7 @@ coeftab <- function( ... , se=FALSE , se.inside=FALSE , nobs=TRUE , digits=2 , w
                     d[i,][ paste(names(kse)[j],".se",sep="") ] <- as.numeric( round(kse[j],digits) )
                 else
                     # combine with estimate
-                    d[i,][ names(kse)[j] ] <- paste( formatC( (d[i,][ names(kse)[j] ]) , digits=digits ) , " (" , formatC( as.real( kse[j] ) , digits=digits ) , ")" , sep="" )
+                    d[i,][ names(kse)[j] ] <- paste( formatC( (d[i,][ names(kse)[j] ]) , digits=digits ) , " (" , formatC( as.double( kse[j] ) , digits=digits ) , ")" , sep="" )
             }
         }
     }
