@@ -38,6 +38,11 @@ function(object,n,...) {
         tot_samples <- stan_total_samples(object@stanfit)
         n <- min(n,tot_samples)
         for ( i in 1:length(p) ) {
+            # Check that n is not greater than the number of samples
+            # returned by rstan::extract()
+            if (n > nrow(p[[i]])) {
+                stop("n is greater than the number of samples present.\nConsider using rethinking::resample() with a larger value for 'iter'.")
+            }
             n_dims <- length( dim(p[[i]]) )
             if ( n_dims==1 ) p[[i]] <- p[[i]][1:n]
             if ( n_dims==2 ) p[[i]] <- p[[i]][1:n,]
