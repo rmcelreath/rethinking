@@ -336,9 +336,9 @@ rzibinom <- function(n,p_zero,size,prob) {
 
 # Student's t, with scale and location parameters
 
-#dstudent <- function( x , nu , mu , sigma , log=TRUE ) {
-#    
-#}
+dstudent <- function( x , nu , mu , sigma , log=FALSE ) {
+    y <- 1/sigma * dt((x - mu)/sigma, nu)
+}
 
 # generalized normal
 dgnorm <- function( x , mu , alpha , beta , log=FALSE ) {
