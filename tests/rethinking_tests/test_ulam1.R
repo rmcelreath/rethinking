@@ -274,3 +274,24 @@ test_that("ulam discrete missing 3",{
     expect_known_hash( z2e$model , "dfca821d69" )
 })
 
+# zero-inflated binom test
+N <- 100
+Y <- rzibinom(N, p_zero=0.1 , size=5 , prob=0.3 )
+
+# custom form
+m00 <- ulam(
+    alist(
+        Y|Y==0 ~ custom( log_sum_exp( log(p_zero) , log1m(p_zero) + binomial_lpmf(Y|5,p) ) ),
+        Y|Y>0 ~ custom( log1m(p_zero) + binomial_lpmf(Y|5,p) ),
+        p_zero ~ beta(2,2),
+        p ~ beta(2,2)
+    ) , data=list(Y=Y) , chains=4 , cores=4 )
+
+# this should agree
+m01 <- ulam(
+    alist(
+        Y ~ dzibinom( p_zero , 5 , p ),
+        p_zero ~ beta(2,2),
+        p ~ beta(2,2)
+    ) , data=list(Y=Y) , chains=4 , cores=4 )
+

@@ -1283,11 +1283,12 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         stan_type <- list( "matrix" , 1 )
 
                     if ( stan_type[[1]]=="cholesky_factor_corr" )
-                        # simplex - pass to reduce_sum as vector
+                        # matrix does not get [] on end
                         stan_type <- list( "matrix" , 1 )
 
+                    # for stan 2.33 - use array[] syntax - needs to be generalized?
                     if ( stan_type[[1]]!="vector" & stan_type[[2]] > 1 )
-                         stan_type <- concat( stan_type[[1]] , "[]" )
+                         stan_type <- concat( "array[] " , stan_type[[1]] )
                     else
                         stan_type <- stan_type[[1]]
                     argument_types <- c( argument_types , stan_type )
@@ -1300,7 +1301,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         reduce_outcome_type <- get_symbol_dims( reduce_outcome )[[1]]
         nn <- get_symbol_dims( reduce_outcome )[[2]]
         if ( nn > 1 & reduce_outcome_type != "vector" )
-            reduce_outcome_type <- concat( reduce_outcome_type , "[]" )
+            reduce_outcome_type <- concat( "array[] " , reduce_outcome_type )
         rsc <- concat( rsc , inden(3) , reduce_outcome_type , " " , reduce_outcome , ",\n" )
         rsc <- concat( rsc , inden(3) , "int start , int end , \n" )
 

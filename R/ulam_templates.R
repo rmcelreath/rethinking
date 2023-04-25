@@ -1053,6 +1053,60 @@ ulam_dists <- list(
             return(out)
         }
     ),
+    zibinom = list(
+        R_name = "dzibinom",
+        Stan_name = "zibinomial",
+        Stan_suffix = "lpmf",
+        pars = 2,
+        dims = c( "int" , "real" , "int" , "real" ),
+        constraints = c( "lower=0" , "lower=0,upper=1" , "lower=0" , "lower=0,upper=1" ),
+        vectorized = FALSE,
+        build = function( left , right , as_log_lik=FALSE ) {
+            # need to build code for multiple choice likelihood
+            # Pr(y|y==0) = p + (1-p)*Pr(y==0|q)
+            # Pr(y|y>0)  = (1-p)*Pr(y|q)
+            # where p is probability of zero inflation process (can be a local variable)
+            # and q is binomial probability (can be local variable)
+
+            right <- as.character( right )
+            out <- ""
+            p_symbol <- right[2] # prob of zero
+            size_symbol <- right[3] # binomial trials
+            lambda_symbol <- right[4] # binomial prob
+            if ( !is.null(symbols[[ p_symbol ]]) ) {
+                if ( symbols[[ p_symbol ]]$type %in% c("local","data") ) {
+                    if ( class(symbols[[ p_symbol ]]$dims)=="list" )
+                        p_symbol <- concat( p_symbol , "[i]" )
+                }
+            }
+            if ( !is.null(symbols[[ size_symbol ]]) ) {
+                if ( symbols[[ size_symbol ]]$type %in% c("local","data") ) {
+                    if ( class(symbols[[ size_symbol ]]$dims)=="list" )
+                        size_symbol <- concat( size_symbol , "[i]" )
+                }
+            }
+            if ( !is.null(symbols[[ lambda_symbol ]]) ) {
+                if ( symbols[[ lambda_symbol ]]$type %in% c("local","data") ) {
+                    if ( class(symbols[[ lambda_symbol ]]$dims)=="list" )
+                        lambda_symbol <- concat( lambda_symbol , "[i]" )
+                }
+            }
+
+            out_head <- "target += "
+            if ( as_log_lik==TRUE ) out_head <- "log_lik[i] = "
+
+            out <- concat( out , indent , "for ( i in 1:" , length(data[[ left ]]) , " ) {\n" )
+
+            out <- concat( out , indent , indent , "if ( " , left , "[i]==0 )\n" )
+            out <- concat( out , inden(3) , out_head , "log_mix( " , p_symbol , " , 0 , binomial_lpmf(0|" , size_symbol , "," , lambda_symbol , ") );\n" )
+            out <- concat( out , indent , indent , "if ( " , left , "[i] > 0 )\n" )
+            out <- concat( out , inden(3) , out_head , "log1m( " , p_symbol , " ) + binomial_lpmf(" , left , "[i] | " , size_symbol , "," , lambda_symbol , " );\n" )
+
+            out <- concat( out , indent , "}\n" )
+
+            return(out)
+        }
+    ),
     CJS_capture_history = list(
         R_name = "dCJScapture",
         Stan_name = "CJS_capture_history",
