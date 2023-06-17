@@ -136,7 +136,7 @@ test_that("R code 11.20",{
 ## R code 11.21
 post <- extract.samples( m11.4 , clean=FALSE )
 test_that("R code 11.21",{
-    expect_named( post , c('a', 'b', 'log_lik', 'p', 'lp__') )
+    expect_named( post , c('lp__', 'a', 'b', 'log_lik', 'p' ) )
     expect_equivalent( dim(post$log_lik) , c(2000,504) )
 })
 

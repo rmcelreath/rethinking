@@ -16,11 +16,11 @@
 # threads > 1 only works with cmdstan=TRUE at moment
 
 ulam_options <- new.env(parent=emptyenv())
-ulam_options$use_cmdstan <- FALSE
-if ( require(cmdstanr) ) ulam_options$use_cmdstan <- TRUE
+ulam_options$use_cmdstan <- TRUE
+#if ( require(cmdstanr) ) ulam_options$use_cmdstan <- TRUE
 set_ulam_cmdstan <- function(x=TRUE) assign( "use_cmdstan" , x , env=ulam_options )
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , warmup , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , cpp_options=list() , cpp_fast=FALSE , rstanout=TRUE , force_compile=TRUE , stanc_options=list("O1") , ... ) {
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , warmup , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , cpp_options=list() , cpp_fast=FALSE , rstanout=FALSE , force_compile=TRUE , stanc_options=list("O1") , ... ) {
 
     if ( !is.null(file) ) {
         rds_file_name <- concat( file , ".rds" )
@@ -40,7 +40,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     prev_stanfit <- FALSE
     if ( class(flist)=="ulam" ) {
         prev_stanfit <- TRUE
-        prev_stanfit_object <- flist@stanfit
+        prev_stanfit_object <- attr(flist,"cstanfit")
         if ( missing(data) ) data <- flist@data
         flist <- flist@formula
     }

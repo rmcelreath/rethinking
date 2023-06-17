@@ -1,6 +1,8 @@
+setClass("stanfit" , slots=c(id="character") )
+
 setClass("map2stan", slots=c( call = "language",
                                 model = "character",
-                                stanfit = "stanfit",
+                                stanfit = "list",
                                 coef = "numeric",
                                 vcov = "matrix",
                                 data = "list",

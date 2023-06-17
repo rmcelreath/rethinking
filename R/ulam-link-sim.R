@@ -24,7 +24,7 @@ link_ulam <- function( fit , data , post , flatten=TRUE , symbols , ... ) {
         data <- fit@data
         use_orig_data <- TRUE
     }
-    if ( missing(post) ) post <- extract.samples(fit@stanfit)
+    if ( missing(post) ) post <- extract.samples(fit)
 
     # how many link functions?
     if ( !is.null(fit@formula_parsed$link_funcs) ) {
@@ -109,16 +109,9 @@ sim_ulam <- function( fit , data , post , vars , variable , n=1000 , replace=lis
     if ( missing(data) ) {
         data <- fit@data
     }
-
-    if ( n==0 ) {
-        n <- stan_total_samples(fit@stanfit)
-    } else {
-        tot_samples <- stan_total_samples(fit@stanfit)
-        n <- min(n,tot_samples)
-    }
     
     if ( missing(post) ) 
-        post <- extract.samples(fit,n=n)
+        post <- extract.samples(fit)
 
     # get linear model values from link
     # use our posterior samples, so later parameters have right correlation structure with link values
@@ -230,13 +223,6 @@ sim_ulam_new <- function( fit , data , post , vars , variable , n=1000 , replace
                 }
             }#i
         }
-    }
-
-    if ( n==0 ) {
-        n <- stan_total_samples(fit@stanfit)
-    } else {
-        tot_samples <- stan_total_samples(fit@stanfit)
-        n <- min(n,tot_samples)
     }
     
     if ( missing(post) ) {

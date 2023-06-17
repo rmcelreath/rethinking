@@ -71,7 +71,6 @@ dat_list <- list(
 test_that("R code 13.21",{
 
     set.seed(13)
-    expect_warning( 
         m13.4 <- ulam(
         alist(
             pulled_left ~ dbinom( 1 , p ) ,
@@ -85,7 +84,6 @@ test_that("R code 13.21",{
             sigma_a ~ dexp(1),
             sigma_g ~ dexp(1)
         ) , data=dat_list , chains=4 , cores=4 , log_lik=TRUE )
-    )
 
     expect_equivalent( dim(precis(m13.4,2)) , c(20,6) )
 })
@@ -114,7 +112,6 @@ test_that("R code 13.23",{
 test_that("R code 13.25",{
 
     set.seed(15)
-    expect_warning(
         m13.6 <- ulam(
             alist(
                 pulled_left ~ dbinom( 1 , p ) ,
@@ -127,7 +124,6 @@ test_that("R code 13.25",{
                 sigma_g ~ dexp(1),
                 sigma_b ~ dexp(1)
             ) , data=dat_list , chains=4 , cores=4 , log_lik=TRUE )
-    )
 
     expect_equivalent( dim(precis(m13.6,2)) , c(21,6) )
 })
@@ -135,13 +131,11 @@ test_that("R code 13.25",{
 ## R code 13.26
 
 test_that("R code 13.26",{
-    expect_warning(
         m13.7 <- ulam(
             alist(
                 v ~ normal(0,3),
                 x ~ normal(0,exp(v))
             ), data=list(N=1) , chains=4 )
-    )
     expect_equivalent( dim(precis(m13.7,2)) , c(2,6) )
 })
 
@@ -161,7 +155,6 @@ test_that("R code 13.27",{
 
 test_that("R code 13.28",{
     set.seed(13)
-    expect_warning(
         m13.4 <- ulam(
             alist(
                 pulled_left ~ dbinom( 1 , p ) ,
@@ -175,10 +168,9 @@ test_that("R code 13.28",{
                 sigma_a ~ dexp(1),
                 sigma_g ~ dexp(1)
             ) , data=dat_list , chains=4 , cores=4 , log_lik=TRUE )
-    )
-    expect_warning(
+
         m13.4b <- ulam( m13.4 , chains=4 , cores=4 , control=list(adapt_delta=0.99) )
-    )
+    
 
     expect_equivalent( dim(precis(m13.4b,2)) , c(20,6) )
 })

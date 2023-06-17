@@ -22,6 +22,9 @@ if (!isGeneric("AIC"))
 if (!isGeneric("pairs"))
       setGeneric("pairs", function(x, ...) standardGeneric("pairs"))
 
+if (!isGeneric("traceplot"))
+      setGeneric("traceplot", function(x, ...) plot(x,...) )
+
 setGeneric("link",
 function( fit , data , n=1000 , ... ) {
     print(class(fit))

@@ -107,7 +107,7 @@ test_that("R code 9.22",{
         ) , data=list(y=y) , chains=3 )
 
     expect_equivalent( dim(precis(m9.2,2)) , c(2,6) )
-    expect_equivalent( divergent(m9.2) , 108 )
+    expect_equivalent( divergent(m9.2) , 64 )
 })
 
 ## R code 9.24
@@ -143,7 +143,7 @@ test_that("R code 9.26",{
 
     expect_equivalent( dim(precis(m9.4,2)) , c(3,6) )
     expect_equivalent( divergent(m9.4) , 0 )
-    expect_equivalent( round(precis(m9.4,2)$n_eff[1]) , 2 )
+    expect_equivalent( round(precis(m9.4,2)$ess_bulk[1]) , 4 )
 })
 
 ## R code 9.27

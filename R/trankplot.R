@@ -11,28 +11,48 @@ rank_mat <- function( x ) {
 
 trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , n_cols=3 , max_rows=5 , lwd=1.5 , lp=FALSE  , axes=FALSE , off=0 , add=FALSE , stacked=FALSE , ... ) {
     
-    if ( !(class(object)[1] %in% c("map2stan","ulam","stanfit")) ) stop( "requires map2stan, ulam or stanfit object" )
+    if ( !(class(object)[1] %in% c("map2stan","ulam","stanfit","CmdStanMCMC")) ) stop( "requires map2stan, ulam or stanfit/cmdstan object" )
     
+    is_cstan <- !is.null(attr(object,"cstanfit"))
     if ( class(object)[1] %in% c("map2stan","ulam") ) {
-        object <- object@stanfit
+        if ( is_cstan==TRUE )
+            object <- attr(object,"cstanfit")
+        else
+            object <- object@stanfit
     }
 
     # get all chains, not mixed, from stanfit
     # exclude warmup, because we'll rank only proper draws
-    if ( missing(pars) )
-        post <- extract(object,permuted=FALSE,inc_warmup=FALSE)
-    else
-        post <- extract(object,pars=pars,permuted=FALSE,inc_warmup=FALSE)
-    
+
+    if ( is_cstan==TRUE ) {
+        if ( missing(pars) )
+            post <- object$draws()
+        else
+            post <- object$draws(variables=pars)
+    }
+
+    if ( is_cstan==FALSE ) {
+        if ( missing(pars) )
+            post <- extract(object,permuted=FALSE,inc_warmup=FALSE)
+        else
+            post <- extract(object,pars=pars,permuted=FALSE,inc_warmup=FALSE)
+    }
+
     # names
     dimnames <- attr(post,"dimnames")
-    n_chains <- length(dimnames$chains)
+    if ( is_cstan==TRUE )
+        n_chains <- length(dimnames$chain)
+    else
+        n_chains <- length(dimnames$chains)
 
     if ( n_chains==1 ) stop( "trankplot requires more than one chain." )
 
     if ( missing(chains) ) chains <- 1:n_chains
     n_chains <- length(chains)
-    pars <- dimnames$parameters
+    if ( is_cstan==TRUE )
+        pars <- dimnames$variable
+    else
+        pars <- dimnames$parameters
     chain.cols <- rep_len(col,n_chains)
     # cut out "dev" and "lp__" and "log_lik"
     wdev <- which(pars=="dev")
@@ -70,8 +90,14 @@ trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , 
         n_pages <- ceiling(n_pars/(n_cols*n_rows_per_page))
         paging <- TRUE
     }
-    n_iter <- object@sim$iter
-    n_warm <- object@sim$warmup
+
+    if ( is_cstan==TRUE ) {
+        n_iter <- object$metadata()$iter_sampling
+    } else {
+        n_iter <- object@sim$iter
+        n_warm <- object@sim$warmup
+    }
+
     wstart <- 0
     wend <- max(breaks)
     if ( missing(window) ) window <- c(1,n_samples)
@@ -117,7 +143,13 @@ trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , 
     }
     
     # fetch n_eff
-    n_eff <- summary(object)$summary[ , 'n_eff' ]
+    if ( is_cstan==TRUE ) {
+        x <- object$summary(NULL,"ess_bulk")
+        n_eff <- as.vector(x$ess_bulk)
+        names(n_eff) <- x$variable
+    } else {
+        n_eff <- summary(object)$summary[ , 'n_eff' ]
+    }
     
     # make window
     #set_nice_margins()

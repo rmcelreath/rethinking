@@ -1053,6 +1053,60 @@ ulam_dists <- list(
             return(out)
         }
     ),
+    zigammapoisson = list(
+        R_name = "dzigampois",
+        Stan_name = "zi_neg_binomial_2",
+        Stan_suffix = "lpmf",
+        pars = 3,
+        dims = c( "int" , "real" , "real" , "real" ),
+        constraints = c( "lower=0" , "lower=0,upper=1" , "lower=0" , "lower=0" ),
+        vectorized = FALSE,
+        build = function( left , right , as_log_lik=FALSE ) {
+            # need to build code for multiple choice likelihood
+            # Pr(y|y==0) = p + (1-p)*Pr(y==0|lambda)
+            # Pr(y|y>0)  = (1-p)*Pr(y|lambda)
+            # where p is probability of zero inflation process (can be a local variable)
+            # and lambda is poisson rate (can be local variable)
+
+            right <- as.character( right )
+            out <- ""
+            p_symbol <- right[2]
+            lambda_symbol <- right[3]
+            phi_symbol <- right[4]
+            if ( !is.null(symbols[[ p_symbol ]]) ) {
+                if ( symbols[[ p_symbol ]]$type %in% c("local","data") ) {
+                    if ( class(symbols[[ p_symbol ]]$dims)=="list" )
+                        p_symbol <- concat( p_symbol , "[i]" )
+                }
+            }
+            if ( !is.null(symbols[[ lambda_symbol ]]) ) {
+                if ( symbols[[ lambda_symbol ]]$type %in% c("local","data") ) {
+                    if ( class(symbols[[ lambda_symbol ]]$dims)=="list" )
+                        lambda_symbol <- concat( lambda_symbol , "[i]" )
+                }
+            }
+            if ( !is.null(symbols[[ phi_symbol ]]) ) {
+                if ( symbols[[ phi_symbol ]]$type %in% c("local","data") ) {
+                    if ( class(symbols[[ phi_symbol ]]$dims)=="list" )
+                        phi_symbol <- concat( phi_symbol , "[i]" )
+                }
+            }
+
+            out_head <- "target += "
+            if ( as_log_lik==TRUE ) out_head <- "log_lik[i] = "
+
+            out <- concat( out , indent , "for ( i in 1:" , length(data[[ left ]]) , " ) {\n" )
+
+            out <- concat( out , indent , indent , "if ( " , left , "[i]==0 )\n" )
+            out <- concat( out , inden(3) , out_head , "log_mix( " , p_symbol , " , 0 , neg_binomial_2_lpmf(0|" , lambda_symbol , "," , phi_symbol , ") );\n" )
+            out <- concat( out , indent , indent , "if ( " , left , "[i] > 0 )\n" )
+            out <- concat( out , inden(3) , out_head , "log1m( " , p_symbol , " ) + neg_binomial_2_lpmf(" , left , "[i] | " , lambda_symbol , "," , phi_symbol , " );\n" )
+
+            out <- concat( out , indent , "}\n" )
+
+            return(out)
+        }
+    ),
     zibinom = list(
         R_name = "dzibinom",
         Stan_name = "zibinomial",

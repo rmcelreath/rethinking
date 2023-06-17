@@ -52,7 +52,7 @@ function( object , n=0 , refresh=0 , pointwise=FALSE , log_lik="log_lik" , ... )
 setMethod("WAIC", "ulam",
 function( object , n=0 , refresh=0 , pointwise=FALSE , log_lik="log_lik" , ... ) {
     
-    ll_matrix <- extract.samples(object@stanfit,pars=log_lik)[[1]]
+    ll_matrix <- extract.samples(object,clean=FALSE)[[log_lik]]
     
     # stop(concat("Log-likelihood matrix '",log_lik,"'' not found."))
 

@@ -104,8 +104,43 @@ PSIS_stanfit <- function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik
 setMethod("PSIS", "stanfit", PSIS_stanfit )
 setMethod("LOO", "stanfit", PSIS_stanfit )
 
+#PSIS_ulam <- function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , warn=TRUE , ... ) {
+#    return( PSIS(object@stanfit,n=n,refresh=refresh,pointwise=pointwise,log_lik=log_lik,warn=warn,...) )
+#}
 PSIS_ulam <- function( object , n=0 , refresh=0.1 , pointwise=FALSE , log_lik="log_lik" , warn=TRUE , ... ) {
-    return( PSIS(object@stanfit,n=n,refresh=refresh,pointwise=pointwise,log_lik=log_lik,warn=warn,...) )
+
+    loo_list <- suppressWarnings( attr(object,"cstanfit")$loo() )
+
+    if ( pointwise==TRUE ) {
+        looIC <- as.vector( loo_list$pointwise[,4] )
+        lppd <- as.vector( loo_list$pointwise[,1] )
+        pD <- as.vector( loo_list$pointwise[,3] )
+    } else {
+        looIC <- loo_list$estimates[3,1]
+        lppd <- loo_list$estimates[1,1]
+        pD <- loo_list$estimates[2,1]
+    }
+    #attr(looIC,"lppd") = lppd
+    #attr(looIC,"pLOO") = pD
+    #attr(looIC,"diagnostics") = loo_list$diagnostics
+
+    if ( warn==TRUE ) rethinking:::xcheckLOOk( loo_list$diagnostics$pareto_k )
+    
+    #n_tot <- ncol(ll_matrix)
+    #attr(looIC,"se") = try(sqrt( n_tot*var(as.vector( loo_list$pointwise[,4] )) ))
+    #attr(looIC,"se") = loo_list$estimates[3,2]
+
+    result <- data.frame( 
+        PSIS=looIC , 
+        lppd=lppd , 
+        penalty=pD ,
+        std_err=loo_list$estimates[3,2] )
+
+    if ( pointwise==TRUE ) {
+        result$k = loo_list$diagnostics$pareto_k
+    }
+    
+    return(result)
 }
 setMethod("LOO", "ulam", PSIS_ulam)
 setMethod("PSIS", "ulam", PSIS_ulam)

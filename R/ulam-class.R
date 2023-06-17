@@ -10,7 +10,10 @@ setClass("ulam", slots=c( call = "language",
                                 formula_parsed = "list" ))
 
 setMethod("coef", "ulam", function(object) {
-    object@coef
+    x <- summary(object)
+    y <- x$mean
+    names(y) <- rownames(x)
+    return(y)
 })
 
 setMethod("precis", "ulam",
@@ -58,7 +61,15 @@ extract_post_ulam <-
 function(object,n,clean=TRUE,pars,...) {
     #require(rstan)
     if ( missing(pars) & clean==TRUE ) pars <- object@pars
-    p <- rstan::extract(object@stanfit,pars=pars,...)
+    if ( !is.null(attr(object,"cstanfit")) ) {
+        # use posterior to extract draws and convert to array format
+        pr <- as_draws_rvars( attr(object,"cstanfit")$draws() )
+        p <- list()
+        for ( i in 1:length(pr) )
+            p[[ names(pr)[i] ]] <- draws_of( pr[[i]] )
+    } else
+        # assume old rstan fit
+        p <- rstan::extract(object@stanfit,pars=pars,...)
     # get rid of dev and lp__
     if ( clean==TRUE ) {
         p[['dev']] <- NULL
@@ -69,6 +80,8 @@ function(object,n,clean=TRUE,pars,...) {
     for ( i in 1:length(p) ) {
         attr(p[[i]],"dimnames") <- NULL
     }
+
+    if (FALSE ) {
     if ( !missing(n) ) {
         tot_samples <- stan_total_samples(object@stanfit)
         n <- min(n,tot_samples)
@@ -81,9 +94,10 @@ function(object,n,clean=TRUE,pars,...) {
     } else {
         n <- stan_total_samples(object@stanfit)
     }
+    }
 
     model_name <- match.call()[[2]]
-    attr(p,"source") <- concat( "ulam posterior: ", n , " samples from " , model_name )
+    attr(p,"source") <- concat( "ulam posterior from " , model_name )
 
     return(p)
 }
@@ -132,16 +146,33 @@ function (object, ...)
 setMethod("show", "ulam", function(object){
 
     cat("Hamiltonian Monte Carlo approximation\n")
-    iter <- object@stanfit@sim$iter
-    warm <- object@stanfit@sim$warmup
-    chains <- object@stanfit@sim$chains
+
+    # timing and sample counts
+    is_cstan <- !is.null( attr(object,"cstanfit") )
+    if ( is_cstan==TRUE ) {
+        # cmdstan fit
+        dur <- attr(object,"cstanfit")$time()$chains
+        chains <- attr(object,"cstanfit")$num_chains()
+        iter <- attr(object,"cstanfit")$metadata()$iter_sampling
+        warm <- 0 # attr(object,"cstanfit")$metadata()$iter_warmup
+        # iter is just post warmup for cstan
+    } else {
+        # old stanfit
+        iter <- object@stanfit@sim$iter
+        warm <- object@stanfit@sim$warmup
+        chains <- object@stanfit@sim$chains
+        dur <- stan_sampling_duration(object)
+    }
+
     chaintxt <- " chain\n"
     if ( chains>1 ) chaintxt <- " chains\n"
     tot_samples <- (iter-warm)*chains
     cat(concat( tot_samples , " samples from " , chains , chaintxt ))
     
-    dur <- stan_sampling_duration(object)
-    lab <- attr(dur,"units")
+    if ( is_cstan==FALSE )
+        lab <- attr(dur,"units")
+    else
+        lab <- "seconds"
     attr(dur,"units") <- NULL
     cat(concat("\nSampling durations (",lab,"):\n"))
     print(round(dur,2))
@@ -166,7 +197,7 @@ setMethod("show", "ulam", function(object){
 
 setMethod("summary", "ulam", function(object){
     
-    show(object@stanfit)
+    precis(object,depth=3)
     
 })
 
@@ -213,13 +244,14 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
     
     if ( !(class(object) %in% c("map2stan","ulam","stanfit")) ) stop( "requires map2stan or stanfit fit object" )
     
-    if ( class(object) %in% c("map2stan","ulam") ) object <- object@stanfit
+    #if ( class(object) %in% c("map2stan","ulam") ) object <- object@stanfit
 
     # get all chains, not mixed, from stanfit
     if ( missing(pars) ) {
-        post <- extract(object,permuted=FALSE,inc_warmup=TRUE)
+        # post <- extract(object,permuted=FALSE,inc_warmup=TRUE)
+        post <- as_draws_array( attr(object,"cstanfit")$draws(inc_warmup=TRUE) )
         dimnames <- attr(post,"dimnames")
-        pars <- dimnames$parameters
+        pars <- dimnames$variable
         # cut out "dev" and "lp__" and "log_lik"
         wdev <- which(pars=="dev")
         if ( length(wdev)>0 ) pars <- pars[-wdev]
@@ -228,11 +260,12 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
         wlp <- grep( "log_lik" , pars , fixed=TRUE )
         if ( length(wlp)>0 ) pars <- pars[-wlp]
     } else
-        post <- extract(object,pars=pars,permuted=FALSE,inc_warmup=TRUE)
+        #post <- extract(object,pars=pars,permuted=FALSE,inc_warmup=TRUE)
+        post <- as_draws_array( attr(object,"cstanfit")$draws(variables=pars,inc_warmup=TRUE) )
     
     # names
     dimnames <- attr(post,"dimnames")
-    n_chains <- length(dimnames$chains)
+    n_chains <- length(dimnames$chain)
     if ( missing(chains) ) chains <- 1:n_chains
     chain.cols <- rep_len(col,n_chains)
     
@@ -247,8 +280,8 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
         n_pages <- ceiling(n_pars/(n_cols*n_rows_per_page))
         paging <- TRUE
     }
-    n_iter <- object@sim$iter
-    n_warm <- object@sim$warmup
+    n_iter <- length(dimnames$iteration) # all iterations
+    n_warm <- attr(object,"cstanfit")$metadata()$iter_warmup
     n_samples_extracted <- dim( post )[1]
     wstart <- 1
     wend <- n_iter
@@ -288,7 +321,8 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
     }
     
     # fetch n_eff
-    n_eff <- summary(object)$summary[ , 'n_eff' ]
+    n_eff <- summary(object)$ess_bulk
+    names(n_eff) <- rownames(summary(object))
     
     # make window
     #set_nice_margins()
@@ -320,7 +354,7 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
     }#k
     
 }
-setMethod("traceplot", "ulam" , function(object,...) traceplot_ulam(object,...) )
+setMethod("traceplot", "ulam" , function(x,...) traceplot_ulam(object=x,...) )
 
 setMethod( "plot" , "ulam" , function(x,depth=1,...) precis_plot(precis(x,depth=depth),...) )
 

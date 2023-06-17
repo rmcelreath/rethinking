@@ -175,7 +175,7 @@ test_that("R code 15.19",{
 
 ## R code 15.22
 test_that("R code 15.22",{
-    expect_warning(
+    
     m15.7 <- ulam(
         alist(
            # K as function of B and M
@@ -196,7 +196,7 @@ test_that("R code 15.22",{
             Rho_BM ~ lkj_corr(2),
             Sigma_BM ~ dexp(1)
         ) , data=dat_list , chains=4 , cores=4 )
-    )
+    
     expect_equivalent( dim(precis(m15.7,3)) , c(24,6) )
 })
 

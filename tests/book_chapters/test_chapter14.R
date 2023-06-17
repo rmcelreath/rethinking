@@ -48,7 +48,6 @@ d <- data.frame( cafe=cafe_id , afternoon=afternoon , wait=wait )
 ## R code 14.12
 test_that("R code 14.12",{
     set.seed(867530)
-    expect_warning(
     m14.1 <- ulam(
         alist(
             wait ~ normal( mu , sigma ),
@@ -60,7 +59,6 @@ test_that("R code 14.12",{
             sigma ~ exponential(1),
             Rho ~ lkj_corr(2)
         ) , data=d , chains=4 , cores=4 )
-    )
     expect_equivalent( dim(precis(m14.1,3)) , c(49,6) )
 })
 
@@ -79,7 +77,7 @@ dat <- list(
 
 test_that("R code 14.18",{
     set.seed(4387510)
-    expect_warning( m14.2 <- ulam(
+    m14.2 <- ulam(
         alist(
             L ~ dbinom(1,p),
             logit(p) <- g[tid] + alpha[actor,tid] + beta[block_id,tid],
@@ -94,14 +92,13 @@ test_that("R code 14.18",{
             Rho_actor ~ dlkjcorr(4),
             sigma_block ~ dexp(1),
             Rho_block ~ dlkjcorr(4)
-        ) , data=dat , chains=4 , cores=4 ) )
+        ) , data=dat , chains=4 , cores=4 )
     expect_equivalent( dim(precis(m14.2,3)) , c(96,6) )
 })
 
 ## R code 14.19
 test_that("R code 14.19",{
     set.seed(4387510)
-    expect_warning(
     m14.3 <- ulam(
         alist(
             L ~ binomial(1,p),
@@ -126,7 +123,6 @@ test_that("R code 14.19",{
             gq> matrix[4,4]:Rho_actor <<- Chol_to_Corr(L_Rho_actor),
             gq> matrix[4,4]:Rho_block <<- Chol_to_Corr(L_Rho_block)
         ) , data=dat , chains=4 , cores=4 , log_lik=TRUE )
-    )
     expect_equivalent( dim(precis(m14.3,3)) , c(180,6) )
 })
 
@@ -171,7 +167,6 @@ test_that("R code 14.25",{
 
 ## R code 14.26
 test_that("R code 14.26",{
-    expect_warning(
     m14.6 <- ulam(
         alist(
             c(W,E) ~ multi_normal( c(muW,muE) , Rho , Sigma ),
@@ -182,7 +177,6 @@ test_that("R code 14.26",{
             Rho ~ lkj_corr( 2 ),
             Sigma ~ exponential( 1 )
         ), data=dat_sim , chains=4 , cores=4 )
-    )
     expect_equivalent( dim(precis(m14.6,3)) , c(10,6) )
 })
 
@@ -202,7 +196,6 @@ kl_data <- list(
 )
 
 test_that("R code 14.31",{
-    expect_warning(
     m14.7 <- ulam(
         alist(
             giftsAB ~ poisson( lambdaAB ),
@@ -226,7 +219,6 @@ test_that("R code 14.31",{
            ## compute correlation matrix for dyads
             gq> matrix[2,2]:Rho_d <<- Chol_to_Corr( L_Rho_d )
         ), data=kl_data , chains=4 , cores=4 , iter=2000 )
-    )
     expect_equivalent( dim(precis(m14.7,3)) , c(1266,6) )
 })
 
@@ -266,7 +258,6 @@ test_that("R code 14.39",{
 
 ## R code 14.46
 test_that("R code 14.46",{
-    expect_warning(
     m14.8nc <- ulam(
         alist(
             T ~ dpois(lambda),
@@ -282,7 +273,6 @@ test_that("R code 14.46",{
             etasq ~ dexp( 2 ),
             rhosq ~ dexp( 0.5 )
         ), data=dat_list , chains=4 , cores=4 , iter=2000 )
-    )
     expect_equivalent( dim(precis(m14.8nc,3)) , c(225,6) )
 })
 
