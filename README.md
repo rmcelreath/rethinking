@@ -19,20 +19,19 @@ The first formula in the list is the probability of the outcome (likelihood); th
 
 # Installation
 
-There are three steps. (1) Install ``rstan``, (2) install ``cmdstanr``, (3) install ``rethinking``. Details follow.
+There are three steps. (1) Install the C++ toolchain, (2) install ``cmdstanr``, (3) install ``rethinking``. Details follow.
 
-First, install the C++ toolchain and install the ``rstan`` package. Go to ``https://mc-stan.org/users/interfaces/rstan.html`` and follow the instructions for your platform. The biggest challenge is getting a C++ compiler configured to work with your installation of R. The instructions are quite thorough. Obey them, and you'll succeed.
+First, install the C++ toolchain. Go to ``https://mc-stan.org/docs/cmdstan-guide/cmdstan-installation.html#cpp-toolchain`` and follow the instructions for your platform.
 
-Second, install the ``cmdstanr`` package. Visit ``https://mc-stan.org/cmdstanr/``. The first time you install cmdstanr, you will also need compile the libraries with ``cmdstanr::install_cmdstan()``. All this of this bother is worth it. You just have to do it once.
+Second, install the ``cmdstanr`` package. Visit ``https://mc-stan.org/cmdstanr/``. The first time you install cmdstanr, you will also need compile the libraries with ``cmdstanr::install_cmdstan()``. All this of this bother is worth it. You just have to do it once. If you don't want to use MCMC, you don't have to complete this step.
 
-Third, once rstan and cmdstanr are installed (almost there), then you can install ``rethinking`` from within R using:
+Third, you can install ``rethinking`` from within R using:
 ```
 install.packages(c("coda","mvtnorm","devtools","loo","dagitty","shape"))
 devtools::install_github("rmcelreath/rethinking")
 ```
-If there are any problems, they likely arise when trying to install ``rstan``, so the ``rethinking`` package has little to do with it. See the manual linked above for some hints about getting ``rstan`` installed. But always consult the RStan section of the website at ``mc-stan.org`` for the latest information on RStan.
 
-Note that the ``rethinking`` package is not on CRAN, just on github. The ``rethinking`` package is never going to be on CRAN.
+Note that the ``rethinking`` package is not on CRAN, just on github. The ``rethinking`` package is never going to be on CRAN. So if you get an error about rethinking not being available for your version of R, it is because you tried to install from CRAN. Use the github code above.
 
 # rethinking slim - no MCMC
 
