@@ -29,7 +29,7 @@ compare <- function( ... , n=1e3 , sort="WAIC" , func=WAIC , WAIC=TRUE , refresh
 
     # use substitute to deparse the func argument
     the_func <- func
-    if ( class(the_func) != "character" )
+    if ( !is.character(the_func) )
         the_func <- deparse(substitute(func))
     
     # check class of fit models and warn when more than one class represented
@@ -229,7 +229,7 @@ compare_old <- function( ... , nobs=NULL , sort="AICc" , BIC=FALSE , DIC=FALSE ,
         pD.list <- rep( NA , length(L) )
         for ( i in 1:length(L) ) {
             m <- L[[i]]
-            if ( class(m)=="map" ) {
+            if ( inherits(m, "map") ) {
                 post <- sample.qa.posterior( m , n=DICsamples )
                 message( paste("Computing DIC for model",mnames[i]) )
                 dev <- sapply( 1:nrow(post) , 
