@@ -2,7 +2,22 @@
 
 ## 2nd Edition
 
-[to be filled]
+page 151: describing code piece 5.41, text says that this code produces the bottom-left part of figure 5.9. But the code keeps N=0, which corresponds to bottom-right 
+figure.
+
+page 243: “Something like alpha ~ Normal(0, 0.1)” and the next Normal(0,0) Have to be “Normal(1, 0.1)”
+
+page 273: last sum in the formula has to be `log p(\mu_x | 0, 0.5))`
+
+page 349: plot label has to be `dlnorm`, not `dnorm`
+
+page 351: chart titles are wrong - first variable should be a, not b
+
+page 472: reference `bp` is not present in the model
+
+page 475: in the code piece 14.45 - the same
+
+page 508: model names on chart are wrong, has to be m15.5 and m15.6. The text also references wrong models
 
 ## 1st Edition
 
