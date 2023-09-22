@@ -2,7 +2,13 @@
 
 ## 2nd Edition
 
-[to be filled]
+page 76, Overthinking box, first paragraph: "You're computer already knows it" should read "Your computer..."
+
+page 130, last paragraph.  "And D and M are associated with one another, because [A] influences them both"
+
+page 148, first paragraph, last sentence.  "But [we?] have extended the range of $N$ values..."
+
+page 224, caption to Figure 7.9. "The bottom row shows 1000 simulations with N = [100]"
 
 ## 1st Edition
 
