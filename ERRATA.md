@@ -4,6 +4,8 @@
 
 [to be filled]
 
+page 153: "are possible lost forever?" should be "are possibly lost forever?"
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
