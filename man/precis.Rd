@@ -7,7 +7,7 @@
 }
 \usage{
 precis( model , depth=1 , pars , ci=TRUE , prob=0.89 , 
-    corr=FALSE , digits=2 , warn=TRUE )
+    corr=FALSE , digits=2 , warn=TRUE, hist=TRUE)
 }
 %- maybe also 'usage' for other objects documented here.
 \arguments{
@@ -19,9 +19,10 @@ precis( model , depth=1 , pars , ci=TRUE , prob=0.89 ,
   \item{corr}{If \code{TRUE}, show correlations among parameters in output}
   \item{digits}{Number of decimal places to display in output}
   \item{warn}{If \code{TRUE}, warns about various things}
+  \item{hist}{If \code{TRUE}, produces unicode histograms of each parameter's distribution}
 }
 \details{
-  Creates a table of estimates and standard errors, with optional confidence intervals and parameter correlations. Posterior intervals are quadratic estimates, derived from standard deviations, unless the model uses samples from the posterior distribution, in which case \code{\link{HPDI}} is used instead.
+  Creates a table of estimates and standard errors, with optional confidence intervals, parameter correlations, and distributions. Posterior intervals are quadratic estimates, derived from standard deviations, unless the model uses samples from the posterior distribution, in which case \code{\link{HPDI}} is used instead.
   
   Can also provide expected value, standard deviation, and HPDI columns for a data frame.
 }
