@@ -4,6 +4,8 @@
 
 [to be filled]
 
+page 170: "To see how imprecise of the posterior increases" should be "To see how imprecision of the posterior increases".
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
