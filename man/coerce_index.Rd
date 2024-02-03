@@ -18,7 +18,7 @@ check_index( x )
 \details{
   Varying effect models often require index variables that begin at 1 and comprise only integers. These variables are used to lookup specific parameter values inside of the model. For example, it is common to define varying intercepts with a linear model like \code{a0 + a_id[id[i]]}. Here the variable \code{id} is an index variable. It has one value for each case, defining which individual applies to that case.
 
-  When raw data exist as factors, these index variables much be converted to integers. This is trickier than it sounds, because R uses an internal integer represntation for factors, \code{levels}, that can conflict with ordinary integer representations.
+  When raw data exist as factors, these index variables must be converted to integers. This is trickier than it sounds, because R uses an internal integer representation for factors, \code{levels}, that can conflict with ordinary integer representations.
 
   The function \code{coerce_index} deals with that complication. When the input is a single vector of factors, it returns an integer vector beginning at 1 and with contiguous values. 
 
