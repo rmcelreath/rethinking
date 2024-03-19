@@ -1440,7 +1440,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                     if ( rstanout==TRUE )
                         stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
                     else
-                        stanfit <- cmdstanfit
+                        stanfit <- read_cmdstan_csv(cmdstanfit$output_files())
                 }
             } else {
                 if ( cmdstan==FALSE ) {
@@ -1471,7 +1471,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                     if ( rstanout==TRUE )
                         stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
                     else
-                        stanfit <- cmdstanfit
+                        stanfit <- read_cmdstan_csv(cmdstanfit$output_files())
                 }
             }
         } else {
