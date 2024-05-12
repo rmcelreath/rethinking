@@ -14,7 +14,7 @@ cmdstanr_model_write <- function( the_model ) {
     }
 
 # wrapper to fit stan model using cmdstanr and return rstan stanfit object
-cstan <- function( file , model_code , data=list() , chains=1 , cores=1 , iter=1000 , warmup , threads=1 , control=list(adapt_delta=0.95) , cpp_options=list() , save_warmup=TRUE , cpp_fast=FALSE , rstan_out=TRUE , pars , compile=TRUE , stanc_options=list("O1") , ... ) {
+cstan <- function( file , model_code , data=list() , chains=1 , cores=1 , iter=1000 , warmup , threads=1 , control=list(adapt_delta=0.95) , cpp_options=list() , save_warmup=TRUE , cpp_fast=FALSE , rstan_out=FALSE , pars , compile=TRUE , stanc_options=list("O1") , start , ... ) {
 
     if ( threads>1 ) cpp_options[['stan_threads']] <- TRUE
 
@@ -48,23 +48,49 @@ cstan <- function( file , model_code , data=list() , chains=1 , cores=1 , iter=1
         carg_max_treedepth <- as.numeric(control[['max_treedepth']])
 
     # sample
-    if ( threads > 1 )
-        cmdstanfit <- mod$sample( data=data , 
-            chains=chains , 
-            parallel_chains=cores , 
-            iter_sampling=samp , iter_warmup=warm , 
-            adapt_delta=carg_adapt_delta , 
-            max_treedepth=carg_max_treedepth , 
-            threads_per_chain=threads ,
-            save_warmup=save_warmup , ... )
-    else
-        cmdstanfit <- mod$sample( data=data , 
-            chains=chains , 
-            parallel_chains=cores , 
-            iter_sampling=samp , iter_warmup=warm , 
-            adapt_delta=carg_adapt_delta , 
-            max_treedepth=carg_max_treedepth ,
-            save_warmup=save_warmup , ... )
+    if ( missing(start) ) {
+        if ( threads > 1 )
+            cmdstanfit <- mod$sample( data=data , 
+                chains=chains , 
+                parallel_chains=cores , 
+                iter_sampling=samp , iter_warmup=warm , 
+                adapt_delta=carg_adapt_delta , 
+                max_treedepth=carg_max_treedepth , 
+                threads_per_chain=threads ,
+                save_warmup=save_warmup , ... )
+        else
+            cmdstanfit <- mod$sample( data=data , 
+                chains=chains , 
+                parallel_chains=cores , 
+                iter_sampling=samp , iter_warmup=warm , 
+                adapt_delta=carg_adapt_delta , 
+                max_treedepth=carg_max_treedepth ,
+                save_warmup=save_warmup , ... )
+    } else {
+        # start values
+        f_init <- "random"
+        if ( class(start)=="list" ) f_init <- function() return(start)
+        if ( class(start)=="function" ) f_init <- start
+        if ( threads > 1 )
+            cmdstanfit <- mod$sample( data=data , 
+                chains=chains , 
+                parallel_chains=cores , 
+                iter_sampling=samp , iter_warmup=warm , 
+                adapt_delta=carg_adapt_delta , 
+                max_treedepth=carg_max_treedepth , 
+                threads_per_chain=threads ,
+                init = f_init ,
+                save_warmup=save_warmup , ... )
+        else
+            cmdstanfit <- mod$sample( data=data , 
+                chains=chains , 
+                parallel_chains=cores , 
+                iter_sampling=samp , iter_warmup=warm , 
+                adapt_delta=carg_adapt_delta , 
+                max_treedepth=carg_max_treedepth ,
+                init = f_init ,
+                save_warmup=save_warmup , ... )
+    }
 
     # coerce to stanfit object
     if ( rstan_out==TRUE )
@@ -82,6 +108,34 @@ stan <- function( ... ) {
         rstan::stan( ... )
     }
 }
+
+# extract
+
+extract_post_cstan <- 
+function(object,n,clean=TRUE,pars,...) {
+    #require(rstan)
+    #if ( missing(pars) & clean==TRUE ) pars <- object@pars
+    pr <- as_draws_rvars( object$draws() )
+    p <- list()
+    for ( i in 1:length(pr) )
+        p[[ names(pr)[i] ]] <- draws_of( pr[[i]] )
+    # get rid of dev and lp__
+    if ( clean==TRUE ) {
+        p[['dev']] <- NULL
+        p[['lp__']] <- NULL
+        p[['log_lik']] <- NULL
+    }
+    # get rid of those ugly dimnames
+    for ( i in 1:length(p) ) {
+        attr(p[[i]],"dimnames") <- NULL
+    }
+
+    model_name <- match.call()[[2]]
+    attr(p,"source") <- concat( "cstan posterior from " , model_name )
+
+    return(p)
+}
+#setMethod("extract.samples","CmdStanMCMC",extract_post_cstan)
 
 # in place tests
 if ( FALSE ) {

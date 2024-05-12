@@ -89,6 +89,11 @@ setMethod("plot", "map" , function( x , ... ) {
 setGeneric("extract.samples",
 function( object , n=10000 , clean=TRUE , ... ) {
     #require(MASS)
+
+    # trap for cstan
+    if ( class(object)[1]=="CmdStanMCMC" )
+        return(extract_post_cstan(object,...))
+
     mu <- 0
     if ( class(object)[1] %in% c("mer","bmer","glmerMod","lmerMod") ) {
         mu <- fixef(object)

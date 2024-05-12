@@ -295,3 +295,20 @@ m01 <- ulam(
         p ~ beta(2,2)
     ) , data=list(Y=Y) , chains=4 , cores=4 )
 
+# start list
+
+data(Howell1)
+d <- Howell1
+d2 <- d[ d$age >= 18 , ]
+
+set.seed(1)
+mt <- ulam(
+  alist(
+    height ~ student_t( nu, mu , sigma ) ,
+    mu <- a + b*weight ,
+    a ~ normal( 178 , 20 ) ,
+    b ~ normal( 0 , 1 ) ,
+    sigma ~ exponential( 1 ),
+    nu ~ gamma(2, 0.1)
+  ) , data=d2 , sample=TRUE , chains=4 , seed=1 , start=list(a=178,b=0,sigma=1,nu=1) )
+

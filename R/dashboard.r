@@ -26,7 +26,7 @@ dashboard <- function( fit , warmup=FALSE , plot=TRUE , trank=TRUE ) {
 
         # n_eff distribution
         Rhat_vals <- as.numeric( round( y[,'rhat'], 2 ) )
-        plot( y[,'ess_bulk'] , Rhat_vals , xlab="number of effective samples" , ylab="Rhat" , ylim=c( 0.995 , max(1.1,Rhat_vals,na.rm=TRUE) ) )
+        plot( y[,'ess_bulk'] , (Rhat_vals) , xlab="number of effective samples" , ylab="Rhat" , ylim=c( 1 , max(1.1,(Rhat_vals),na.rm=TRUE) ) , log='y' )
         abline( v=0.1*n_samples , lty=1 , col="red" )
         abline( v=n_samples , lty=1 , col=grau() )
         abline( h=1 , lty=2 )

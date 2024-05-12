@@ -1476,16 +1476,41 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             }
         } else {
             # WITH explicit start list
-            # Still needs cmdstanr interface
+            # now with experimental cmdstanr interface
+            # need some new tests for inits
             f_init <- "random"
             if ( class(start)=="list" ) f_init <- function() return(start)
             if ( class(start)=="function" ) f_init <- start
-            if ( prev_stanfit==FALSE )
-                stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
-                         chains=chains , cores=cores , iter=iter , control=control , init=f_init , warmup=warmup , ... )
-            else
-                stanfit <- stan( fit = prev_stanfit_object , data = data , pars=use_pars , 
-                         chains=chains , cores=cores , iter=iter , control=control , init=f_init , warmup=warmup , ... )
+            #if ( prev_stanfit==FALSE )
+            #    stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
+            #             chains=chains , cores=cores , iter=iter , control=control , init=f_init , warmup=warmup , ... )
+            #else
+            #    stanfit <- stan( fit = prev_stanfit_object , data = data , pars=use_pars , 
+            #             chains=chains , cores=cores , iter=iter , control=control , init=f_init , warmup=warmup , ... )
+            # use cmdstanr interface
+                    require( cmdstanr , quietly=TRUE )
+                    filex <- cmdstanr_model_write( model_code )
+                    mod <- cmdstan_model(
+                        stan_file=filex[[1]],
+                      # exe_file=filex[[2]],
+                        compile=filex[[3]],
+                        cpp_options=cpp_options,
+                        stanc_options=stanc_options )
+                    # set_num_threads( threads )
+                    # iter means only post-warmup samples for cmdstanr
+                    # so need to compute iter explicitly
+                    cmdstanfit <- mod$sample( 
+                        data=data , 
+                        chains=chains , parallel_chains=cores , 
+                        iter_warmup=warmup, iter_sampling=floor(iter-warmup) , 
+                        save_warmup=TRUE ,
+                        adapt_delta=as.numeric(control[['adapt_delta']]) ,
+                        init = f_init ,
+                        threads_per_chain=threads , ... )
+                    if ( rstanout==TRUE )
+                        stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
+                    else
+                        stanfit <- cmdstanfit
         }
     }
 
