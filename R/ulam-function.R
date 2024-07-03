@@ -1037,6 +1037,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 # add by default
                 built <- compose_distibution( left_symbol , flist[[i]] , as_log_lik=TRUE )
                 m_gq2 <- concat( m_gq2 , built )
+                message(left_symbol)
                 message(symbols)
                 N <- symbols[[left_symbol]]$dims[[2]]
                 message("Worked")
