@@ -472,7 +472,9 @@ ulam_dists <- list(
                 out <- concat( out , indent , out_var , " ~ multi_normal( " , MU_var , " , " , SIGMA , " );\n" )
 
             } else {
-                out <- concat( out , indent , "log_lik = multi_normal_lpdf( " , out_var , " | " , MU_var , " , " , SIGMA , " );\n" )
+                out <- concat( out , indent , "for ( j in 1:" , n_cases , " ) {\n" )
+                out <- concat( out , indent , indent , "log_lik[j] = multi_normal_lpdf( " , out_var , "[j] | " , MU_var , "[j] , " , SIGMA , " );\n" )
+                out <- concat( out , indent , "}\n" )
             }
 
             # close local environment, if necessary

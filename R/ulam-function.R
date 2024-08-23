@@ -1037,7 +1037,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 # add by default
                 built <- compose_distibution( left_symbol , flist[[i]] , as_log_lik=TRUE )
                 m_gq2 <- concat( m_gq2 , built )
-                N <- symbols[[left_symbol]]$dims[[2]]
+                N <- symbols[[left_symbol[1]]]$dims[[2]]
                 m_gq1 <- concat( m_gq1 , indent , "vector[" , N , "] log_lik;\n" )
                 # save N to attr so nobs/compare can get it later
                 nobs_save <- N
@@ -1440,7 +1440,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                     if ( rstanout==TRUE )
                         stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
                     else
-                        stanfit <- cmdstanfit
+                        stanfit <- as_cmdstan_fit(cmdstanfit$output_files())
                 }
             } else {
                 if ( cmdstan==FALSE ) {
@@ -1471,7 +1471,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                     if ( rstanout==TRUE )
                         stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
                     else
-                        stanfit <- cmdstanfit
+                        stanfit <- as_cmdstan_fit(cmdstanfit$output_files())
                 }
             }
         } else {
