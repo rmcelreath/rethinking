@@ -110,6 +110,7 @@ stan <- function( ... ) {
 }
 
 # extract
+# this is hooked via the generic function (since cmdstanr classes not imported yet)
 
 extract_post_cstan <- 
 function(object,n,clean=TRUE,pars,...) {
