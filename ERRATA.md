@@ -2,6 +2,7 @@
 
 ## 2nd Edition
 
+page 276: Formulae for derivative of priors with respect to mux and muy are incorrect. In main text change dU/dmux formula last expression from "(0 - mux)/0.5squared" to "(mux - 0)/0.5squared".   In R code 9.6, change "(a-muy)/b^2" to "(muy - a)/b^2". Similar change wrt x. 
 [to be filled]
 
 ## 1st Edition
