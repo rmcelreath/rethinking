@@ -2,7 +2,57 @@
 
 ## 2nd Edition
 
-[to be filled]
+page 41: Should be Figure 2.6
+
+page 108 (R code 4.61): mu.HPDI is not defined a this point - I presume you mean mu.PI (defined in R code 4.56 on page 105)?
+
+page 121 (Problem 4M6): Misleading to state that the variance is 64 cm. If any units are used, it should be $cm^2$
+
+page 127 (Fig 5.3 text): implausibly
+
+page 130: Last paragraph: "And D and M are associated with another, because A influences them both"
+
+page 132: Fourth paragraph (after the formula): "but here I've chosen M for marriage rate"
+
+page 148: First paragraph: "But if have..." -> "But I have"
+
+page 151-152: R code 5.41 actually produces the lower-right plot in Figure 5.9
+
+page 213: Overthinking box: function name is sim_train_test now in 2nd ed.
+
+page 228: R code 7.28: Should be 40.9, to tie the number more tightly to the paragraph above
+
+page 248: R code 8.14: Should be precis(m8.3, depth=2 )
+
+page 273: Last equation, should end with "log p(\mu_x | 0, 0.5)" (substitute vertical bar for the comma)
+
+page 278: R code 9.10: Beware that the real HMC2 function also defines dH in the returned list. This is used in the plot (R code 9.7). It is the difference in total energy (proposed_U + proposed_K) - (current_U + current_K).
+
+page 331: last paragraph: should be CONTRASTS.
+
+page 338: "results for the first two chimpanzees" should really be (IMHO): "partial results for the first two treatments (the total data frame has 7x4=28 rows, one each per actor and treatment combination."
+
+page 339: First equation: typo in the numerator - should be 9! (in accordance with the binomial coefficient formula)
+
+page 343 (R code 11.32): dat_list$dept_id <- coerce_index(d$dept)   # use coerce_index and the original data to construct new index variable
+
+page 378: First line, should be "probability that the monks did drink"
+
+page 410: Mismatch between R.code 13.7 where a_bar is 1.5 and the second paragraph, where it is assumed to be 1.4
+
+page 453: (Overthinking): Typo in paragraph 4: Should be compose_noncentered.
+
+page 463: Typo in para 5, should be: "when one household gives more, the other gives less"
+
+page 469: Typo in para 3, should be: "famililar Poisson probability"
+
+page 472: Type in para 1, should be: "those k parameters"
+
+page 475: Typo in Rcode 14.45, should be: exp( post$a + post$b*lp )
+
+page 477: Typo, first line in ch.14.5.2, should be "more or less distant"
+
+page 508: Typos, m15.3 should be m15.5 (Rcode 15.17 is correct), m15.4 should be m15.6. Also applies to the figure.
 
 ## 1st Edition
 
