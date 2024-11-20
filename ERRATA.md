@@ -8,6 +8,8 @@
 
 page 13: "What does mean to take a limit..." is missing the word "it".
 
+page 40: Right above R code box 2.5, the text says that the different priors are replicated in FIGURE 2.5. The code in R code box  2.5 replicates the step and peaked prior in "FIGURE 2.6" (page 38), but not in "FIGURE 2.5" (page 30).
+
 page 42: Just below R code box 2.6, the text says that map requires a list of start values. It does not, as long as priors are provided for each parameter. And indeed the example in box 2.6 does not contain a list of start values.
 
 page 66, end of first paragraph: 'the right-hand plot' should be 'the bottom plot'.
