@@ -22,6 +22,8 @@ page 103, R code 4.50: The ``post`` object implied here is the one from R code 4
 
 page 125: Below R code 5.4, "The posterior mean for age at marriage, ba, ..." 'ba' should be 'bA'.
 
+page 130: text below code box mentions the variables ``MR.seq`` and ``MAM.avg`` while referring to box ``R code 5.9`` on the previous page (page 129) , however, there are no such variables in the corresponding code box. ``MR.seq`` should be ``R.seq`` and ``MAM.avg`` should be ``A.avg``.
+
 page 156, near top: "In fact, if you try to include a dummy variable for apes, you'll up with..." Should be "you'll end up with".
 
 page 196-200: The data.frame d has 17 cases. However in the discussion of the four models (on e.g. page 200), the text repeatedly refers to 12 cases.
