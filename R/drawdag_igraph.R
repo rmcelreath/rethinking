@@ -40,7 +40,7 @@ graphdag <- function( x ,
         for ( uv in unobs_vars ) the_shapes[ which(the_vars==uv) ] <- "circle"
     }
     if ( interact==FALSE ) {
-        if ( class(layout)!="matrix" )
+        if ( !is.matrix(layout) )
             the_layout <- do.call( layout , list(mgraph) )
         else
             the_layout <- layout

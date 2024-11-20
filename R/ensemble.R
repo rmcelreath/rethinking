@@ -11,7 +11,7 @@ ensemble <- function( ... , data , n=1e3 , func=WAIC , weights , refresh=0 , rep
     if ( missing(weights) ) {
         if ( length(L)>1 ) {
             use_func <- func
-            if ( class(use_func) != "character" )
+            if ( !is.character(use_func) )
                 use_func <- deparse(substitute(func))
             ictab <- compare( ... , func=use_func , refresh=refresh , n=n , sort=FALSE )
             rownames(ictab) <- mnames

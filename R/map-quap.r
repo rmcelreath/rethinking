@@ -28,8 +28,8 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     ########################################
     # check arguments
     if ( missing(flist) ) stop( "Formula required." )
-    if ( class(flist) != "list" ) {
-        if ( class(flist)=="formula" ) {
+    if ( !is.list(flist) ) {
+        if ( inherits(flist, "formula") ) {
             flist <- list(flist)
         } else {
             stop( "Formula or list of formulas required." )
@@ -137,7 +137,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
         LHS <- f[[2]]
         flag_monad_linear_model <- FALSE
         if ( length(RHS)==1 ) {
-            if ( class(RHS)=="numeric" | class(RHS)=="name" )
+            if ( is.numeric(RHS) || is.name(RHS) )
                 flag_monad_linear_model <- TRUE
             fname <- ""
         } else {
@@ -152,7 +152,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
             n_args <- length(RHS)
             args_list <- as.list(RHS)
             # check for LHS with brackets []
-            if ( class(LHS)=="call" ) {
+            if ( is.call(LHS) ) {
                 if ( as.character(LHS[[1]])=="[" ) {
                     ival <- suppressWarnings( as.numeric(as.character(LHS[[3]])) )
                     if ( is.na(ival) ) {
@@ -222,10 +222,10 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     if ( length(flist) > 1 ) {
         flag_flatten <- FALSE
         for ( i in 2:length(flist) ) {
-            if ( !(class(flist[[i]])=="formula") )
+            if ( !inherits(flist[[i]], "formula") )
                 stop( "Input not a formula." )
             LHS <- flist[[i]][[2]]
-            if ( class(LHS)=="call" ) {
+            if ( is.call(LHS) ) {
                 fname <- as.character(LHS[[1]])
                 if ( fname=="c" | fname=="[" | fname %in% link.names ) {
                     if ( fname=="c" ) {
@@ -312,7 +312,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
         # loop in reverse order, so linear models lower down get pulled up
         for ( i in length(flist2):2 ) {
             # linear models are class list
-            if ( class(flist2[[i]])=="list" ) {
+            if ( is.list(flist2[[i]]) ) {
                 LHS <- flist2[[i]][[1]]
                 RHS <- flist2[[i]][[2]]
                 # save current likelihood, so can check for link
@@ -330,7 +330,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
                 if ( i > 2 ) {
                     # RHSp <- paste( "(" , RHS , ")" , collapse="" )
                     for ( j in (i-1):2 ) {
-                        if ( class(flist2[[j]])=="list" ) {
+                        if ( is.list(flist2[[j]]) ) {
                             #flist2[[j]][[2]] <- gsub( LHS , RHSp , flist2[[j]][[2]] )
                             flist2[[j]][[2]] <- mygrep( LHS , RHS , flist2[[j]][[2]] , add.par=TRUE )
                         } else {
@@ -347,7 +347,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
         flist3 <- list()
         j <- 1
         for ( i in 1:length(flist2) ) {
-            if ( class(flist2[[i]]) != "list" ) {
+            if ( !is.list(flist2[[i]]) ) {
                 flist3[[j]] <- flist2[[i]]
                 j <- j + 1
             }
@@ -413,7 +413,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
             # scan formula for right prior
             for ( g in 2:length(flist) ) {
                 # check for `[`
-                if ( class(flist[[g]][[2]])=="call" ) {
+                if ( is.call(flist[[g]][[2]]) ) {
                     # assume `[`, because other calls should be purged by now
                     the_par_with_index <- deparse(flist[[g]][[2]])
                     the_par <- as.character( flist[[g]][[2]][[2]] )
@@ -429,7 +429,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
                                 # get length of vector by scanning priors
                                 max_index <- 1
                                 for ( h in 2:length(flist) ) {
-                                    if ( class(flist[[h]][[2]])=="call" ) {
+                                    if ( is.call(flist[[h]][[2]]) ) {
                                         if ( as.character(flist[[h]][[2]][[2]])=="[" & as.character(flist[[h]][[2]][[3]])==the_par ) {
                                             nval <- suppressWarnings( as.numeric(flist[[h]][[2]][[3]]) )
                                             if ( !is.null(nval) ) {
@@ -532,7 +532,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
             suppressWarnings(optim( par=pars , fn=make_minuslogl , flist=flist2 , data=data , veclist=veclist , hessian=hessian , method=method , ... ))
             , silent=TRUE
         )
-        if ( class(fit)=="try-error" ) {
+        if ( inherits(fit, "try-error") ) {
             # something went wrong...try to figure it out
             msg <- attr(fit,"condition")$message
             
@@ -572,7 +572,7 @@ quap <- function( flist , data , start , method="BFGS" , hessian=TRUE , debug=FA
     
     if ( hessian & dofit ) {
         vcov <- try( solve(fit$hessian) )
-        if ( class(vcov)[1]=="try-error" ) {
+        if ( inherits(vcov, "try-error") ) {
             warning( "Error when computing variance-covariance matrix (Hessian). Fit may not be reliable." )
             vcov <- matrix( NA , nrow=length(pars) , ncol=length(pars) )
         }
