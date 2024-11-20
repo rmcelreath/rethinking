@@ -4,6 +4,8 @@
 
 [to be filled]
 
+page 177: "the categorical variable strategy from Chapter 4" refers to Chapter 5.
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
