@@ -2,7 +2,31 @@
 
 ## 2nd Edition
 
-[to be filled]
+page 132: 5.1.3, in paragraph just after the model specification: "but here I've chosen R for marriage rate and A ..." should be "M for marriage"
+
+page 146: second paragraph, "it's" -> "its". "First, it's validity depends upon ..." should be "First, its validity ..."
+
+page 153: Rethinking box, last sentence: "... and are possible lost forever?" should be "... and are possibly lost forever?"
+
+page 156: First paragraph, third sentence: "Vector (and matrix) parameters are hidden by `precies` ..." should be "`precis`"
+
+page 243: In the paragraph following box "R code 8.3", when discussing the prior for alpha, which was `Normal(1, 1)` in m8.1, it is adjusted to `Normal(0, 0.1)` when it should be `Normal(1, 0.1)`
+
+page 255: next-to-last paragraph: "When we have two variable", "variable" should be "variables"
+
+page 271: last paragraph before 9.3.1: "But understanding some of the concept behind it will ...", "concept" should be "concepts"
+
+page 354: in the first paragraph, after the code block, there's a typo in name of a society, "Tap" should be "Yap".
+
+page 435: At the end of the second paragraph: "change in expectation when an indictor (or dummy, page 154) variable", "indictor" should be "indicator"
+
+page 477: In the first sentence of 14.5.2. “more or less distance” should read "more or less distant"
+
+page 506: in the paragraph above the code box, "because the locations of missing values have to respected" should be "... have to be respected"
+
+page 508: the plot in the middle of the page, and the subsequent text, references models `m15.3` and `m15.4` while the code that purportedly generates it (R code 15.20) refers to the models as `m15.5` and `m15.6`.
+
+page 537: at the end of the second line after the `R code 16.9` box, there's a typo: “duration pf the”
 
 ## 1st Edition
 
