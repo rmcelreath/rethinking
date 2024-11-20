@@ -120,7 +120,8 @@ contour_xyz <- function( x , y , z , ... ) {
     ux <- unique(x)
     uy <- unique(y)
     n <- length(ux)
-    m <- matrix( z , nrow=n , ncol=n )
+    ny <- length(uy)
+    m <- matrix( z , nrow=n , ncol=ny )
     contour( ux , uy , m , ... )
 }
 
