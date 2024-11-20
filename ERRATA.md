@@ -18,6 +18,8 @@ page 87: The marginal description of the model reads "mu ~ dnorm(156, 10)" but t
 
 page 95-96: dnorm(156,100) should be dnorm(178,100) in both model presentation and then R code on top of page 96.
 
+page 96: the phrase "you'll work directly the posterior distribution" might be missing the word "with"?
+
 page 103, R code 4.50: The ``post`` object implied here is the one from R code 4.46: ``post <- extract.samples(m4.3)``.
 
 page 125: Below R code 5.4, "The posterior mean for age at marriage, ba, ..." 'ba' should be 'bA'.
