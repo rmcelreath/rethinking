@@ -2,7 +2,7 @@
 
 ## 2nd Edition
 
-[to be filled]
+page 297: Excercise 9H2, it should be `log_lik = True` instead of `log_log = True`.
 
 ## 1st Edition
 
