@@ -33,6 +33,8 @@ page 215, first paragraph: "despite it's plausible superiority" should be "despi
 page 237 Exercise H1: "...index variable, as explained in Chapter 6.",
 should be chapter 5 (at least that's their first appearance)
 
+page 247, near end of section 8.2.2; "There are also a number of other parameters that define the HMC algorithm, but no the statistical model, ..."; should this be "not the statisical model"?
+
 page 253 ("...the functions postcheck, link and sim work on map2stan
 just as they do on map models...") postcheck appears somewhat out of thin air. Need a better introduction to it.
 
