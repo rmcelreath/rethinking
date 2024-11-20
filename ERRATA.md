@@ -4,6 +4,8 @@
 
 [to be filled]
 
+page 111: `weight.s` is used in one listing, while `weight_s` is used in another, which is a very mild kind of inconsistency.
+
 ## 1st Edition
 
 page 13: "What does mean to take a limit..." is missing the word "it".
