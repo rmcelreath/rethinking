@@ -115,7 +115,7 @@ trankplot <- function( object , bins=30 , pars , chains , col=rethink_palette , 
         else
             plot( NULL , xlab="" , ylab="" , bty="l" , xlim=range(breaks) , ylim=ylim , xaxt="n" , yaxt="n" , ... )
         neff_use <- neff[ names(neff)==main ]
-        mtext( paste("n_eff =",round(neff_use,0)) , 3 , adj=1 , cex=0.9 )
+        mtext( paste("ess =",round(neff_use,0)) , 3 , adj=1 , cex=0.9 )
         if ( main=="lp__" ) main <- "log-probability"
         mtext( main , 3 , adj=0 , cex=1 )
     }

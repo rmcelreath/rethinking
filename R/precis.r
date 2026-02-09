@@ -376,7 +376,7 @@ precis_cmdstanfit <- function( object , depth=1 , pars , prob=0.89 , digits=2 , 
     low <- (1-prob)/2
     upp <- 1-low
     # result <- summary(object,variables=pars,probs=c(low,upp))$summary[,c(1,3:7)]
-    result <- object$summary( variables=pars , "mean" , "sd" , ~quantile(.x, probs = c(low, upp)) , "rhat" , "ess_bulk" )
+    result <- object$summary( variables=pars , "mean" , "sd" , ~quantile(.x, probs = c(low, upp)) , "rhat" , "ess_bulk" , "ess_tail" )
     result <- as.data.frame( result )
 
     # take variable column and convert to row names
