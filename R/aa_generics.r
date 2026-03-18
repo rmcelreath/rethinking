@@ -23,7 +23,7 @@ if (!isGeneric("pairs"))
       setGeneric("pairs", function(x, ...) standardGeneric("pairs"))
 
 if (!isGeneric("traceplot"))
-      setGeneric("traceplot", function(x, ...) plot(x,...) )
+      setGeneric("traceplot", function(x, ...) traceplot_ulam(object=x,...) )
 
 setGeneric("link",
 function( fit , data , n=1000 , ... ) {
