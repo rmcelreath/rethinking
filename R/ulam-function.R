@@ -575,7 +575,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         right_txt <- deparse( rline , width.cutoff = 500L )
         if ( length(right_txt)>1 ) {
             # lines got broken! so concatenate with line breaks
-            right_text <- paste( right_txt , collapse="\n" )
+            right_txt <- paste( right_txt , collapse="\n" )
         }
         # if reduce context, need [start+i-1] in place of [i]
         if ( reduce==TRUE )
