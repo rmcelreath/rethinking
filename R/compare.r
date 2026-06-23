@@ -145,7 +145,7 @@ setMethod("plot" , "compareIC" , function(x,y,xlim,SE=TRUE,dSE=TRUE,weights=FALS
     }
     main <- colnames(x)[1]
     set_nice_margins()
-    dotchart( dev_in[n:1] , labels=rownames(x)[n:1] , xlab="deviance" , pch=16 , xlim=xlim , ... )
+    dotchart( dev_in[n:1] , labels=rownames(x)[n:1] , xlab="Deviance" , pch=16 , xlim=xlim , ... )
     points( dev_out[n:1] , 1:n )
     mtext(main)
     # standard errors
