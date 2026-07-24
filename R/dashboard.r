@@ -52,6 +52,7 @@ dashboard <- function( fit , warmup=FALSE , plot=TRUE , trank=TRUE ) {
         } else {
             traceplot( fit , pars="lp__" , lp=TRUE , add=TRUE )
         }
+        par(mfrow=c(1,1))
     }
     # invisible result
     invisible(x)
