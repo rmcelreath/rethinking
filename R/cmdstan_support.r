@@ -17,6 +17,7 @@ cmdstanr_model_write <- function( the_model ) {
 cstan <- function( file , model_code , data=list() , chains=1 , cores=1 , iter=1000 , warmup , threads=1 , control=list(adapt_delta=0.95) , cpp_options=list() , save_warmup=TRUE , cpp_fast=FALSE , rstan_out=FALSE , pars , stanc_options=list("O1") , start , ... ) {
 
     if ( threads>1 ) cpp_options[['stan_threads']] <- TRUE
+    threads_per_chain <- if ( isTRUE(cpp_options[['stan_threads']]) ) threads else NULL
 
     # dangerous compile settings that can improve run times
     if ( cpp_fast==TRUE ) {
@@ -49,47 +50,28 @@ cstan <- function( file , model_code , data=list() , chains=1 , cores=1 , iter=1
 
     # sample
     if ( missing(start) ) {
-        if ( threads > 1 )
-            cmdstanfit <- mod$sample( data=data , 
-                chains=chains , 
-                parallel_chains=cores , 
-                iter_sampling=samp , iter_warmup=warm , 
-                adapt_delta=carg_adapt_delta , 
-                max_treedepth=carg_max_treedepth , 
-                threads_per_chain=threads ,
-                save_warmup=save_warmup , ... )
-        else
-            cmdstanfit <- mod$sample( data=data , 
-                chains=chains , 
-                parallel_chains=cores , 
-                iter_sampling=samp , iter_warmup=warm , 
-                adapt_delta=carg_adapt_delta , 
-                max_treedepth=carg_max_treedepth ,
-                save_warmup=save_warmup , ... )
+        cmdstanfit <- mod$sample( data=data , 
+            chains=chains , 
+            parallel_chains=cores , 
+            iter_sampling=samp , iter_warmup=warm , 
+            adapt_delta=carg_adapt_delta , 
+            max_treedepth=carg_max_treedepth , 
+            threads_per_chain=threads_per_chain ,
+            save_warmup=save_warmup , ... )
     } else {
         # start values
         f_init <- "random"
         if ( class(start)=="list" ) f_init <- function() return(start)
         if ( class(start)=="function" ) f_init <- start
-        if ( threads > 1 )
-            cmdstanfit <- mod$sample( data=data , 
-                chains=chains , 
-                parallel_chains=cores , 
-                iter_sampling=samp , iter_warmup=warm , 
-                adapt_delta=carg_adapt_delta , 
-                max_treedepth=carg_max_treedepth , 
-                threads_per_chain=threads ,
-                init = f_init ,
-                save_warmup=save_warmup , ... )
-        else
-            cmdstanfit <- mod$sample( data=data , 
-                chains=chains , 
-                parallel_chains=cores , 
-                iter_sampling=samp , iter_warmup=warm , 
-                adapt_delta=carg_adapt_delta , 
-                max_treedepth=carg_max_treedepth ,
-                init = f_init ,
-                save_warmup=save_warmup , ... )
+        cmdstanfit <- mod$sample( data=data , 
+            chains=chains , 
+            parallel_chains=cores , 
+            iter_sampling=samp , iter_warmup=warm , 
+            adapt_delta=carg_adapt_delta , 
+            max_treedepth=carg_max_treedepth , 
+            threads_per_chain=threads_per_chain ,
+            init = f_init ,
+            save_warmup=save_warmup , ... )
     }
 
     # coerce to stanfit object
