@@ -1382,26 +1382,8 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
     # reverse order of use_pars, so names in formula order
     use_pars <- use_pars[ length(use_pars):1 ]
 
-    cmdstanr_model_write <- function( the_model ) {
-        # make temp name from model code md5 hash
-        require( digest , quietly=TRUE )
-        file_patt <- file.path( tempdir() , concat("ulam_cmdstanr_",digest(the_model,"md5")) )
-        #file <- tempfile("ulam_cmdstanr",fileext=".stan")
-        file_stan <- concat( file_patt , ".stan" )
-        fileConn <- file( file_stan )
-        writeLines( the_model , fileConn )
-        close(fileConn)
-        file_exe <- character()
-        do_compile <- TRUE
-        if ( file.exists(file_patt) ) {
-            file_exe <- file_patt
-            do_compile <- TRUE # force for now because of odd bug
-        }
-        return(list(file_stan,file_exe,do_compile))
-    }
-
-    #if ( threads>1 ) 
-    cpp_options[['stan_threads']] <- TRUE
+    if ( threads>1 ) cpp_options[['stan_threads']] <- TRUE
+    threads_per_chain <- if ( isTRUE(cpp_options[['stan_threads']]) ) threads else NULL
 
     # dangerous compile settings that can improve run times
     if ( cpp_fast==TRUE ) {
@@ -1420,11 +1402,9 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                 else {
                     # use cmdstanr interface
                     require( cmdstanr , quietly=TRUE )
-                    filex <- cmdstanr_model_write( model_code )
+                    file_stan <- cmdstanr_model_write( model_code )
                     mod <- cmdstan_model(
-                        stan_file=filex[[1]],
-                      # exe_file=filex[[2]],
-                        compile=filex[[3]],
+                        stan_file=file_stan,
                         cpp_options=cpp_options,
                         stanc_options=stanc_options )
                     # set_num_threads( threads )
@@ -1436,7 +1416,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         iter_warmup=warmup, iter_sampling=floor(iter-warmup) , 
                         save_warmup=TRUE ,
                         adapt_delta=as.numeric(control[['adapt_delta']]) ,
-                        threads_per_chain=threads , ... )
+                        threads_per_chain=threads_per_chain , ... )
                     if ( rstanout==TRUE )
                         stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
                     else
@@ -1451,11 +1431,9 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                     # SAME AS ABOVE FOR NOW - how to referece exe?
                     # use cmdstanr interface
                     require( cmdstanr , quietly=TRUE )
-                    filex <- cmdstanr_model_write( model_code )
+                    file_stan <- cmdstanr_model_write( model_code )
                     mod <- cmdstan_model(
-                        stan_file=filex[[1]],
-                      # exe_file=filex[[2]],
-                        compile=filex[[3]],
+                        stan_file=file_stan,
                         cpp_options=cpp_options,
                         stanc_options=stanc_options )
                     # set_num_threads( threads )
@@ -1467,7 +1445,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         iter_warmup=warmup, iter_sampling=floor(iter-warmup) , 
                         save_warmup=TRUE ,
                         adapt_delta=as.numeric(control[['adapt_delta']]) ,
-                        threads_per_chain=threads , ... )
+                        threads_per_chain=threads_per_chain , ... )
                     if ( rstanout==TRUE )
                         stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
                     else
@@ -1490,11 +1468,9 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             #             chains=chains , cores=cores , iter=iter , control=control , init=f_init , warmup=warmup , ... )
             # use cmdstanr interface
                     require( cmdstanr , quietly=TRUE )
-                    filex <- cmdstanr_model_write( model_code )
+                    file_stan <- cmdstanr_model_write( model_code )
                     mod <- cmdstan_model(
-                        stan_file=filex[[1]],
-                      # exe_file=filex[[2]],
-                        compile=filex[[3]],
+                        stan_file=file_stan,
                         cpp_options=cpp_options,
                         stanc_options=stanc_options )
                     # set_num_threads( threads )
@@ -1507,7 +1483,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         save_warmup=TRUE ,
                         adapt_delta=as.numeric(control[['adapt_delta']]) ,
                         init = f_init ,
-                        threads_per_chain=threads , ... )
+                        threads_per_chain=threads_per_chain , ... )
                     if ( rstanout==TRUE )
                         stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
                     else
