@@ -26,7 +26,7 @@ dashboard <- function( fit , warmup=FALSE , plot=TRUE , trank=TRUE ) {
 
         # n_eff distribution
         Rhat_vals <- as.numeric( round( y[,'rhat'], 2 ) )
-        plot( y[,'ess_bulk'] , (Rhat_vals) , xlab="number of effective samples" , ylab="Rhat" , ylim=c( 1 , max(1.1,(Rhat_vals),na.rm=TRUE) ) , log='y' )
+        plot( y[,'ess_bulk'] , (Rhat_vals) , xlab="effective sample size (bulk)" , ylab="Rhat" , ylim=c( 1 , max(1.1,(Rhat_vals),na.rm=TRUE) ) , log='y' )
         abline( v=0.1*n_samples , lty=1 , col="red" )
         abline( v=n_samples , lty=1 , col=grau() )
         abline( h=1 , lty=2 )
@@ -43,7 +43,7 @@ dashboard <- function( fit , warmup=FALSE , plot=TRUE , trank=TRUE ) {
         text( 0.5 , 0.8 , n_divergent , cex=6 )
         text( 0.5 , 0.5 , "Divergent transitions" )
         if ( n_divergent==0 ) text( 0.5 , 0.2 , "Outlook good" , cex=1.5 )
-        if ( n_divergent>0 & n_divergent<10 ) text( 0.5 , 0.2 , "Roll again" , cex=1.5 )
+        if ( n_divergent>0 & n_divergent<10 ) text( 0.5 , 0.2 , "Outlook cloudy" , cex=1.5 )
         if ( n_divergent>=10 ) text( 0.5 , 0.2 , "Check yourself before\nyou wreck yourself" , cex=1.5 )
 
         # three trace plots with lowest n_eff

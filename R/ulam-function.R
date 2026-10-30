@@ -575,7 +575,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         right_txt <- deparse( rline , width.cutoff = 500L )
         if ( length(right_txt)>1 ) {
             # lines got broken! so concatenate with line breaks
-            right_text <- paste( right_txt , collapse="\n" )
+            right_txt <- paste( right_txt , collapse="\n" )
         }
         # if reduce context, need [start+i-1] in place of [i]
         if ( reduce==TRUE )
@@ -1481,6 +1481,7 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             f_init <- "random"
             if ( class(start)=="list" ) f_init <- function() return(start)
             if ( class(start)=="function" ) f_init <- start
+            if ( start==0 ) f_init <- 0 # init zero on unconstrained scale
             #if ( prev_stanfit==FALSE )
             #    stanfit <- stan( model_code = model_code , data = data , pars=use_pars , 
             #             chains=chains , cores=cores , iter=iter , control=control , init=f_init , warmup=warmup , ... )

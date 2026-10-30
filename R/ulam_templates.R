@@ -245,6 +245,15 @@ ulam_dists <- list(
         constraints = c( NA , NA , "lower=0" , "lower=0" ),
         vectorized = TRUE
     ) ,
+    std_normal = list(
+        R_name = "dnorm",
+        Stan_name = "std_normal",
+        Stan_suffix = "lupdf",
+        pars = 0,
+        dims = c( "real" ),
+        constraints = c( NA ),
+        vectorized = TRUE
+    ) ,
     # multi_normal can take (mu,Rho,sigma) or (mu,Sigma) or (mu,L_Sigma) as arguments
     # i.e. is overloaded
     multinormal1 = list(
@@ -828,6 +837,15 @@ ulam_dists <- list(
         pars = 1,
         dims = c( "int" , "real" ),
         constraints = c( NA , "lower=0" ),
+        vectorized = TRUE
+    ),
+    poisson_log = list(
+        R_name = "dpois",
+        Stan_name = "poisson_log",
+        Stan_suffix = "lpmf",
+        pars = 1,
+        dims = c( "int" , "real" ),
+        constraints = c( NA , NA ),
         vectorized = TRUE
     ),
     gammapoisson = list(

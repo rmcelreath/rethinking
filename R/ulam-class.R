@@ -242,14 +242,17 @@ setMethod("pairs" , "ulam" , function(x, n=200 , alpha=0.7 , cex=0.7 , pch=16 , 
 # my trace plot function
 traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha=1 , bg=col.alpha("black",0.15) , ask=TRUE , window , trim=100 , n_cols=3 , max_rows=5 , lwd=0.5 , lp=FALSE , ... ) {
     
-    if ( !(class(object) %in% c("map2stan","ulam","stanfit")) ) stop( "requires map2stan or stanfit fit object" )
+    if ( !(class(object)[1] %in% c("map2stan","ulam","stanfit","CmdStanMCMC")) ) stop( "requires map2stan or stanfit or CmdStanMCMC fit object" )
     
     #if ( class(object) %in% c("map2stan","ulam") ) object <- object@stanfit
+
+    if ( class(object)[1]=="ulam" )
+        object <- attr(object,"cstanfit")
 
     # get all chains, not mixed, from stanfit
     if ( missing(pars) ) {
         # post <- extract(object,permuted=FALSE,inc_warmup=TRUE)
-        post <- as_draws_array( attr(object,"cstanfit")$draws(inc_warmup=TRUE) )
+        post <- as_draws_array( object$draws(inc_warmup=TRUE) )
         dimnames <- attr(post,"dimnames")
         pars <- dimnames$variable
         # cut out "dev" and "lp__" and "log_lik"
@@ -259,9 +262,10 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
         if ( length(wlp)>0 & lp==FALSE ) pars <- pars[-wlp]
         wlp <- grep( "log_lik" , pars , fixed=TRUE )
         if ( length(wlp)>0 ) pars <- pars[-wlp]
-    } else
+    } else {
         #post <- extract(object,pars=pars,permuted=FALSE,inc_warmup=TRUE)
-        post <- as_draws_array( attr(object,"cstanfit")$draws(variables=pars,inc_warmup=TRUE) )
+        post <- as_draws_array( object$draws(variables=pars,inc_warmup=TRUE) )
+    }
     
     # names
     dimnames <- attr(post,"dimnames")
@@ -281,7 +285,7 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
         paging <- TRUE
     }
     n_iter <- length(dimnames$iteration) # all iterations
-    n_warm <- attr(object,"cstanfit")$metadata()$iter_warmup
+    n_warm <- object$metadata()$iter_warmup
     n_samples_extracted <- dim( post )[1]
     wstart <- 1
     wend <- n_iter
@@ -313,17 +317,22 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
         if ( show_warmup==TRUE )
             polygon( n_warm*c(-1,1,1,-1) , ylim[c(1,1,2,2)] , col=bg , border=NA )
         neff_use <- neff[ names(neff)==main ]
-        mtext( paste("n_eff =",round(neff_use,0)) , 3 , adj=1 , cex=0.9 )
+        mtext( paste("ess =",round(neff_use,0)) , 3 , adj=1 , cex=0.9 )
         mtext( main , 3 , adj=0 , cex=1 )
     }
     plot_chain <- function( x , nc , ... ) {
         lines( 1:n_iter , x , col=col.alpha(chain.cols[nc],alpha) , lwd=lwd )
     }
-    
+
     # fetch n_eff
-    n_eff <- summary(object)$ess_bulk
-    names(n_eff) <- rownames(summary(object))
-    
+    if ( TRUE ) {
+        x <- object$summary(NULL,"ess_bulk")
+        n_eff <- as.vector(x$ess_bulk)
+        names(n_eff) <- x$variable
+    } else {
+        n_eff <- summary(object)$summary[ , 'n_eff' ]
+    }
+
     # make window
     #set_nice_margins()
     par(mgp = c(0.5, 0.5, 0), mar = c(1.5, 1.5, 1.5, 1) + 0.1, 
@@ -355,6 +364,8 @@ traceplot_ulam <- function( object , pars , chains , col=rethink_palette , alpha
     
 }
 setMethod("traceplot", "ulam" , function(x,...) traceplot_ulam(object=x,...) )
+
+#setMethod("traceplot", "CmdStanMCMC" , function(x,...) traceplot_ulam(object=x,...) )
 
 setMethod( "plot" , "ulam" , function(x,depth=1,...) precis_plot(precis(x,depth=depth),...) )
 
