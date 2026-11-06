@@ -8,5 +8,5 @@ Maintainer: Richard McElreath <richard_mcelreath@eva.mpg.de>
 Imports: coda, MASS, mvtnorm, loo, shape
 Depends: R (>= 4.0.0), cmdstanr, posterior, parallel, methods, stats, graphics
 Suggests: testthat, dagitty
-Description: Utilities for fitting and comparing models
+Description: Utilities for fitting and comparing models.
 License: GPL (>= 3)
