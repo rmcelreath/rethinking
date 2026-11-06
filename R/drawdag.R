@@ -4,7 +4,7 @@ drawdag <- function( x , col_arrow="black" , col_segment="black" , col_labels="b
     require(dagitty)
 
     # check for list of DAGs
-    if ( class(x)=="list" ) {
+    if ( is.list(x) ) {
         n <- length(x)
         y <- make.grid(n)
         par(mfrow=y)

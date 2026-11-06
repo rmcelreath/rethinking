@@ -350,7 +350,7 @@ dgnorm <- function( x , mu , alpha , beta , log=FALSE ) {
 # categorical distribution for multinomial models
 
 dcategorical <- function( x , prob , log=TRUE ) {
-    if ( class(prob)=="matrix" ) {
+    if ( is.matrix(prob) ) {
         # vectorized probability matrix
         # length of x needs to match nrow(prob)
         logp <- sapply( 1:nrow(prob) , function(i) log(prob[i,x[i]]) )

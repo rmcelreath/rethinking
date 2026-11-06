@@ -50,7 +50,7 @@ xparse_glimmer_formula <- function( formula , data ) {
     # find fixed effects list by deleting random effects and expanding
     f_nobars <- nobars( formula )
     # catch implied intercept error -- happens when right side of formula is only () blocks
-    if ( class(f_nobars)=="name" & length(f_nobars)==1 ) {
+    if ( is.name(f_nobars) & length(f_nobars)==1 ) {
         f_nobars <- nobars( as.formula( paste( deparse(formula) , "+ 1" ) ) )
     }
     #fixef <- make.names( colnames( model.matrix( f_nobars , data ) ) )
@@ -62,7 +62,7 @@ xparse_glimmer_formula <- function( formula , data ) {
     # mdat <- cbind( data[[outcome_name]] , mdat )
     # colnames(mdat)[1] <- outcome_name
     outcome <- model.frame( f_nobars , data )[,1]
-    if ( class(outcome)=="matrix" ) {
+    if ( is.matrix(outcome) ) {
         # fix outcome name
         outcome_name <- colnames( outcome )[1]
     }
@@ -81,7 +81,7 @@ xparse_glimmer_formula <- function( formula , data ) {
             if ( FALSE ) { # check index variables?
                 if ( TRUE ) {
                     # check that grouping vars are class integer
-                    if ( class( data[[name]] )!="integer" ) {
+                    if ( !is.integer( data[[name]] ) ) {
                         stop( paste( "Grouping variables must be integer type. '" , name , "' is instead of type: " , class( data[[name]] ) , "." , sep="" ) )
                     }
                     # check that values are contiguous
@@ -102,7 +102,7 @@ xparse_glimmer_formula <- function( formula , data ) {
             
             # parse formula
             v <- var[[i]][[2]]
-            if ( class(v)=="numeric" ) {
+            if ( is.numeric(v) ) {
                 # just intercept
                 ranef[[ name ]] <- "(Intercept)"
             } else {
@@ -131,7 +131,7 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
     
     # convert family to text
     family.orig <- family
-    if ( class(family)=="function" ) {
+    if ( is.function(family) ) {
         family <- do.call(family,args=list())
     }
     link <- family$link
@@ -155,7 +155,7 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
     )
     
     # check input
-    if ( class(formula)!="formula" ) stop( "Input must be a glmer-style formula." )
+    if ( !inherits(formula, "formula") ) stop( "Input must be a glmer-style formula." )
     if ( missing(data) ) stop( "Need data" )
     
     f <- formula
@@ -170,7 +170,7 @@ glimmer <- function( formula , data , family=gaussian , prefix=c("b_","v_") , de
     # check for size variable in Binomial
     dtext <- family_liks[[family]]
     if ( family=="binomial" ) {
-        if ( class(pf$y)=="matrix" ) {
+        if ( is.matrix(pf$y) ) {
             # cbind input
             pf$dat[[pf$yname]] <- pf$y[,1]
             pf$dat[[concat(pf$yname,"_size")]] <- apply(pf$y,1,sum)
