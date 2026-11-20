@@ -32,6 +32,9 @@ function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasin
     if ( !is.null(attr(object,"cstanfit")) ) {
         return( precis( attr(object,"cstanfit") , depth=depth, pars=pars , prob=prob, omit=omit , ... ) )
     }
+    if ( !is.null(attr(object,"stanlifit")) ) {
+        return( precis( attr(object,"stanlifit") , depth=depth, pars=pars , prob=prob, omit=omit , ... ) )
+    }
 
     banlist <- c("dev","lp__")
     if ( lp__==TRUE ) banlist <- c("dev")
@@ -67,9 +70,19 @@ function(object,n,clean=TRUE,pars,...) {
         p <- list()
         for ( i in 1:length(pr) )
             p[[ names(pr)[i] ]] <- draws_of( pr[[i]] )
-    } else
+    }
+    if ( !is.null(attr(object,"stanlifit")) ) {
+        # use posterior to extract draws and convert to array format
+        pr <- as_draws_rvars( as_draws_array(attr(object,"stanlifit")) )
+        p <- list()
+        for ( i in 1:length(pr) )
+            p[[ names(pr)[i] ]] <- draws_of( pr[[i]] )
+    }
+    if ( !is.null(attr(object,"stanfit")) ) {
         # assume old rstan fit
         p <- rstan::extract(object@stanfit,pars=pars,...)
+    }
+
     # get rid of dev and lp__
     if ( clean==TRUE ) {
         p[['dev']] <- NULL
@@ -148,15 +161,32 @@ setMethod("show", "ulam", function(object){
     cat("Hamiltonian Monte Carlo approximation\n")
 
     # timing and sample counts
-    is_cstan <- !is.null( attr(object,"cstanfit") )
-    if ( is_cstan==TRUE ) {
+    #is_cstan <- !is.null( attr(object,"cstanfit") )
+    if ( !is.null( attr(object,"cstanfit") ) ) {
+        cat("[cmdstanr engine]")
         # cmdstan fit
         dur <- attr(object,"cstanfit")$time()$chains
         chains <- attr(object,"cstanfit")$num_chains()
         iter <- attr(object,"cstanfit")$metadata()$iter_sampling
         warm <- 0 # attr(object,"cstanfit")$metadata()$iter_warmup
         # iter is just post warmup for cstan
-    } else {
+    }
+    if ( !is.null( attr(object,"stanlifit") ) ) {
+        cat("[stanli engine]")
+        # stanli fit
+        chains <- attr(object,"stanlifit")$chains
+        dur <- attr(object,"stanlifit")$report
+        dur <- data.frame(
+            chain=1:chains,
+            warmup=dur$warmup_seconds,
+            sampling=dur$sampling_seconds)
+        dur$total <- dur$warmup + dur$sampling
+        iter <- attr(object,"stanlifit")$samples
+        warm <- 0 # attr(object,"cstanfit")$metadata()$iter_warmup
+        # iter is just post warmup for stanli
+    }
+    if ( !is.null( attr(object,"stanfit") ) ) {
+        cat("[rstan engine]")
         # old stanfit
         iter <- object@stanfit@sim$iter
         warm <- object@stanfit@sim$warmup
@@ -169,11 +199,12 @@ setMethod("show", "ulam", function(object){
     tot_samples <- (iter-warm)*chains
     cat(concat( tot_samples , " samples from " , chains , chaintxt ))
     
-    if ( is_cstan==FALSE )
+    if ( !is.null( attr(object,"stanfit") ) ) {
         lab <- attr(dur,"units")
-    else
+        attr(dur,"units") <- NULL
+    } else
         lab <- "seconds"
-    attr(dur,"units") <- NULL
+    
     cat(concat("\nSampling durations (",lab,"):\n"))
     print(round(dur,2))
 

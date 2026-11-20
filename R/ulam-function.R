@@ -20,7 +20,7 @@ ulam_options$use_cmdstan <- TRUE
 #if ( require(cmdstanr) ) ulam_options$use_cmdstan <- TRUE
 set_ulam_cmdstan <- function(x=TRUE) assign( "use_cmdstan" , x , env=ulam_options )
 
-ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , warmup , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , cpp_options=list() , cpp_fast=FALSE , rstanout=FALSE , force_compile=TRUE , stanc_options=list("O1") , ... ) {
+ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 , iter=1000 , warmup , control=list(adapt_delta=0.95) , distribution_library=ulam_dists , macro_library=ulam_macros , custom , constraints , declare_all_data=TRUE , log_lik=FALSE , sample=TRUE , messages=TRUE , pre_scan_data=TRUE , coerce_int=TRUE , sample_prior=FALSE , file=NULL , cmdstan=ulam_options$use_cmdstan , threads=1 , grain=1 , cpp_options=list() , cpp_fast=FALSE , rstanout=FALSE , force_compile=TRUE , stanc_options=list("O1") , stanli=FALSE , ... ) {
 
     if ( !is.null(file) ) {
         rds_file_name <- concat( file , ".rds" )
@@ -1396,10 +1396,11 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
         if ( length(start)==0 ) {
             # without explicit start list
             if ( prev_stanfit==FALSE ) {
-                if ( cmdstan==FALSE )
+                if ( cmdstan==FALSE ) {
                     # rstan interface
                     stanfit <- stan( model_code = model_code , data = data , pars=use_pars , chains=chains , cores=cores , iter=iter , control=control , warmup=warmup , ... )
-                else {
+                }
+                if ( cmdstan==TRUE && stanli==FALSE ) {
                     # use cmdstanr interface
                     require( cmdstanr , quietly=TRUE )
                     file_stan <- cmdstanr_model_write( model_code )
@@ -1421,6 +1422,16 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
                         stanfit <- rstan::read_stan_csv(cmdstanfit$output_files())
                     else
                         stanfit <- cmdstanfit
+                }
+                if ( stanli==TRUE ) {
+                    # use stanli EXPERIMENTAL
+                    require( stanli , quietly=TRUE )
+                    #file_stan <- cmdstanr_model_write( model_code )
+                    # sample_model(m, chains = 4, parallel_chains = 4, warmup = 1000, samples = 1000, seed = 1, delta = 0.8, max_depth = 10, init = q, refresh = 100)
+                    mod <- stanli_model(code=model_code,data=data)
+                    stanlifit <- sample_model(mod, chains = chains, parallel_chains=cores, warmup=warmup, samples=floor(iter-warmup), delta=as.numeric(control[['adapt_delta']]), ...)
+                    # any special handling here?
+                    stanfit <- stanlifit
                 }
             } else {
                 if ( cmdstan==FALSE ) {
@@ -1548,8 +1559,12 @@ ulam <- function( flist , data , pars , pars_omit , start , chains=1 , cores=1 ,
             )
         if ( rstanout==TRUE | cmdstan==FALSE ) {
             attr(result,"stanfit") <- stanfit
-        } else {
+        }
+        if ( cmdstan==TRUE & stanli==FALSE ) {
             attr(result,"cstanfit") <- stanfit
+        }
+        if ( stanli==TRUE ) {
+            attr(result,"stanlifit") <- stanfit
         }
         
         attr(result,"generation") <- "ulam2018"

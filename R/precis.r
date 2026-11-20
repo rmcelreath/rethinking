@@ -122,9 +122,14 @@ setGeneric("precis",
 function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {   
     if ( "CmdStanFit" %in% class(object) ) {
         if ( missing(pars) ) pars <- NULL
-        precis_cmdstanfit( object , depth=depth , pars=pars , prob=prob , digits=digits , sort=sort, decreasing=decreasing , ... )
-    } else
-        new( "precis" , as.data.frame(object) , digits=digits )
+        return(precis_cmdstanfit( object , depth=depth , pars=pars , prob=prob , digits=digits , sort=sort, decreasing=decreasing , ... ))
+    }
+    if ( "stanli_fit" %in% class(object) ) {
+        if ( missing(pars) ) pars <- NULL
+        return(precis_stanlifit( object , depth=depth , pars=pars , prob=prob , digits=digits , sort=sort, decreasing=decreasing , ... ))
+    }
+    # last resort
+    new( "precis" , as.data.frame(object) , digits=digits )
 }
 )
 
@@ -376,7 +381,33 @@ precis_cmdstanfit <- function( object , depth=1 , pars , prob=0.89 , digits=2 , 
     low <- (1-prob)/2
     upp <- 1-low
     # result <- summary(object,variables=pars,probs=c(low,upp))$summary[,c(1,3:7)]
-    result <- object$summary( variables=pars , "mean" , "sd" , ~quantile(.x, probs = c(low, upp)) , "rhat" , "ess_bulk" , "ess_tail" )
+    result <- object$summary( variables=pars , "mean" , "sd" , ~quantile(.x, probs = c(low, upp)) , "rhat" , "ess_bulk" ) # "ess_tail"
+    result <- as.data.frame( result )
+
+    # take variable column and convert to row names
+    rownames(result) <- result$variable
+    result$variable <- NULL
+
+    idx <- which( rownames(result) %in% c("dev","lp__") )
+    idx2 <- grep( "log_lik[" , rownames(result) , fixed=TRUE )
+    if ( length(idx2)>0 ) idx <- c( idx , idx2 )
+    if ( length(idx)>0 ) {
+        # remove dev and lp__ and log_lik from table
+        result <- result[ -idx , ]
+    }
+
+    result <- precis_format( result , depth , sort , decreasing )
+
+    return( new( "precis" , result , digits=digits ) )
+}
+
+# placeholder for stanli result
+precis_stanlifit <- function( object , depth=1 , pars , prob=0.89 , digits=2 , sort=NULL , decreasing=FALSE , ... ) {
+    low <- (1-prob)/2
+    upp <- 1-low
+    # result <- summary(object,variables=pars,probs=c(low,upp))$summary[,c(1,3:7)]
+    #result <- object$summary( variables=pars , "mean" , "sd" , ~quantile(.x, probs = c(low, upp)) , "rhat" , "ess_bulk" , "ess_tail" )
+    result <- summary(object)[,c("variable","mean","sd","q5","q95","rhat","ess_bulk")]
     result <- as.data.frame( result )
 
     # take variable column and convert to row names
