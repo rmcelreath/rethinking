@@ -1,7 +1,10 @@
 # extracts n_divergent from stan fit
+# sampler diagnostics are indexed by name, because their order depends on the
+# cmdstanr version: older versions returned only treedepth__, divergent__ and
+# energy__; current versions return all six diagnostics listed below
 divergent <- function( fit , warmup=FALSE ) {
     x <- attr(fit,"cstanfit")$sampler_diagnostics(inc_warmup=warmup)
-    sum(x[,,2])
+    sum(x[,,"divergent__"])
 }
 
 # all diagnostics from Stan
@@ -32,13 +35,13 @@ dashboard <- function( fit , warmup=FALSE , plot=TRUE , trank=TRUE ) {
         abline( h=1 , lty=2 )
 
         # energy plot
-        dens( x[,,3] , adj=0.1 , xlab="HMC energy" )
-        mu <- mean(x[,,3])
-        sig <- sd(x[,,3])
+        dens( x[,,"energy__"] , adj=0.1 , xlab="HMC energy" )
+        mu <- mean(x[,,"energy__"])
+        sig <- sd(x[,,"energy__"])
         curve( dnorm( x , mu , sig ) , add=TRUE , col=rangi2 , lwd=1.5 )
 
         # count of divergent iters
-        n_divergent <- sum(x[,,2])
+        n_divergent <- sum(x[,,"divergent__"])
         plot( NULL , bty="n" , xlab=" " , ylab="" , xlim=c(0,1) , ylim=c(0,1) , xaxt="n" , yaxt="n" )
         text( 0.5 , 0.8 , n_divergent , cex=6 )
         text( 0.5 , 0.5 , "Divergent transitions" )
